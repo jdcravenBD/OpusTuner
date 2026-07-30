@@ -32,6 +32,25 @@ export function StringRow({
   const count = targets.length;
   const active = targets[selectedIndex];
 
+  /*
+   * Tunings often repeat a pitch class — standard guitar has E on both the 6th
+   * and the 1st string. Labelling every repeat after the first in lower case
+   * gives them distinct silhouettes, so "E … e" is scannable at a glance in a
+   * way that "E … E" is not. Octave is ignored when matching, since E2 and E4
+   * are exactly the pair that needs telling apart.
+   *
+   * First occurrence is by string order (lowest first), which is the leftmost
+   * button in the normal layout and stays stable when the row is mirrored for
+   * left-handed players.
+   */
+  const seenPitchClasses = new Set<number>();
+  const isDuplicate = targets.map((midi) => {
+    const pc = ((Math.round(midi) % 12) + 12) % 12;
+    const dup = seenPitchClasses.has(pc);
+    seenPitchClasses.add(pc);
+    return dup;
+  });
+
   return (
     <div className={`strings${leftHanded ? ' strings--reverse' : ''}`}>
       <div className="strings__inner" role="group" aria-label="Strings">
@@ -39,6 +58,7 @@ export function StringRow({
           // Conventional numbering: the highest-pitched string is #1.
           const stringNumber = count - i;
           const label = pitchClassName(midi, naming);
+          const shown = isDuplicate[i] ? label.toLowerCase() : label;
           return (
             <button
               key={`${i}-${midi}`}
@@ -52,7 +72,7 @@ export function StringRow({
               aria-pressed={i === selectedIndex}
             >
               <span>
-                {label}
+                {shown}
                 <span className="string__octave">{noteOctave(midi)}</span>
               </span>
               {tuned[i] && (

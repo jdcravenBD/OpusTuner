@@ -192,23 +192,27 @@ export default function App() {
           tolerance={settings.tolerance}
           fallbackMidi={fallbackMidi}
         />
-        <div className="field">
-          <PitchField
-            tolerance={settings.tolerance}
-            themeKey={settings.theme}
-            naming={settings.naming}
-            fallbackMidi={fallbackMidi}
-          />
-          <span className="field__edge field__edge--flat" aria-hidden>
-            ♭
-          </span>
-          <span className="field__edge field__edge--sharp" aria-hidden>
-            ♯
-          </span>
+        {/* The field is centred in this zone, which spans the full gap between
+            the carousel and the string row. The frequency readout is pinned to
+            the bottom of the zone so it cannot pull the field off centre. */}
+        <div className="field-zone">
+          <div className="field">
+            <PitchField
+              tolerance={settings.tolerance}
+              themeKey={settings.theme}
+              naming={settings.naming}
+              fallbackMidi={fallbackMidi}
+            />
+            <span className="field__edge field__edge--flat" aria-hidden>
+              ♭
+            </span>
+            <span className="field__edge field__edge--sharp" aria-hidden>
+              ♯
+            </span>
+          </div>
+          <Readout show={settings.showFrequency} />
         </div>
       </main>
-
-      <Readout show={settings.showFrequency} />
 
       <StringRow
         targets={targets}

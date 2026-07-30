@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useTunerFrame } from '../hooks';
-import { ArrowDownIcon, ArrowUpIcon } from './Icons';
 import { formatHz, noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 
 interface Props {
@@ -29,10 +28,6 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   const nameRef = useRef<HTMLSpanElement>(null);
   const octaveRef = useRef<HTMLSpanElement>(null);
   const neighbourRefs = useRef<Array<HTMLSpanElement | null>>([null, null, null, null]);
-  const verdictRef = useRef<HTMLDivElement>(null);
-  const centsRef = useRef<HTMLSpanElement>(null);
-  const upRef = useRef<HTMLSpanElement>(null);
-  const downRef = useRef<HTMLSpanElement>(null);
 
   const namingRef = useRef(naming);
   namingRef.current = naming;
@@ -42,19 +37,11 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   fallbackRef.current = fallbackMidi;
 
   // Last written values — avoids touching the DOM when nothing changed.
-  const prev = useRef({
-    midi: -1,
-    verdict: '',
-    state: '',
-    signal: '',
-    intune: '',
-    naming: '' as string,
-  });
+  const prev = useRef({ midi: -1, signal: '', intune: '', naming: '' as string });
 
   useTunerFrame((frame) => {
     const p = prev.current;
-    const hasNote = frame.targetMidi > 0;
-    const centre = hasNote ? frame.targetMidi : fallbackRef.current;
+    const centre = frame.targetMidi > 0 ? frame.targetMidi : fallbackRef.current;
 
     // The whole carousel is rewritten only when the focused note (or the
     // accidental style) actually changes — typically a few times a session.
@@ -87,36 +74,6 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
     if (intuneAttr !== p.intune) {
       p.intune = intuneAttr;
       wrapRef.current?.setAttribute('data-intune', intuneAttr);
-    }
-
-    let state: string;
-    let text: string;
-    if (!frame.hasSignal) {
-      state = 'idle';
-      // Once a note has been shown, stay quiet between plucks rather than
-      // nagging — the carousel already holds the last note on screen.
-      text = hasNote ? '' : 'Play a note';
-    } else if (inTune) {
-      state = 'intune';
-      text = 'In tune';
-    } else if (frame.cents < 0) {
-      state = 'flat';
-      text = `${Math.round(Math.abs(frame.cents))}¢ flat`;
-    } else {
-      state = 'sharp';
-      text = `${Math.round(frame.cents)}¢ sharp`;
-    }
-
-    if (state !== p.state) {
-      p.state = state;
-      verdictRef.current?.setAttribute('data-state', state);
-      // Arrow points the way the peg should go: flat means wind it up.
-      if (upRef.current) upRef.current.style.display = state === 'flat' ? 'flex' : 'none';
-      if (downRef.current) downRef.current.style.display = state === 'sharp' ? 'flex' : 'none';
-    }
-    if (text !== p.verdict) {
-      p.verdict = text;
-      if (centsRef.current) centsRef.current.textContent = text;
     }
   });
 
@@ -153,17 +110,6 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
             }}
           />
         ))}
-      </div>
-      <div className="verdict" ref={verdictRef} data-state="idle" aria-live="polite">
-        <span ref={upRef} style={{ display: 'none', alignItems: 'center' }}>
-          <ArrowUpIcon />
-        </span>
-        <span ref={downRef} style={{ display: 'none', alignItems: 'center' }}>
-          <ArrowDownIcon />
-        </span>
-        <span className="verdict__cents" ref={centsRef}>
-          Play a note
-        </span>
       </div>
     </div>
   );

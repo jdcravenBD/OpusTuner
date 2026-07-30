@@ -264,16 +264,26 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: clamp(10px, 3vh, 30px);
-  padding: 4px 0 0;
+  padding: 6px 0 0;
 }
 
 .note-block {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
+}
+
+/* Fills everything between the carousel and the string row, with the field
+   centred in it — so the space above and below the field is exactly equal. */
+.field-zone {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
 }
 
 /* --- the square pitch field --- */
@@ -289,7 +299,7 @@ button {
    * squashing it when space runs short.
    */
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(81vh - 290px), 400px);
+  width: min(100% - 20px, calc(82vh - 300px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -392,44 +402,20 @@ button {
   opacity: 0.7;
 }
 
-.verdict {
-  margin-top: 10px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--text-2);
-  transition: color 180ms var(--ease);
-}
-
-.verdict[data-state='intune'] {
-  color: var(--green);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 13px;
-}
-
-.verdict[data-state='flat'],
-.verdict[data-state='sharp'] {
-  color: var(--text);
-}
-
-.verdict__cents {
-  font-variant-numeric: tabular-nums;
-}
-
 /* --------------------------------------------------------------- readout -- */
 
+/* Pinned to the bottom of the field zone so it takes no part in the centring. */
 .readout {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 16px 10px;
-  flex: 0 0 auto;
+  padding: 0 16px;
+  pointer-events: none;
 }
 
 .pill {
@@ -1346,7 +1332,7 @@ button {
 /* Short/landscape phones: reclaim vertical space. */
 @media (max-height: 620px) {
   .field {
-    width: min(100% - 20px, calc(87vh - 300px), 400px);
+    width: min(100% - 20px, calc(85vh - 300px), 400px);
     border-radius: 12px;
   }
 
@@ -1360,13 +1346,5 @@ button {
 
   .carousel__note[data-dist='2'] {
     font-size: clamp(15px, 4.2vw, 23px);
-  }
-
-  .verdict {
-    margin-top: 4px;
-  }
-
-  .stage {
-    gap: 8px;
   }
 }

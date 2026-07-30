@@ -390,14 +390,13 @@ function draw(
   /* --- cent readout, riding above the nib -------------------------------- */
   if (frame.hasSignal) {
     const cents = Math.round(frame.cents);
-    const label =
-      cents === 0 ? '0¢' : `${cents > 0 ? '+' : '−'}${Math.abs(cents)}¢`;
+    const label = cents === 0 ? '0' : `${cents > 0 ? '+' : '−'}${Math.abs(cents)}`;
     const size = Math.max(13, Math.round(h * 0.055));
     ctx.font = fieldFont(size);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     // Rides with the marker but stays clear of the field edges.
-    const margin = ctx.measureText('−250¢').width / 2 + 4;
+    const margin = ctx.measureText('−250').width / 2 + 4;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = hot;
     ctx.fillText(label, clamp(x, margin, w - margin), markerY - 31 * scale - 9);
@@ -451,7 +450,7 @@ function drawTrail(
   const newest = (t.head - 1 + TRAIL_CAPACITY) % TRAIL_CAPACITY;
   if (t.live[newest]) {
     bctx.strokeStyle = hot;
-    bctx.lineWidth = 6;
+    bctx.lineWidth = 3;
     bctx.beginPath();
     bctx.moveTo(markerX, markerY);
     bctx.lineTo(t.x[newest], t.y[newest]);
@@ -468,7 +467,7 @@ function drawTrail(
     if (t.y[a] > h) continue;
     const depth = clamp(1 - (t.y[a] - markerY) / Math.max(1, h - markerY), 0, 1);
     bctx.strokeStyle = colourFor(p, t.cents[a], s.tolerance);
-    bctx.lineWidth = 2 + depth * 4;
+    bctx.lineWidth = 1 + depth * 2;
     bctx.beginPath();
     bctx.moveTo(t.x[a], t.y[a]);
     bctx.lineTo(t.x[b], t.y[b]);
