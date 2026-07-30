@@ -12,6 +12,13 @@ interface Props {
 /** Chromatic offsets shown either side of the focused note. */
 const NEIGHBOURS = [-2, -1, 1, 2] as const;
 
+const VERDICT_TEXT: Record<string, string> = {
+  idle: '',
+  intune: 'In tune',
+  flat: 'Too flat',
+  sharp: 'Too sharp',
+};
+
 /**
  * The note carousel.
  *
@@ -36,8 +43,17 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
 
+  const verdictRef = useRef<HTMLDivElement>(null);
+  const verdictTextRef = useRef<HTMLSpanElement>(null);
+
   // Last written values — avoids touching the DOM when nothing changed.
-  const prev = useRef({ midi: -1, signal: '', intune: '', naming: '' as string });
+  const prev = useRef({
+    midi: -1,
+    signal: '',
+    intune: '',
+    naming: '' as string,
+    verdict: '',
+  });
 
   useTunerFrame((frame) => {
     const p = prev.current;
@@ -75,6 +91,23 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
       p.intune = intuneAttr;
       wrapRef.current?.setAttribute('data-intune', intuneAttr);
     }
+
+    // Direction only — the amount is already on the needle and in the readout,
+    // and repeating it here would just be a third copy of the same number.
+    const verdict = !frame.hasSignal
+      ? 'idle'
+      : inTune
+        ? 'intune'
+        : frame.cents < 0
+          ? 'flat'
+          : 'sharp';
+    if (verdict !== p.verdict) {
+      p.verdict = verdict;
+      verdictRef.current?.setAttribute('data-state', verdict);
+      if (verdictTextRef.current) {
+        verdictTextRef.current.textContent = VERDICT_TEXT[verdict];
+      }
+    }
   });
 
   return (
@@ -111,6 +144,9 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
             }}
           />
         ))}
+      </div>
+      <div className="verdict" ref={verdictRef} data-state="idle" aria-live="polite">
+        <span ref={verdictTextRef} />
       </div>
     </div>
   );
