@@ -4,7 +4,13 @@ import { CustomTuningEditor } from './CustomTuningEditor';
 import { ClockIcon, CloseIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 import { INSTRUMENTS, type InstrumentId, type Tuning } from '../music/tunings';
-import { markTuningUsed, sessionStore, toggleFavorite, useSession } from '../state/store';
+import {
+  MAX_RECENT,
+  markTuningUsed,
+  sessionStore,
+  toggleFavorite,
+  useSession,
+} from '../state/store';
 import { useAllTunings } from '../hooks';
 
 interface Props {
@@ -81,9 +87,12 @@ export function TuningSheet({ open, onClose, naming }: Props) {
 
   // Chromatic is already pinned above, so keep it out of the other groups
   // rather than listing the same row three times.
+  // Sliced as well as capped on write, so a list stored by an older build
+  // still renders at the current length.
   const recents = session.recentTuningIds
     .map((id) => byId.get(id))
-    .filter((t): t is Tuning => !!t && !t.chromatic);
+    .filter((t): t is Tuning => !!t && !t.chromatic)
+    .slice(0, MAX_RECENT);
   const favorites = session.favoriteTuningIds
     .map((id) => byId.get(id))
     .filter((t): t is Tuning => !!t && !t.chromatic);

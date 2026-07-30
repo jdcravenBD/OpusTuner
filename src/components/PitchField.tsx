@@ -106,14 +106,21 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Props)
 
   const toleranceRef = useRef(tolerance);
   toleranceRef.current = tolerance;
+  /*
+   * The palette is re-read lazily at draw time rather than in an effect.
+   * PitchField is a child of the component that writes --h / --fh onto <html>,
+   * and child effects run *before* parent effects — so reading on a themeKey
+   * effect would sample the previous hue and leave the canvas a step behind
+   * every time the screen colour changes.
+   */
+  const themeKeyRef = useRef(themeKey);
+  themeKeyRef.current = themeKey;
+  const paletteKey = useRef<string | null>(null);
+
   const namingRef = useRef(naming);
   namingRef.current = naming;
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
-
-  useEffect(() => {
-    paletteRef.current = readPalette();
-  }, [themeKey]);
 
   /**
    * Matches the backing store to the CSS box. Called from a ResizeObserver and
@@ -163,7 +170,10 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Props)
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     if (!syncSize(canvas)) return;
-    if (!paletteRef.current) paletteRef.current = readPalette();
+    if (!paletteRef.current || paletteKey.current !== themeKeyRef.current) {
+      paletteRef.current = readPalette();
+      paletteKey.current = themeKeyRef.current;
+    }
 
     const { w, h } = sizeRef.current;
 

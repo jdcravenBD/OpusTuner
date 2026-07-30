@@ -16,6 +16,9 @@ import { DEFAULT_TUNING_ID, type Tuning } from '../music/tunings';
 export type ThemeMode = 'dark' | 'light' | 'system';
 export type ToleranceCents = 2 | 3 | 5 | 10;
 
+/** The stock blue-grey. Matches the hue baked into styles/app.css. */
+export const DEFAULT_HUE = 215;
+
 export interface Settings {
   /** Concert-pitch reference, 415–466 Hz. */
   a4: number;
@@ -34,6 +37,10 @@ export interface Settings {
   haptics: boolean;
   keepAwake: boolean;
   theme: ThemeMode;
+  /** Chassis hue, 0–360. Drives every neutral in the UI. */
+  appHue: number;
+  /** Tuner screen hue, 0–360. Independent of the chassis. */
+  fieldHue: number;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -65,6 +72,8 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   keepAwake: true,
   theme: 'dark',
+  appHue: DEFAULT_HUE,
+  fieldHue: DEFAULT_HUE,
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',
@@ -185,7 +194,8 @@ export function sensitivityToDb(sensitivity: number): number {
   return 20 * Math.log10(sensitivityToRmsGate(sensitivity));
 }
 
-export const MAX_RECENT = 8;
+/** Recents stay short enough to scan without scrolling past them. */
+export const MAX_RECENT = 4;
 
 /** Pushes a tuning to the front of the recents list, de-duplicated. */
 export function markTuningUsed(id: string): void {

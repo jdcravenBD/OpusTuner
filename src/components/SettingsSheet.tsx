@@ -3,6 +3,7 @@ import { Sheet } from './Sheet';
 import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import {
+  DEFAULT_HUE,
   DEFAULT_SETTINGS,
   sensitivityToDb,
   settingsStore,
@@ -204,8 +205,8 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         </Row>
       </Section>
 
-      {/* ---------------------------------------------------------- display */}
-      <Section label="Display">
+      {/* ----------------------------------------------------------- colour */}
+      <Section label="Colour">
         <Row name="Theme">
           <Segmented
             value={s.theme}
@@ -217,6 +218,29 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             onChange={(v) => set('theme', v)}
           />
         </Row>
+        <Row name="App colour" desc="Tints the chassis, panels and text.">
+          <HueField value={s.appHue} onChange={(v) => set('appHue', v)} label="App colour" />
+        </Row>
+        <Row name="Display colour" desc="Tints the tuner screen and its grid.">
+          <HueField
+            value={s.fieldHue}
+            onChange={(v) => set('fieldHue', v)}
+            label="Display colour"
+          />
+        </Row>
+        {(s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE) && (
+          <button
+            className="btn btn--block"
+            style={{ marginTop: 6 }}
+            onClick={() => settingsStore.set({ appHue: DEFAULT_HUE, fieldHue: DEFAULT_HUE })}
+          >
+            Reset colours
+          </button>
+        )}
+      </Section>
+
+      {/* ---------------------------------------------------------- display */}
+      <Section label="Display">
         <Row name="Show frequencies" desc="Detected and target pitch in hertz.">
           <Switch
             on={s.showFrequency}
@@ -281,6 +305,40 @@ function Row({
         {desc && <div className="setting__desc">{desc}</div>}
       </div>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Hue picker: a slider running the full spectrum with a swatch of the chosen
+ * hue beside it. The swatch is shown at mid lightness rather than at the near
+ * -black the chassis actually uses, because a swatch of near-black tells you
+ * nothing about which hue you have landed on.
+ */
+function HueField({
+  value,
+  onChange,
+  label,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+}) {
+  return (
+    <div className="slider-field">
+      <span className="hue-swatch" style={{ background: `hsl(${value} 45% 50%)` }} />
+      <input
+        className="slider slider--hue"
+        type="range"
+        min={0}
+        max={359}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        aria-valuetext={`${value} degrees`}
+      />
+      <span className="slider-field__value">{value}°</span>
     </div>
   );
 }

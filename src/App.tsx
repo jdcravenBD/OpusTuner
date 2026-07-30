@@ -5,9 +5,9 @@ import { midiToFreq } from './music/notes';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
 import {
+  useAppearance,
   useCurrentTuning,
   useSyncControllerSettings,
-  useTheme,
   useTunerEvent,
   useTunerFrame,
   useTunerVersion,
@@ -37,7 +37,7 @@ export default function App() {
   const appRef = useRef<HTMLDivElement>(null);
   const version = useTunerVersion();
 
-  useTheme(settings.theme);
+  useAppearance(settings.theme, settings.appHue, settings.fieldHue);
   useWakeLock(settings.keepAwake && micState === 'running');
   useSyncControllerSettings();
 
@@ -209,7 +209,9 @@ export default function App() {
           <div className="field">
             <PitchField
               tolerance={settings.tolerance}
-              themeKey={settings.theme}
+              // Hue is part of the key: the canvas caches its palette and must
+              // re-read the custom properties when the screen is re-tinted.
+              themeKey={`${settings.theme}:${settings.fieldHue}`}
               naming={settings.naming}
               fallbackMidi={fallbackMidi}
             />

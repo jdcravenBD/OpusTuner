@@ -63,23 +63,36 @@ export function useCurrentTuning(): Tuning {
 
 /* ----------------------------------------------------------------- theme -- */
 
-/** Applies the theme to <html> and follows the OS when set to "system". */
-export function useTheme(mode: ThemeMode): void {
+/**
+ * Applies theme and hue to <html>, following the OS when set to "system".
+ *
+ * The two hues are written as inline custom properties, which beats the
+ * stylesheet's defaults for both light and dark without needing a copy per
+ * theme. The browser chrome colour is then read back off the resolved body
+ * background rather than hard-coded, so it tracks any hue automatically.
+ */
+export function useAppearance(mode: ThemeMode, appHue: number, fieldHue: number): void {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--h', String(appHue));
+    root.style.setProperty('--fh', String(fieldHue));
+  }, [appHue, fieldHue]);
+
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: light)');
     const apply = () => {
       const resolved = mode === 'system' ? (media.matches ? 'light' : 'dark') : mode;
       document.documentElement.dataset.theme = resolved;
-      // Keep the browser/OS chrome matched to the chassis.
-      document
-        .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', resolved === 'light' ? '#EAEEF4' : '#0A0C0F');
+      const chrome = getComputedStyle(document.body).backgroundColor;
+      if (chrome) {
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);
+      }
     };
     apply();
     if (mode !== 'system') return;
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
-  }, [mode]);
+  }, [mode, appHue, fieldHue]);
 }
 
 /* ------------------------------------------------------------- wake lock -- */

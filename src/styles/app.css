@@ -45,36 +45,50 @@
 
 /* ------------------------------------------------------------------ dark -- */
 
+/*
+ * Chassis and screen are each built from a single hue with fixed saturation
+ * and lightness per token, so both can be re-tinted from one number without
+ * disturbing the contrast relationships the depth model depends on.
+ *
+ * --h  chassis hue      --fh  tuner screen hue
+ * Both are overwritten inline on <html> from settings; these are the defaults.
+ */
+:root {
+  --h: 215;
+  --fh: 215;
+}
+
 :root,
 :root[data-theme='dark'] {
-  --bg-void: #07080a;
-  --bg-0: #0a0c0f;
-  --bg-1: #0f1216;
-  --bg-glow: rgba(46, 74, 112, 0.22);
+  --bg-void: hsl(var(--h) 18% 3.5%);
+  --bg-0: hsl(var(--h) 20% 5%);
+  --bg-1: hsl(var(--h) 19% 7.3%);
+  --bg-glow: hsl(var(--h) 42% 31% / 0.22);
 
-  --surface: #12161b;
-  --surface-hi: #171c22;
-  --surface-press: #0c0f12;
+  --surface: hsl(var(--h) 20% 7.8%);
+  --surface-hi: hsl(var(--h) 19% 9.6%);
+  --surface-press: hsl(var(--h) 18% 5.2%);
   /* Raised faces sit only just above the chassis — the lit top edge does the
      separating, not brightness. Sunk surfaces stay where they were. */
-  --surface-raised-a: #171c23;
-  --surface-raised-b: #10141a;
-  --surface-sunk: #0b0d10;
+  --surface-raised-a: hsl(var(--h) 21% 9%);
+  --surface-raised-b: hsl(var(--h) 24% 6.4%);
+  --surface-sunk: hsl(var(--h) 19% 5.3%);
 
   /* Selection is a neutral bright ring, kept clear of the green that means
      "in tune" so the two states can never be read for one another. */
   --select-ring: rgba(255, 255, 255, 0.5);
-  --select-glow: rgba(186, 212, 246, 0.22);
+  --select-glow: hsl(var(--h) 65% 85% / 0.22);
 
   --border: rgba(255, 255, 255, 0.07);
   --border-hi: rgba(255, 255, 255, 0.13);
   --border-strong: rgba(255, 255, 255, 0.2);
 
-  --text: #eef2f7;
-  --text-2: #8e99a8;
-  --text-3: #5b6573;
-  --text-4: #3b434e;
+  --text: hsl(var(--h) 37% 95%);
+  --text-2: hsl(var(--h) 13% 61%);
+  --text-3: hsl(var(--h) 12% 40%);
+  --text-4: hsl(var(--h) 14% 27%);
 
+  /* Signal colours are semantic, not decorative — they never follow the hue. */
   --green: #34e08a;
   --green-soft: rgba(52, 224, 138, 0.13);
   --green-line: rgba(52, 224, 138, 0.36);
@@ -83,10 +97,12 @@
   --red: #ff5f5f;
 
   --tick: rgba(255, 255, 255, 0.17);
-  --tick-hot: #e9eef4;
-  --field-bg: #0a0c0f;
-  --field-grid: rgba(255, 255, 255, 0.16);
-  --field-label: #4d5765;
+  --tick-hot: hsl(var(--fh) 33% 94%);
+  --field-top: hsl(var(--fh) 19% 7.3%);
+  --field-bg: hsl(var(--fh) 20% 5%);
+  --field-bottom: hsl(var(--fh) 18% 3.5%);
+  --field-grid: hsl(var(--fh) 30% 88% / 0.16);
+  --field-label: hsl(var(--fh) 14% 35%);
 
   /* Light comes from above: highlight on top edge, shadow below. */
   --hi: inset 0 1px 0 rgba(255, 255, 255, 0.055);
@@ -103,29 +119,29 @@
 /* ----------------------------------------------------------------- light -- */
 
 :root[data-theme='light'] {
-  --bg-void: #dfe4ec;
-  --bg-0: #eaeef4;
-  --bg-1: #f7f9fc;
-  --bg-glow: rgba(150, 180, 225, 0.35);
+  --bg-void: hsl(var(--h) 26% 90%);
+  --bg-0: hsl(var(--h) 31% 94%);
+  --bg-1: hsl(var(--h) 45% 98%);
+  --bg-glow: hsl(var(--h) 55% 74% / 0.35);
 
-  --surface: #ffffff;
-  --surface-hi: #f4f7fb;
-  --surface-press: #e4e9f1;
-  --surface-raised-a: #ffffff;
-  --surface-raised-b: #eff3f8;
-  --surface-sunk: #e8ecf3;
+  --surface: hsl(var(--h) 40% 100%);
+  --surface-hi: hsl(var(--h) 43% 97%);
+  --surface-press: hsl(var(--h) 33% 92%);
+  --surface-raised-a: hsl(var(--h) 40% 99.5%);
+  --surface-raised-b: hsl(var(--h) 36% 94%);
+  --surface-sunk: hsl(var(--h) 33% 93%);
 
-  --select-ring: rgba(16, 26, 42, 0.5);
-  --select-glow: rgba(16, 26, 42, 0.16);
+  --select-ring: hsl(var(--h) 45% 11% / 0.5);
+  --select-glow: hsl(var(--h) 45% 11% / 0.16);
 
   --border: rgba(16, 26, 42, 0.1);
   --border-hi: rgba(16, 26, 42, 0.16);
   --border-strong: rgba(16, 26, 42, 0.26);
 
-  --text: #0d141d;
-  --text-2: #55606f;
-  --text-3: #838d9b;
-  --text-4: #a8b1bd;
+  --text: hsl(var(--h) 38% 8%);
+  --text-2: hsl(var(--h) 13% 38%);
+  --text-3: hsl(var(--h) 11% 56%);
+  --text-4: hsl(var(--h) 14% 70%);
 
   --green: #0fa059;
   --green-soft: rgba(15, 160, 89, 0.11);
@@ -135,10 +151,12 @@
   --red: #d63a3a;
 
   --tick: rgba(16, 26, 42, 0.2);
-  --tick-hot: #10171f;
-  --field-bg: #fbfcfe;
-  --field-grid: rgba(16, 26, 42, 0.16);
-  --field-label: #97a0ad;
+  --tick-hot: hsl(var(--fh) 32% 9%);
+  --field-top: hsl(var(--fh) 45% 100%);
+  --field-bg: hsl(var(--fh) 50% 99%);
+  --field-bottom: hsl(var(--fh) 35% 96%);
+  --field-grid: hsl(var(--fh) 45% 11% / 0.16);
+  --field-label: hsl(var(--fh) 12% 64%);
 
   --hi: inset 0 1px 0 rgba(255, 255, 255, 0.95);
   --hi-strong: inset 0 1px 0 rgba(255, 255, 255, 1);
@@ -459,13 +477,28 @@ button {
 
 /* ----------------------------------------------------------------- field -- */
 
+/*
+ * Fills everything between the carousel and the string row.
+ *
+ * Three rows: equal flexible gaps either side of a fixed-size field, which
+ * centres the field exactly. The readout then lives *in* the lower gap and is
+ * centred within it, so it sits midway between the screen and the string
+ * buttons rather than crowding either. minmax(0,·) keeps the two gaps truly
+ * equal — a bare 1fr would let the readout's own height push the field up.
+ */
 .field-zone {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
   display: grid;
-  place-items: center;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+}
+
+.field-zone > .field {
+  grid-row: 2;
 }
 
 /*
@@ -482,25 +515,32 @@ button {
   border-radius: var(--r-lg);
   overflow: hidden;
   background:
-    radial-gradient(125% 88% at 50% -6%, rgba(255, 255, 255, 0.05), transparent 62%),
-    linear-gradient(180deg, var(--bg-1) 0%, var(--field-bg) 55%, var(--bg-void) 100%);
-  border: 1px solid var(--border-hi);
+    radial-gradient(125% 88% at 50% -6%, rgba(255, 255, 255, 0.04), transparent 62%),
+    linear-gradient(180deg, var(--field-top) 0%, var(--field-bg) 55%, var(--field-bottom) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.55);
   /*
-   * Sunk, not floating: a tight dark lip just inside the top edge and a faint
-   * catch-light along the bottom. No outer drop shadow — this is a hole in the
-   * chassis, and a card shadow would fight that read.
+   * A hole in the chassis, not a card. Shadow rakes in from the top edge and
+   * wraps the whole opening; the lit lip sits *outside* the bottom edge, which
+   * is where a real recess catches light.
    */
   box-shadow:
-    inset 0 2px 5px -2px rgba(0, 0, 0, 0.8),
-    inset 0 1px 1px rgba(0, 0, 0, 0.45),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+    inset 0 8px 16px -6px rgba(0, 0, 0, 0.95),
+    inset 0 3px 6px -1px rgba(0, 0, 0, 0.8),
+    inset 0 0 14px -2px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.055),
+    0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 :root[data-theme='light'] .field {
+  border-color: rgba(16, 26, 42, 0.2);
   box-shadow:
-    inset 0 2px 5px -2px rgba(16, 26, 42, 0.22),
-    inset 0 1px 1px rgba(16, 26, 42, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+    inset 0 8px 14px -7px rgba(16, 26, 42, 0.34),
+    inset 0 3px 5px -1px rgba(16, 26, 42, 0.2),
+    inset 0 0 12px -2px rgba(16, 26, 42, 0.12),
+    inset 0 0 0 1px rgba(16, 26, 42, 0.06),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .field__canvas {
@@ -559,14 +599,13 @@ button {
 
 /* --------------------------------------------------------------- readout -- */
 
+/* Centred within the lower gap of the field zone — see .field-zone. */
 .readout {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  grid-row: 3;
   display: flex;
   align-items: stretch;
   justify-content: center;
+  max-width: 100%;
   padding: 0 14px;
   pointer-events: none;
 }
@@ -1415,6 +1454,38 @@ button {
 
 .slider-field .slider {
   width: 104px;
+}
+
+/* Hue picker: full spectrum in the track, chosen hue in the swatch. */
+.slider--hue {
+  width: 92px;
+  background: linear-gradient(
+    90deg,
+    hsl(0 60% 50%),
+    hsl(60 60% 50%),
+    hsl(120 60% 50%),
+    hsl(180 60% 50%),
+    hsl(240 60% 50%),
+    hsl(300 60% 50%),
+    hsl(360 60% 50%)
+  );
+}
+
+.slider-field .slider--hue {
+  width: 92px;
+}
+
+.hue-swatch {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-xs);
+  border: 1px solid var(--border-hi);
+  box-shadow: var(--hi), var(--elev-1);
+}
+
+.slider-field__value {
+  min-width: 46px;
 }
 
 .slider {
