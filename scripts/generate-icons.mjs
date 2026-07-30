@@ -17,9 +17,10 @@ const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'i
 
 /* ------------------------------------------------------------------ paint -- */
 
-const GREEN = [0x1f, 0xdc, 0x78];
-const BG_TOP = [0x18, 0x23, 0x36];
-const BG_BOTTOM = [0x07, 0x0a, 0x10];
+/** Matches the app chassis: graphite body, signal-green mark. */
+const GREEN = [0x34, 0xe0, 0x8a];
+const BG_TOP = [0x1b, 0x20, 0x27];
+const BG_BOTTOM = [0x08, 0x09, 0x0b];
 
 /** Squared distance from (px,py) to the segment (ax,ay)-(bx,by). */
 function distToSegment(px, py, ax, ay, bx, by) {
@@ -199,16 +200,16 @@ function encodePng(rgba, size) {
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#182336"/>
-      <stop offset="1" stop-color="#070A10"/>
+      <stop offset="0" stop-color="#1B2027"/>
+      <stop offset="1" stop-color="#08090B"/>
     </linearGradient>
   </defs>
   <rect width="96" height="96" rx="21" fill="url(#bg)"/>
-  <g stroke="#1FDC78" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="10.5">
+  <g stroke="#34E08A" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="10.5">
     <path d="M31 12v30a17 17 0 0 0 34 0V12"/>
     <path d="M48 59v16"/>
   </g>
-  <circle cx="48" cy="81" r="8.2" fill="#1FDC78"/>
+  <circle cx="48" cy="81" r="8.2" fill="#34E08A"/>
 </svg>
 `;
 

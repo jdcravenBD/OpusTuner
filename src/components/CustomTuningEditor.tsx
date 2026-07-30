@@ -123,9 +123,7 @@ export function CustomTuningEditor({
                   <ArrowUpIcon size={12} />
                 </button>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 600 }}>
-                {midiToFreq(midi, settings.a4).toFixed(1)} Hz
-              </div>
+              <div className="editor__hz">{midiToFreq(midi, settings.a4).toFixed(1)} Hz</div>
             </div>
           ))}
         </div>

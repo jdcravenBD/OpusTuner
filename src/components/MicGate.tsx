@@ -19,9 +19,10 @@ export function MicGate({ starting, error, onStart }: Props) {
   return (
     <div className="splash">
       <div className="splash__mark">
-        <LogoMark />
+        <LogoMark size={56} />
       </div>
       <div className="splash__title">OpusTuner</div>
+      <div className="splash__eyebrow">Chromatic Instrument Tuner</div>
 
       {error ? (
         <>

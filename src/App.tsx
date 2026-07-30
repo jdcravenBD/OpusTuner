@@ -149,6 +149,11 @@ export default function App() {
   // show before the first note is detected.
   const fallbackMidi = targets[tuner.selectedIndex] ?? targets[0] ?? 0;
 
+  const sampleRateLabel =
+    running && tuner.engine.sampleRate
+      ? `${(tuner.engine.sampleRate / 1000).toFixed(1)} kHz`
+      : 'MPM';
+
   // `version` is read so React re-renders the string row when the controller
   // marks a string tuned or switches target.
   void version;
@@ -164,14 +169,19 @@ export default function App() {
           <GearIcon />
         </button>
 
+        {/* Standing configuration, kept out of the reading itself. */}
         <button
-          className="ref-chip"
+          className="status"
           onClick={() => setSettingsOpen(true)}
-          title="Reference pitch"
+          title="Reference pitch, in-tune window and capo — tap to change"
         >
-          A {settings.a4}
-          <span className="ref-chip__extra" data-set={settings.capo > 0}>
-            {settings.capo > 0 ? `capo ${settings.capo}` : 'no capo'}
+          <span className="status__seg">
+            <b>A</b>
+            {settings.a4}
+          </span>
+          <span className="status__seg">±{settings.tolerance}¢</span>
+          <span className="status__seg" data-on={settings.capo > 0}>
+            {settings.capo > 0 ? `CAPO ${settings.capo}` : 'NO CAPO'}
           </span>
         </button>
 
@@ -208,6 +218,13 @@ export default function App() {
             </span>
             <span className="field__edge field__edge--sharp" aria-hidden>
               ♯
+            </span>
+            {/* Instrument-face small print: scale and capture rate. */}
+            <span className="field__note field__note--bl" aria-hidden>
+              ±250 ¢
+            </span>
+            <span className="field__note field__note--br" aria-hidden>
+              {sampleRateLabel}
             </span>
           </div>
           <Readout show={settings.showFrequency} />

@@ -44,11 +44,13 @@ function readPalette(): Palette {
   const s = getComputedStyle(document.documentElement);
   const get = (n: string, f: string) => s.getPropertyValue(n).trim() || f;
   return {
-    tick: get('--tick', 'rgba(255,255,255,0.22)'),
-    tickHot: get('--tick-hot', '#ffffff'),
-    green: get('--green', '#1fdc78'),
-    amber: get('--amber', '#ffb340'),
-    text3: get('--text-3', '#5f6d82'),
+    // Gridlines and labels have their own tokens so the screen can be tuned
+    // independently of the surrounding chassis.
+    tick: get('--field-grid', get('--tick', 'rgba(255,255,255,0.17)')),
+    tickHot: get('--tick-hot', '#e9eef4'),
+    green: get('--green', '#34e08a'),
+    amber: get('--amber', '#ffb02e'),
+    text3: get('--field-label', get('--text-3', '#5b6573')),
   };
 }
 
@@ -390,13 +392,13 @@ function draw(
   /* --- cent readout, riding above the nib -------------------------------- */
   if (frame.hasSignal) {
     const cents = Math.round(frame.cents);
-    const label = cents === 0 ? '0' : `${cents > 0 ? '+' : '−'}${Math.abs(cents)}`;
+    const label = cents === 0 ? '0' : `${cents > 0 ? '+' : '-'}${Math.abs(cents)}`;
     const size = Math.max(13, Math.round(h * 0.055));
     ctx.font = fieldFont(size);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     // Rides with the marker but stays clear of the field edges.
-    const margin = ctx.measureText('−250').width / 2 + 4;
+    const margin = ctx.measureText('-250').width / 2 + 4;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = hot;
     ctx.fillText(label, clamp(x, margin, w - margin), markerY - 31 * scale - 9);

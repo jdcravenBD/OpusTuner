@@ -5,13 +5,14 @@ interface IconProps {
   className?: string;
 }
 
+/** Lighter strokes than the usual UI default — reads as drafted, not drawn. */
 const base = (size: number) => ({
   width: size,
   height: size,
   viewBox: '0 0 24 24',
   fill: 'none' as const,
   stroke: 'currentColor',
-  strokeWidth: 2,
+  strokeWidth: 1.75,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   'aria-hidden': true,

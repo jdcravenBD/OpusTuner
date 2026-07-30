@@ -64,9 +64,10 @@ export function useTheme(mode: ThemeMode): void {
     const apply = () => {
       const resolved = mode === 'system' ? (media.matches ? 'light' : 'dark') : mode;
       document.documentElement.dataset.theme = resolved;
+      // Keep the browser/OS chrome matched to the chassis.
       document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', resolved === 'light' ? '#F4F6FA' : '#0B0E14');
+        ?.setAttribute('content', resolved === 'light' ? '#EAEEF4' : '#0A0C0F');
     };
     apply();
     if (mode !== 'system') return;

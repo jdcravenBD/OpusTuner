@@ -13,7 +13,7 @@ interface Props {
 const NEIGHBOURS = [-2, -1, 1, 2] as const;
 
 /**
- * The note carousel and the flat/sharp verdict.
+ * The note carousel.
  *
  * The focused note sits in the middle at full size, with its two chromatic
  * neighbours either side shrinking and dimming outward. It is a readout, not a
@@ -115,22 +115,50 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   );
 }
 
-/** Detected vs. target frequency, under the dial. */
+/**
+ * Precision readout beneath the field: measured pitch, target pitch, and the
+ * deviation between them to a tenth of a cent.
+ *
+ * The needle already carries the deviation, rounded — this is the fine version,
+ * deliberately parked at the bottom of the field where it stays available
+ * without competing with the note itself.
+ */
 export function Readout({ show }: { show: boolean }) {
-  const detectedRef = useRef<HTMLElement>(null);
-  const targetRef = useRef<HTMLElement>(null);
-  const prev = useRef({ detected: '', target: '' });
+  const detectedRef = useRef<HTMLSpanElement>(null);
+  const targetRef = useRef<HTMLSpanElement>(null);
+  const deltaRef = useRef<HTMLSpanElement>(null);
+  const deltaCellRef = useRef<HTMLSpanElement>(null);
+  const prev = useRef({ detected: '', target: '', delta: '', intune: '' });
 
   useTunerFrame((frame) => {
+    const p = prev.current;
+
     const detected = frame.hasSignal && frame.frequency > 0 ? formatHz(frame.frequency) : '—';
-    if (detected !== prev.current.detected) {
-      prev.current.detected = detected;
+    if (detected !== p.detected) {
+      p.detected = detected;
       if (detectedRef.current) detectedRef.current.textContent = detected;
     }
+
     const target = frame.targetFreq > 0 ? formatHz(frame.targetFreq) : '—';
-    if (target !== prev.current.target) {
-      prev.current.target = target;
+    if (target !== p.target) {
+      p.target = target;
       if (targetRef.current) targetRef.current.textContent = target;
+    }
+
+    // ASCII sign rather than a typographic minus: this sits in a monospaced
+    // face, and a glyph the face lacks would fall back and break the column.
+    const delta = frame.hasSignal
+      ? `${frame.cents >= 0 ? '+' : '-'}${Math.abs(frame.cents).toFixed(1)}`
+      : '—';
+    if (delta !== p.delta) {
+      p.delta = delta;
+      if (deltaRef.current) deltaRef.current.textContent = delta;
+    }
+
+    const intune = String(frame.hasSignal && frame.inTune);
+    if (intune !== p.intune) {
+      p.intune = intune;
+      deltaCellRef.current?.setAttribute('data-intune', intune);
     }
   });
 
@@ -138,12 +166,33 @@ export function Readout({ show }: { show: boolean }) {
 
   return (
     <div className="readout">
-      <span className="pill">
-        Detected <b ref={detectedRef}>—</b> Hz
-      </span>
-      <span className="pill pill--ghost">
-        Target <b ref={targetRef}>—</b> Hz
-      </span>
+      <div className="readout__strip">
+        <span className="readout__cell">
+          <span className="readout__key">IN</span>
+          <span className="readout__val" ref={detectedRef}>
+            —
+          </span>
+          <span className="readout__unit">Hz</span>
+        </span>
+        <span className="readout__cell">
+          <span className="readout__key">TGT</span>
+          <span className="readout__val" ref={targetRef}>
+            —
+          </span>
+          <span className="readout__unit">Hz</span>
+        </span>
+        <span
+          className="readout__cell readout__cell--delta"
+          ref={deltaCellRef}
+          data-intune="false"
+        >
+          <span className="readout__key">Δ</span>
+          <span className="readout__val" ref={deltaRef}>
+            —
+          </span>
+          <span className="readout__unit">¢</span>
+        </span>
+      </div>
     </div>
   );
 }
