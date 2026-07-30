@@ -4,6 +4,7 @@ import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import {
   DEFAULT_SETTINGS,
+  sensitivityToDb,
   settingsStore,
   useSettings,
   type Settings,
@@ -119,16 +120,20 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           name="Sensitivity"
           desc="Lower for noisy rooms and quiet instruments, higher to reject stray sound."
         >
-          <input
-            className="slider"
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={s.sensitivity}
-            onChange={(e) => set('sensitivity', Number(e.target.value))}
-            aria-label="Sensitivity"
-          />
+          {/* Labelled with the actual noise floor it sets, in dBFS. */}
+          <SliderField value={`${Math.round(sensitivityToDb(s.sensitivity))} dB`}>
+            <input
+              className="slider"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={s.sensitivity}
+              onChange={(e) => set('sensitivity', Number(e.target.value))}
+              aria-label="Sensitivity"
+              aria-valuetext={`${Math.round(sensitivityToDb(s.sensitivity))} decibels`}
+            />
+          </SliderField>
         </Row>
         <Row name="Microphone" desc={micRunning ? undefined : 'Start the tuner to see device names.'}>
           <select
@@ -160,24 +165,26 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           />
         </Row>
         <Row name="Tone volume">
-          <input
-            className="slider"
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={s.toneVolume}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              set('toneVolume', v);
-              toneEngine.volume = v;
-            }}
-            onPointerUp={() => {
-              toneEngine.volume = settingsStore.get().toneVolume;
-              toneEngine.play(440, 700);
-            }}
-            aria-label="Tone volume"
-          />
+          <SliderField value={`${Math.round(s.toneVolume * 100)}%`}>
+            <input
+              className="slider"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={s.toneVolume}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                set('toneVolume', v);
+                toneEngine.volume = v;
+              }}
+              onPointerUp={() => {
+                toneEngine.volume = settingsStore.get().toneVolume;
+                toneEngine.play(440, 700);
+              }}
+              aria-label="Tone volume"
+            />
+          </SliderField>
         </Row>
         <Row name="Chime when in tune" desc="A short confirmation when a string lands.">
           <Switch
@@ -274,6 +281,16 @@ function Row({
         {desc && <div className="setting__desc">{desc}</div>}
       </div>
       {children}
+    </div>
+  );
+}
+
+/** A slider with its current value pinned alongside, in monospace. */
+function SliderField({ value, children }: { value: string; children: ReactNode }) {
+  return (
+    <div className="slider-field">
+      {children}
+      <span className="slider-field__value">{value}</span>
     </div>
   );
 }

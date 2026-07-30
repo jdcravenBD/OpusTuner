@@ -84,6 +84,7 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
         ref={wrapRef}
         data-signal="false"
         data-intune="false"
+        data-naming={naming}
         aria-hidden
       >
         {NEIGHBOURS.slice(0, 2).map((offset, i) => (

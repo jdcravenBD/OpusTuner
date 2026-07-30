@@ -162,6 +162,29 @@ export function useSession(): Session {
   return useSyncExternalStore(sessionStore.subscribe, sessionStore.get, sessionStore.get);
 }
 
+/* ------------------------------------------------------- sensitivity map -- */
+
+/*
+ * The sensitivity slider drives two detector floors at once. They live here
+ * rather than inline in the hook so the value shown on the slider is derived
+ * from the same numbers the engine is actually given, and cannot drift.
+ */
+
+/** RMS below which input is treated as silence. */
+export function sensitivityToRmsGate(sensitivity: number): number {
+  return 0.0012 + sensitivity * 0.006;
+}
+
+/** Minimum NSDF peak height for a detection to be trusted. */
+export function sensitivityToClarity(sensitivity: number): number {
+  return 0.42 + sensitivity * 0.4;
+}
+
+/** The same gate expressed in dBFS, which is how it gets labelled. */
+export function sensitivityToDb(sensitivity: number): number {
+  return 20 * Math.log10(sensitivityToRmsGate(sensitivity));
+}
+
 export const MAX_RECENT = 8;
 
 /** Pushes a tuning to the front of the recents list, de-duplicated. */

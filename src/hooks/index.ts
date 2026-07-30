@@ -6,7 +6,13 @@ import {
   getBuiltinTuning,
   type Tuning,
 } from '../music/tunings';
-import { useSession, useSettings, type ThemeMode } from '../state/store';
+import {
+  sensitivityToClarity,
+  sensitivityToRmsGate,
+  useSession,
+  useSettings,
+  type ThemeMode,
+} from '../state/store';
 
 /**
  * Subscribes to the tuner's animation-frame stream.
@@ -154,8 +160,8 @@ export function useSyncControllerSettings(): void {
     tuner.auto = settings.auto;
     tuner.autoAdvance = settings.autoAdvance;
     // sensitivity 0 (permissive, noisy room) .. 1 (strict, quiet room)
-    tuner.engine.clarityThreshold = 0.42 + settings.sensitivity * 0.4;
-    tuner.engine.rmsGate = 0.0012 + settings.sensitivity * 0.006;
+    tuner.engine.clarityThreshold = sensitivityToClarity(settings.sensitivity);
+    tuner.engine.rmsGate = sensitivityToRmsGate(settings.sensitivity);
   }, [
     settings.a4,
     settings.tolerance,

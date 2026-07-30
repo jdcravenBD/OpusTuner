@@ -52,12 +52,19 @@
   --bg-1: #0f1216;
   --bg-glow: rgba(46, 74, 112, 0.22);
 
-  --surface: #14181d;
-  --surface-hi: #1a1f26;
-  --surface-press: #0d1013;
-  --surface-raised-a: #1d232b;
-  --surface-raised-b: #151a20;
+  --surface: #12161b;
+  --surface-hi: #171c22;
+  --surface-press: #0c0f12;
+  /* Raised faces sit only just above the chassis — the lit top edge does the
+     separating, not brightness. Sunk surfaces stay where they were. */
+  --surface-raised-a: #171c23;
+  --surface-raised-b: #10141a;
   --surface-sunk: #0b0d10;
+
+  /* Selection is a neutral bright ring, kept clear of the green that means
+     "in tune" so the two states can never be read for one another. */
+  --select-ring: rgba(255, 255, 255, 0.5);
+  --select-glow: rgba(186, 212, 246, 0.22);
 
   --border: rgba(255, 255, 255, 0.07);
   --border-hi: rgba(255, 255, 255, 0.13);
@@ -107,6 +114,9 @@
   --surface-raised-a: #ffffff;
   --surface-raised-b: #eff3f8;
   --surface-sunk: #e8ecf3;
+
+  --select-ring: rgba(16, 26, 42, 0.5);
+  --select-glow: rgba(16, 26, 42, 0.16);
 
   --border: rgba(16, 26, 42, 0.1);
   --border-hi: rgba(16, 26, 42, 0.16);
@@ -366,8 +376,11 @@ button {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: clamp(9px, 3.4vw, 20px);
+  /* Tight: at this size the glyphs' own side bearings supply most of the
+     breathing room, so the gap only has to keep them from touching. */
+  gap: clamp(2px, 1.4vw, 9px);
   width: 100%;
+  padding: 0 8px;
   line-height: 1;
   user-select: none;
 }
@@ -383,23 +396,41 @@ button {
 }
 
 .carousel__note[data-dist='2'] {
-  font-size: clamp(19px, 5.4vw, 30px);
+  font-size: clamp(22px, 6.2vw, 34px);
   opacity: 0.22;
 }
 
 .carousel__note[data-dist='1'] {
-  font-size: clamp(30px, 8.8vw, 48px);
+  font-size: clamp(34px, 10vw, 56px);
   opacity: 0.44;
 }
 
 .carousel__note--focus {
   display: flex;
   align-items: baseline;
-  font-size: clamp(64px, 16vh, 112px);
+  font-size: clamp(72px, 18vh, 124px);
   font-weight: 760;
   letter-spacing: -0.045em;
   color: var(--text);
   opacity: 1;
+}
+
+/*
+ * Solfège labels run to three or four characters ("Sol♯") where letter names
+ * run to one or two, so five of them across will not fit a narrow phone at the
+ * sizes above. Scaled down only for that naming style rather than shrinking
+ * the letter names everyone else sees.
+ */
+.carousel[data-naming='solfege'] .carousel__note--focus {
+  font-size: clamp(54px, 13.5vh, 94px);
+}
+
+.carousel[data-naming='solfege'] .carousel__note[data-dist='1'] {
+  font-size: clamp(25px, 7.2vw, 41px);
+}
+
+.carousel[data-naming='solfege'] .carousel__note[data-dist='2'] {
+  font-size: clamp(16px, 4.5vw, 25px);
 }
 
 .carousel__octave {
@@ -444,7 +475,7 @@ button {
 .field {
   position: relative;
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(82vh - 300px), 400px);
+  width: min(100% - 20px, calc(80vh - 296px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -454,28 +485,22 @@ button {
     radial-gradient(125% 88% at 50% -6%, rgba(255, 255, 255, 0.05), transparent 62%),
     linear-gradient(180deg, var(--bg-1) 0%, var(--field-bg) 55%, var(--bg-void) 100%);
   border: 1px solid var(--border-hi);
+  /*
+   * Sunk, not floating: a tight dark lip just inside the top edge and a faint
+   * catch-light along the bottom. No outer drop shadow — this is a hole in the
+   * chassis, and a card shadow would fight that read.
+   */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    inset 0 0 50px -14px rgba(0, 0, 0, 0.85),
-    0 1px 0 rgba(255, 255, 255, 0.045),
-    var(--elev-2);
+    inset 0 2px 5px -2px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
 }
 
 :root[data-theme='light'] .field {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 2px 10px -4px rgba(16, 26, 42, 0.14),
-    var(--elev-1);
-}
-
-/* Inner bezel hairline — the second line that sells "screen in a housing". */
-.field::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: calc(var(--r-lg) - 3px);
-  border: 1px solid var(--border);
-  pointer-events: none;
+    inset 0 2px 5px -2px rgba(16, 26, 42, 0.22),
+    inset 0 1px 1px rgba(16, 26, 42, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .field__canvas {
@@ -659,14 +684,18 @@ button {
   box-shadow: var(--sunk);
 }
 
+/* The live string: lifted, lit, ringed and haloed. It has to be obvious at a
+   glance from across a room, which a heavier grey border alone never was. */
 .string[data-active='true'] {
   color: var(--text);
-  border-color: var(--border-strong);
-  transform: scale(1.14);
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface-raised-a));
+  border-color: var(--select-ring);
+  transform: scale(1.16);
   box-shadow:
     var(--hi-strong),
-    var(--elev-2),
-    0 0 0 1px var(--border-hi);
+    0 0 0 2px var(--select-glow),
+    0 0 18px -1px var(--select-glow),
+    var(--elev-2);
   z-index: 1;
 }
 
@@ -677,12 +706,16 @@ button {
     var(--green-soft);
 }
 
+/* Tuned wins the hue, selection keeps the lift and halo. */
 .string[data-tuned='true'][data-active='true'] {
+  border-color: var(--green);
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface-raised-a)),
+    var(--green-soft);
   box-shadow:
     var(--hi-strong),
-    var(--elev-2),
-    0 0 0 1px var(--green-line),
-    0 0 18px -2px var(--green-glow);
+    0 0 0 2px var(--green-line),
+    0 0 20px -1px var(--green-glow),
+    var(--elev-2);
 }
 
 .string__octave {
@@ -1360,6 +1393,30 @@ button {
   color: var(--text);
 }
 
+/* Slider plus its live value. The readout is fixed-width and tabular so the
+   slider never shifts as the digits change. */
+.slider-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.slider-field__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+  min-width: 46px;
+  text-align: right;
+}
+
+.slider-field .slider {
+  width: 104px;
+}
+
 .slider {
   -webkit-appearance: none;
   appearance: none;
@@ -1716,15 +1773,15 @@ button {
   }
 
   .carousel__note--focus {
-    font-size: clamp(50px, 13vh, 84px);
+    font-size: clamp(56px, 15vh, 96px);
   }
 
   .carousel__note[data-dist='1'] {
-    font-size: clamp(24px, 7vw, 38px);
+    font-size: clamp(27px, 8vw, 44px);
   }
 
   .carousel__note[data-dist='2'] {
-    font-size: clamp(15px, 4.2vw, 23px);
+    font-size: clamp(17px, 4.8vw, 26px);
   }
 
   .strings__hint {
