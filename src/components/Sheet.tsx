@@ -12,10 +12,15 @@ interface Props {
   left?: ReactNode;
   /** Optional control in the top-right slot, replacing the close button. */
   right?: ReactNode;
+  /**
+   * Hold the sheet at full height regardless of content, so a list that
+   * changes length between tabs doesn't resize the panel under the user.
+   */
+  tall?: boolean;
 }
 
 /** Bottom sheet on phones, centred dialog on wide screens. */
-export function Sheet({ open, title, onClose, children, left, right }: Props) {
+export function Sheet({ open, title, onClose, children, left, right, tall }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useScrollLock(open);
@@ -34,7 +39,7 @@ export function Sheet({ open, title, onClose, children, left, right }: Props) {
     <>
       <div className="scrim" onClick={onClose} />
       <div
-        className="sheet"
+        className={tall ? 'sheet sheet--tall' : 'sheet'}
         role="dialog"
         aria-modal="true"
         aria-label={title}

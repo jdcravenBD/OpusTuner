@@ -1,4 +1,4 @@
-# OpusTuner
+# Easy as Tuning
 
 A precision chromatic and instrument tuner for guitar, bass, ukulele, banjo,
 mandolin and orchestral strings. One codebase runs on Windows, Android and
@@ -64,7 +64,7 @@ the native projects, since both platforms gate microphone access:
   `<uses-permission android:name="android.permission.RECORD_AUDIO" />`
 - **iOS** — add to `ios/App/App/Info.plist`:
   `NSMicrophoneUsageDescription` with a sentence such as
-  *"OpusTuner listens to your instrument to show its pitch."*
+  *"Easy as Tuning listens to your instrument to show its pitch."*
 
 Thereafter `npm run cap:android` / `npm run cap:ios` rebuild and sync.
 

@@ -43,17 +43,8 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
 
-  const verdictRef = useRef<HTMLDivElement>(null);
-  const verdictTextRef = useRef<HTMLSpanElement>(null);
-
   // Last written values — avoids touching the DOM when nothing changed.
-  const prev = useRef({
-    midi: -1,
-    signal: '',
-    intune: '',
-    naming: '' as string,
-    verdict: '',
-  });
+  const prev = useRef({ midi: -1, signal: '', intune: '', naming: '' as string });
 
   useTunerFrame((frame) => {
     const p = prev.current;
@@ -90,23 +81,6 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
     if (intuneAttr !== p.intune) {
       p.intune = intuneAttr;
       wrapRef.current?.setAttribute('data-intune', intuneAttr);
-    }
-
-    // Direction only — the amount is already on the needle and in the readout,
-    // and repeating it here would just be a third copy of the same number.
-    const verdict = !frame.hasSignal
-      ? 'idle'
-      : inTune
-        ? 'intune'
-        : frame.cents < 0
-          ? 'flat'
-          : 'sharp';
-    if (verdict !== p.verdict) {
-      p.verdict = verdict;
-      verdictRef.current?.setAttribute('data-state', verdict);
-      if (verdictTextRef.current) {
-        verdictTextRef.current.textContent = VERDICT_TEXT[verdict];
-      }
     }
   });
 
@@ -145,9 +119,41 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
           />
         ))}
       </div>
-      <div className="verdict" ref={verdictRef} data-state="idle" aria-live="polite">
-        <span ref={verdictTextRef} />
-      </div>
+    </div>
+  );
+}
+
+/**
+ * Direction indicator. Lives immediately above the screen rather than under
+ * the carousel, so it reads as a caption on the needle it describes.
+ *
+ * Words only — the needle and the readout already carry the amount, and a
+ * third copy of the number would compete with the note for the first glance.
+ */
+export function TuningVerdict({ tolerance }: { tolerance: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const toleranceRef = useRef(tolerance);
+  toleranceRef.current = tolerance;
+  const prev = useRef('');
+
+  useTunerFrame((frame) => {
+    const state = !frame.hasSignal
+      ? 'idle'
+      : Math.abs(frame.cents) <= toleranceRef.current
+        ? 'intune'
+        : frame.cents < 0
+          ? 'flat'
+          : 'sharp';
+    if (state === prev.current) return;
+    prev.current = state;
+    ref.current?.setAttribute('data-state', state);
+    if (textRef.current) textRef.current.textContent = VERDICT_TEXT[state];
+  });
+
+  return (
+    <div className="verdict" ref={ref} data-state="idle" aria-live="polite">
+      <span ref={textRef} />
     </div>
   );
 }

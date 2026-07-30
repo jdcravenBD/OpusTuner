@@ -266,7 +266,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           Reset settings
         </button>
         <div className="about">
-          OpusTuner {appVersion}
+          Easy as Tuning {appVersion}
           <br />
           Pitch detection by the McLeod Pitch Method — accurate to well under a cent
           on a clean signal.

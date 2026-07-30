@@ -14,7 +14,8 @@ import {
   useWakeLock,
 } from './hooks';
 import { PitchField } from './components/PitchField';
-import { NoteDisplay, Readout } from './components/Display';
+import { NoteDisplay, Readout, TuningVerdict } from './components/Display';
+import { Wordmark } from './components/Wordmark';
 import { StringRow } from './components/StringRow';
 import { TuningSheet } from './components/TuningSheet';
 import { SettingsSheet } from './components/SettingsSheet';
@@ -161,13 +162,27 @@ export default function App() {
   return (
     <div className="app" ref={appRef} data-intune="false">
       <header className="topbar">
-        <button
-          className="icon-btn"
-          onClick={() => setSettingsOpen(true)}
-          aria-label="Settings"
-        >
-          <GearIcon />
-        </button>
+        <div className="topbar__row">
+          <button
+            className="icon-btn"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
+          >
+            <GearIcon />
+          </button>
+
+          <Wordmark />
+
+          <button
+            className="icon-btn"
+            onClick={() => tuner.resetTuned()}
+            disabled={!anyTuned}
+            aria-label="Clear tuned strings"
+            title="Clear tuned strings"
+          >
+            <ResetIcon />
+          </button>
+        </div>
 
         {/* Standing configuration, kept out of the reading itself. */}
         <button
@@ -184,16 +199,6 @@ export default function App() {
             {settings.capo > 0 ? `CAPO ${settings.capo}` : 'NO CAPO'}
           </span>
         </button>
-
-        <button
-          className="icon-btn"
-          onClick={() => tuner.resetTuned()}
-          disabled={!anyTuned}
-          aria-label="Clear tuned strings"
-          title="Clear tuned strings"
-        >
-          <ResetIcon />
-        </button>
       </header>
 
       <main className="stage">
@@ -206,6 +211,7 @@ export default function App() {
             the carousel and the string row. The frequency readout is pinned to
             the bottom of the zone so it cannot pull the field off centre. */}
         <div className="field-zone">
+          <TuningVerdict tolerance={settings.tolerance} />
           <div className="field">
             <PitchField
               tolerance={settings.tolerance}

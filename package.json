@@ -1,9 +1,9 @@
 {
-  "name": "opus-tuner",
+  "name": "easy-as-tuning",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "OpusTuner - a precision chromatic & instrument tuner for guitar, bass, ukulele, banjo and orchestral strings.",
+  "description": "Easy as Tuning - a precision chromatic & instrument tuner for guitar, bass, ukulele, banjo and orchestral strings.",
   "scripts": {
     "dev": "vite",
     "host": "vite --host --mode https",

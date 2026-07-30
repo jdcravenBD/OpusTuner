@@ -99,7 +99,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
 
   return (
     <>
-      <Sheet open={open && !editing} title="Tunings" onClose={close}>
+      <Sheet open={open && !editing} title="Tunings" onClose={close} tall>
         <div className="search">
           <span className="search__icon">
             <SearchIcon />

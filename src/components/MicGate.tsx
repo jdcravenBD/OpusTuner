@@ -1,4 +1,5 @@
 import { LogoMark } from './Icons';
+import { Wordmark } from './Wordmark';
 import type { EngineError } from '../audio/AudioEngine';
 
 interface Props {
@@ -21,7 +22,7 @@ export function MicGate({ starting, error, onStart }: Props) {
       <div className="splash__mark">
         <LogoMark size={56} />
       </div>
-      <div className="splash__title">OpusTuner</div>
+      <Wordmark className="splash__title wordmark" />
       <div className="splash__eyebrow">Chromatic Instrument Tuner</div>
 
       {error ? (
@@ -43,7 +44,7 @@ export function MicGate({ starting, error, onStart }: Props) {
         </>
       ) : (
         <p className="splash__text">
-          Play a note and OpusTuner listens through your microphone — no cables, no
+          Play a note and it listens through your microphone — no cables, no
           account, nothing leaves your device.
         </p>
       )}

@@ -1,21 +1,21 @@
 {
   "appId": "com.opustuner.app",
-  "appName": "OpusTuner",
+  "appName": "Easy as Tuning",
   "webDir": "dist",
-  "backgroundColor": "#080B11",
+  "backgroundColor": "#07080A",
   "android": {
-    "backgroundColor": "#080B11",
+    "backgroundColor": "#07080A",
     "allowMixedContent": false
   },
   "ios": {
-    "backgroundColor": "#080B11",
+    "backgroundColor": "#07080A",
     "contentInset": "never",
     "limitsNavigationsToAppBoundDomains": true
   },
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": true,
-      "backgroundColor": "#080B11",
+      "backgroundColor": "#07080A",
       "showSpinner": false
     }
   }

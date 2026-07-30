@@ -1,5 +1,5 @@
 /* ==========================================================================
-   OpusTuner — design system
+   Easy as Tuning — design system
    --------------------------------------------------------------------------
    Instrument-grade: graphite chassis, recessed screen, raised controls.
    Depth comes from layered surfaces (each one lit from above by a 1px inset
@@ -275,12 +275,36 @@ button {
 /* ---------------------------------------------------------------- topbar -- */
 
 .topbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px 8px;
+  flex: 0 0 auto;
+}
+
+.topbar__row {
   display: grid;
   grid-template-columns: 40px 1fr 40px;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px 8px;
-  flex: 0 0 auto;
+  width: 100%;
+}
+
+.wordmark {
+  justify-self: center;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-2);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* The joke: dropped to the faintest ink so the eye reads past it. */
+.wordmark__ghost {
+  color: var(--text-4);
+  opacity: 0.62;
 }
 
 /* Raised control: lit top edge, grounded shadow, presses in. */
@@ -434,16 +458,18 @@ button {
 }
 
 /*
- * Direction indicator, between the carousel and the screen. Words only: the
- * needle and the readout already carry the amount, and a third copy of the
- * number here would compete with the note for the first glance.
+ * Direction indicator. Sits in the upper gap of the field zone, pinned to its
+ * bottom edge, so it caption the screen it describes rather than trailing the
+ * carousel. Words only: the needle and the readout already carry the amount.
  */
 .verdict {
+  grid-row: 1;
+  align-self: end;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 15px;
-  margin-top: clamp(7px, 1.5vh, 13px);
+  margin-bottom: 11px;
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 700;
@@ -1014,6 +1040,16 @@ button {
   padding-bottom: var(--safe-b);
 }
 
+/*
+ * Fixed height rather than content height. The tuning list changes length
+ * dramatically between filter tabs — "My tunings" can be empty while "Guitar"
+ * has twenty-five rows — and a sheet that resized under the user's thumb every
+ * time they changed tab was the jarring part.
+ */
+.sheet--tall {
+  height: min(90dvh, 780px);
+}
+
 @media (min-width: 720px) {
   .sheet {
     left: 50%;
@@ -1111,7 +1147,7 @@ button {
 
 .search {
   position: relative;
-  margin: 0 0 6px;
+  margin: 14px 0 6px;
 }
 
 .search input {
@@ -1743,6 +1779,7 @@ button {
   font-size: 24px;
   font-weight: 720;
   letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 .splash__eyebrow {
