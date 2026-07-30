@@ -162,6 +162,8 @@ export default function App() {
   return (
     <div className="app" ref={appRef} data-intune="false">
       <header className="topbar">
+        <Wordmark />
+
         <div className="topbar__row">
           <button
             className="icon-btn"
@@ -171,7 +173,21 @@ export default function App() {
             <GearIcon />
           </button>
 
-          <Wordmark />
+          {/* Standing configuration, kept out of the reading itself. */}
+          <button
+            className="status"
+            onClick={() => setSettingsOpen(true)}
+            title="Reference pitch, in-tune window and capo — tap to change"
+          >
+            <span className="status__seg">
+              <b>A</b>
+              {settings.a4}
+            </span>
+            <span className="status__seg">±{settings.tolerance}¢</span>
+            <span className="status__seg" data-on={settings.capo > 0}>
+              {settings.capo > 0 ? `CAPO ${settings.capo}` : 'NO CAPO'}
+            </span>
+          </button>
 
           <button
             className="icon-btn"
@@ -183,22 +199,6 @@ export default function App() {
             <ResetIcon />
           </button>
         </div>
-
-        {/* Standing configuration, kept out of the reading itself. */}
-        <button
-          className="status"
-          onClick={() => setSettingsOpen(true)}
-          title="Reference pitch, in-tune window and capo — tap to change"
-        >
-          <span className="status__seg">
-            <b>A</b>
-            {settings.a4}
-          </span>
-          <span className="status__seg">±{settings.tolerance}¢</span>
-          <span className="status__seg" data-on={settings.capo > 0}>
-            {settings.capo > 0 ? `CAPO ${settings.capo}` : 'NO CAPO'}
-          </span>
-        </button>
       </header>
 
       <main className="stage">

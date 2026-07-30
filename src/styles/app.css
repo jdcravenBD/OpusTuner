@@ -278,8 +278,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 9px 14px 8px;
+  gap: 10px;
+  padding: 12px 14px 8px;
   flex: 0 0 auto;
 }
 
@@ -291,20 +291,51 @@ button {
   width: 100%;
 }
 
+/* --- wordmark --- */
+
 .wordmark {
-  justify-self: center;
-  font-size: 13.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--text-2);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: clamp(5px, 1.6vw, 10px);
+  max-width: 100%;
+  font-size: clamp(26px, 10vw, 44px);
+  line-height: 1;
   white-space: nowrap;
   user-select: none;
+}
+
+.wordmark__word {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text);
+}
+
+.wordmark__word--accent {
+  color: var(--green);
+  text-shadow: 0 0 18px var(--green-glow);
+}
+
+/*
+ * The connector, set in the mono face at half size like every other technical
+ * annotation in the app. Raised slightly off the baseline so the small text
+ * optically centres against the two large words rather than sitting low.
+ */
+.wordmark__joint {
+  position: relative;
+  top: -0.07em;
+  font-family: var(--font-mono);
+  font-size: 0.46em;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  color: var(--text-3);
 }
 
 /* The joke: dropped to the faintest ink so the eye reads past it. */
 .wordmark__ghost {
   color: var(--text-4);
-  opacity: 0.62;
+  opacity: 0.5;
 }
 
 /* Raised control: lit top edge, grounded shadow, presses in. */
@@ -566,7 +597,7 @@ button {
 .field {
   position: relative;
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(81vh - 302px), 400px);
+  width: min(100% - 20px, calc(80vh - 300px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -1775,11 +1806,9 @@ button {
   height: 56px;
 }
 
+/* Same mark, given more room on the opening screen. */
 .splash__title {
-  font-size: 24px;
-  font-weight: 720;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  font-size: clamp(30px, 9.5vw, 48px);
 }
 
 .splash__eyebrow {
@@ -1927,5 +1956,14 @@ button {
 
   .strings__hint {
     margin-top: 6px;
+  }
+
+  .wordmark {
+    font-size: clamp(20px, 6.2vw, 30px);
+  }
+
+  .topbar {
+    gap: 7px;
+    padding: 9px 14px 6px;
   }
 }
