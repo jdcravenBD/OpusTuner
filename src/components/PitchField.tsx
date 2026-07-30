@@ -57,8 +57,6 @@ interface Props {
   tolerance: number;
   /** Changing this re-reads the CSS custom properties. */
   themeKey: string;
-  /** Draw the input-level bar along the bottom edge. */
-  showLevel: boolean;
   naming: NoteNaming;
   /** Note to label gridlines against before anything has been detected. */
   fallbackMidi: number;
@@ -76,10 +74,16 @@ interface Props {
  * Driven straight from the tuner's frame stream; React never re-renders this
  * while a note is sounding.
  */
-export function PitchField({ tolerance, themeKey, showLevel, naming, fallbackMidi }: Props) {
+export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const paletteRef = useRef<Palette | null>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
+  /**
+   * Offscreen buffer for the trail. The trail is stroked opaque in here so that
+   * where it crosses itself nothing accumulates, then faded once on the way
+   * out — see drawTrail().
+   */
+  const trailCanvas = useRef<HTMLCanvasElement | null>(null);
 
   // All animation state lives in refs — mutated 60x/s, never through React.
   const displayCents = useRef(0);
@@ -100,8 +104,6 @@ export function PitchField({ tolerance, themeKey, showLevel, naming, fallbackMid
 
   const toleranceRef = useRef(tolerance);
   toleranceRef.current = tolerance;
-  const showLevelRef = useRef(showLevel);
-  showLevelRef.current = showLevel;
   const namingRef = useRef(naming);
   namingRef.current = naming;
   const fallbackRef = useRef(fallbackMidi);
@@ -129,6 +131,11 @@ export function PitchField({ tolerance, themeKey, showLevel, naming, fallbackMid
     sizeRef.current = { w, h, dpr };
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
+
+    if (!trailCanvas.current) trailCanvas.current = document.createElement('canvas');
+    trailCanvas.current.width = canvas.width;
+    trailCanvas.current.height = canvas.height;
+
     trail.current.count = 0; // geometry changed; old positions are meaningless
     return true;
   };
@@ -203,10 +210,10 @@ export function PitchField({ tolerance, themeKey, showLevel, naming, fallbackMid
       fade: signalFade.current,
       tolerance: toleranceRef.current,
       scroll: scrollOffset.current,
-      showLevel: showLevelRef.current,
       naming: namingRef.current,
       fallbackMidi: fallbackRef.current,
       trail: t,
+      buffer: trailCanvas.current,
     });
   });
 
@@ -226,17 +233,19 @@ interface DrawState {
   fade: number;
   tolerance: number;
   scroll: number;
-  showLevel: boolean;
   naming: NoteNaming;
   fallbackMidi: number;
-  trail: {
-    x: Float32Array;
-    cents: Float32Array;
-    y: Float32Array;
-    live: Uint8Array;
-    head: number;
-    count: number;
-  };
+  trail: Trail;
+  buffer: HTMLCanvasElement | null;
+}
+
+interface Trail {
+  x: Float32Array;
+  cents: Float32Array;
+  y: Float32Array;
+  live: Uint8Array;
+  head: number;
+  count: number;
 }
 
 function colourFor(p: Palette, cents: number, tolerance: number): string {
@@ -364,42 +373,11 @@ function draw(
   }
 
   /* --- the trail -------------------------------------------------------- */
-  // Newest (just under the marker) to oldest (falling out of the bottom).
-  // Connected segments rather than dots: the marker can travel further
-  // horizontally between samples than its own width.
-  const t = s.trail;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  for (let i = 0; i < t.count - 1; i++) {
-    const a = (t.head - 1 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
-    const b = (t.head - 2 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
-    if (!t.live[a] || !t.live[b]) continue; // gap where nothing was sounding
-    const depth = depthFade(t.y[a]);
-    if (depth <= 0.02) continue;
-    ctx.globalAlpha = depth * 0.75 * alpha;
-    ctx.strokeStyle = colourFor(p, t.cents[a], s.tolerance);
-    ctx.lineWidth = 2 + depth * 4;
-    ctx.beginPath();
-    ctx.moveTo(t.x[a], t.y[a]);
-    ctx.lineTo(t.x[b], t.y[b]);
-    ctx.stroke();
-  }
+  const x = xOf(w, s.cents);
+  drawTrail(ctx, s.buffer, size, p, s, markerY, x, hot, alpha);
 
   /* --- the marker ------------------------------------------------------- */
-  const x = xOf(w, s.cents);
   const scale = 0.7 + s.fade * 0.3;
-
-  // Join the nib to the head of the trail so the stroke reads as continuous.
-  const newest = (t.head - 1 + TRAIL_CAPACITY) % TRAIL_CAPACITY;
-  if (t.count > 0 && t.live[newest]) {
-    ctx.globalAlpha = 0.75 * alpha;
-    ctx.strokeStyle = hot;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(x, markerY);
-    ctx.lineTo(t.x[newest], t.y[newest]);
-    ctx.stroke();
-  }
 
   ctx.globalAlpha = alpha;
   ctx.shadowColor = hot;
@@ -431,26 +409,84 @@ function draw(
   nibPath(ctx, x, markerY, scale * 0.44);
   ctx.fill();
 
-  /* --- input level, hugging the bottom edge ----------------------------- */
-  if (s.showLevel) {
-    ctx.lineCap = 'butt';
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = p.tick;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, h - 1.5);
-    ctx.lineTo(w, h - 1.5);
-    ctx.stroke();
+  ctx.restore();
+}
 
-    ctx.globalAlpha = 0.7;
-    ctx.strokeStyle = hot;
-    ctx.beginPath();
-    ctx.moveTo(0, h - 1.5);
-    ctx.lineTo(Math.max(0.001, w * Math.min(1, frame.level)), h - 1.5);
-    ctx.stroke();
+/**
+ * Renders the pitch trail.
+ *
+ * Every segment is stroked at full opacity into an offscreen buffer, and the
+ * depth fade is applied afterwards as a single gradient mask. Stroking the
+ * segments straight onto the field with partial alpha would composite them
+ * against each other — so every round cap join, and every place the trail
+ * crosses back over itself, would show up as a denser patch. Painting opaque
+ * first makes overlap a no-op, and one `drawImage` puts a perfectly even trail
+ * on the field.
+ */
+function drawTrail(
+  ctx: CanvasRenderingContext2D,
+  buffer: HTMLCanvasElement | null,
+  size: { w: number; h: number; dpr: number },
+  p: Palette,
+  s: DrawState,
+  markerY: number,
+  markerX: number,
+  hot: string,
+  alpha: number,
+): void {
+  const { w, h, dpr } = size;
+  const t = s.trail;
+  if (!buffer || t.count < 2) return;
+  const bctx = buffer.getContext('2d');
+  if (!bctx) return;
+
+  bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bctx.clearRect(0, 0, w, h);
+  bctx.globalCompositeOperation = 'source-over';
+  bctx.globalAlpha = 1;
+  bctx.lineCap = 'round';
+  bctx.lineJoin = 'round';
+
+  // Join the nib to the head of the trail so the stroke reads as continuous.
+  const newest = (t.head - 1 + TRAIL_CAPACITY) % TRAIL_CAPACITY;
+  if (t.live[newest]) {
+    bctx.strokeStyle = hot;
+    bctx.lineWidth = 6;
+    bctx.beginPath();
+    bctx.moveTo(markerX, markerY);
+    bctx.lineTo(t.x[newest], t.y[newest]);
+    bctx.stroke();
   }
 
-  ctx.restore();
+  // Newest (just under the marker) to oldest (falling out of the bottom).
+  // Connected segments rather than dots: the marker can travel further
+  // horizontally between samples than its own width.
+  for (let i = 0; i < t.count - 1; i++) {
+    const a = (t.head - 1 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
+    const b = (t.head - 2 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
+    if (!t.live[a] || !t.live[b]) continue; // gap where nothing was sounding
+    if (t.y[a] > h) continue;
+    const depth = clamp(1 - (t.y[a] - markerY) / Math.max(1, h - markerY), 0, 1);
+    bctx.strokeStyle = colourFor(p, t.cents[a], s.tolerance);
+    bctx.lineWidth = 2 + depth * 4;
+    bctx.beginPath();
+    bctx.moveTo(t.x[a], t.y[a]);
+    bctx.lineTo(t.x[b], t.y[b]);
+    bctx.stroke();
+  }
+
+  // Fade with depth in one pass, so the gradient can't interact with overlap.
+  const grad = bctx.createLinearGradient(0, markerY, 0, h);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.55, 'rgba(255,255,255,0.62)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  bctx.globalCompositeOperation = 'destination-in';
+  bctx.fillStyle = grad;
+  bctx.fillRect(0, 0, w, h);
+  bctx.globalCompositeOperation = 'source-over';
+
+  ctx.globalAlpha = alpha * 0.92;
+  ctx.drawImage(buffer, 0, 0, w, h);
 }
 
 function clamp(v: number, lo: number, hi: number): number {

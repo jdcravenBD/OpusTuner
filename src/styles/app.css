@@ -202,6 +202,11 @@ button {
 .ref-chip__extra {
   padding-left: 7px;
   border-left: 1px solid var(--border);
+  color: var(--text-3);
+}
+
+/* Highlighted only when a capo is actually fitted. */
+.ref-chip__extra[data-set='true'] {
   color: var(--green);
 }
 
@@ -284,7 +289,7 @@ button {
    * squashing it when space runs short.
    */
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(87vh - 330px), 400px);
+  width: min(100% - 20px, calc(81vh - 290px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -303,24 +308,27 @@ button {
   height: 100%;
 }
 
+/* Flat and sharp sit centred against the left and right edges — the same
+   directions the marker travels for flat and sharp. */
 .field__edge {
   position: absolute;
-  top: 10px;
-  font-size: 17px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
   color: var(--text-3);
-  opacity: 0.8;
+  opacity: 0.75;
   pointer-events: none;
   user-select: none;
 }
 
 .field__edge--flat {
-  left: 11px;
+  left: 9px;
 }
 
 .field__edge--sharp {
-  right: 11px;
+  right: 9px;
 }
 
 /* --- note carousel: focused note centred, neighbours shrinking outward --- */
@@ -345,19 +353,19 @@ button {
 }
 
 .carousel__note[data-dist='2'] {
-  font-size: clamp(15px, 4.2vw, 23px);
+  font-size: clamp(19px, 5.4vw, 30px);
   opacity: 0.26;
 }
 
 .carousel__note[data-dist='1'] {
-  font-size: clamp(24px, 7vw, 38px);
+  font-size: clamp(30px, 8.8vw, 48px);
   opacity: 0.5;
 }
 
 .carousel__note--focus {
   display: flex;
   align-items: baseline;
-  font-size: clamp(52px, 13vh, 88px);
+  font-size: clamp(64px, 16vh, 112px);
   letter-spacing: -0.04em;
   color: var(--text);
   opacity: 1;
@@ -1338,12 +1346,20 @@ button {
 /* Short/landscape phones: reclaim vertical space. */
 @media (max-height: 620px) {
   .field {
-    width: min(100% - 20px, calc(89vh - 300px), 400px);
+    width: min(100% - 20px, calc(87vh - 300px), 400px);
     border-radius: 12px;
   }
 
   .carousel__note--focus {
-    font-size: clamp(42px, 11vh, 68px);
+    font-size: clamp(50px, 13vh, 84px);
+  }
+
+  .carousel__note[data-dist='1'] {
+    font-size: clamp(24px, 7vw, 38px);
+  }
+
+  .carousel__note[data-dist='2'] {
+    font-size: clamp(15px, 4.2vw, 23px);
   }
 
   .verdict {

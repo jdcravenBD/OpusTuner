@@ -217,9 +217,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Show frequencies"
           />
         </Row>
-        <Row name="Show input level">
-          <Switch on={s.showMeter} onChange={(v) => set('showMeter', v)} label="Show input level" />
-        </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />
         </Row>

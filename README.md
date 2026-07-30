@@ -101,7 +101,9 @@ Thereafter `npm run cap:android` / `npm run cap:ios` rebuild and sync.
   falling background reads as the marker climbing
 - The trail drops away beneath it at exactly the background's rate, leaving a
   legible few seconds of history of where the pitch has been — and carrying the
-  colour it had at the time, so tuning up leaves an amber-to-green streak
+  colour it had at the time, so tuning up leaves an amber-to-green streak. It is
+  stroked opaque into an offscreen buffer and faded once through a gradient
+  mask, so crossing back over itself never shows as a denser patch
 - The marker is an inverted nib: rounded across the crown, with both lower
   edges curving inward to taper to a hairline at the tip. The cent offset rides
   just above it and travels with it

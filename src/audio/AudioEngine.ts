@@ -430,7 +430,7 @@ export class AudioEngine {
     return this.envelope / this.sustainRef;
   }
 
-  /** Smoothed input level, 0..1, for the level meter. */
+  /** Smoothed input level, 0..1. Not currently surfaced in the UI. */
   get level(): number {
     return this.peakLevel;
   }

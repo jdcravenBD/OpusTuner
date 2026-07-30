@@ -28,7 +28,7 @@ export interface TunerFrame {
   targetFreq: number;
   inTune: boolean;
   clarity: number;
-  /** Input level 0..1 for the meter. */
+  /** Smoothed input level, 0..1. Not currently surfaced in the UI. */
   level: number;
 }
 

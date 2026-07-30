@@ -42,7 +42,6 @@ export interface Settings {
   /** 0 = permissive (noisy rooms), 1 = strict (studio quiet). */
   sensitivity: number;
   showFrequency: boolean;
-  showMeter: boolean;
 }
 
 export interface Session {
@@ -71,7 +70,6 @@ export const DEFAULT_SETTINGS: Settings = {
   inputDeviceId: 'default',
   sensitivity: 0.4,
   showFrequency: true,
-  showMeter: true,
 };
 
 export const DEFAULT_SESSION: Session = {

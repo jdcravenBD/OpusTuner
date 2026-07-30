@@ -93,7 +93,9 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
     let text: string;
     if (!frame.hasSignal) {
       state = 'idle';
-      text = hasNote ? 'Play again' : 'Play a note';
+      // Once a note has been shown, stay quiet between plucks rather than
+      // nagging — the carousel already holds the last note on screen.
+      text = hasNote ? '' : 'Play a note';
     } else if (inTune) {
       state = 'intune';
       text = 'In tune';

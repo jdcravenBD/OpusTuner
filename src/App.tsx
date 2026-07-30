@@ -170,7 +170,9 @@ export default function App() {
           title="Reference pitch"
         >
           A {settings.a4}
-          {settings.capo > 0 && <span className="ref-chip__extra">capo {settings.capo}</span>}
+          <span className="ref-chip__extra" data-set={settings.capo > 0}>
+            {settings.capo > 0 ? `capo ${settings.capo}` : 'no capo'}
+          </span>
         </button>
 
         <button
@@ -194,7 +196,6 @@ export default function App() {
           <PitchField
             tolerance={settings.tolerance}
             themeKey={settings.theme}
-            showLevel={settings.showMeter}
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
           />
