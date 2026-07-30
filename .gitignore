@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-ssr/
+test/.build/
+*.local
+.DS_Store
+Thumbs.db
+
+# editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# capacitor native projects (regenerate with `npx cap add android|ios`)
+/android
+/ios

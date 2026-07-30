@@ -1,0 +1,32 @@
+{
+  "name": "opus-tuner",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "OpusTuner - a precision chromatic & instrument tuner for guitar, bass, ukulele, banjo and orchestral strings.",
+  "scripts": {
+    "dev": "vite",
+    "host": "vite --host --mode https",
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild test/pitch.test.ts --bundle --format=esm --platform=node --outfile=test/.build/pitch.test.mjs --log-level=warning && node test/.build/pitch.test.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "icons": "node scripts/generate-icons.mjs",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run build && cap sync android && cap open android",
+    "cap:ios": "npm run build && cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "@vitejs/plugin-react": "^6.0.4",
+    "esbuild": "^0.28.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  }
+}

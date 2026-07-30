@@ -1,0 +1,22 @@
+{
+  "appId": "com.opustuner.app",
+  "appName": "OpusTuner",
+  "webDir": "dist",
+  "backgroundColor": "#080B11",
+  "android": {
+    "backgroundColor": "#080B11",
+    "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#080B11",
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#080B11",
+      "showSpinner": false
+    }
+  }
+}

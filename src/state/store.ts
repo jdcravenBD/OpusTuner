@@ -1,0 +1,183 @@
+/**
+ * Tiny persisted store built on `useSyncExternalStore`.
+ *
+ * Deliberately not Redux/Zustand: the app has one small settings object and
+ * one small session object, and the 60 fps needle path bypasses React entirely
+ * (see `useFrameLoop`), so there is nothing here for a state library to earn.
+ */
+
+import { useSyncExternalStore } from 'react';
+import type { NoteNaming } from '../music/notes';
+import { DEFAULT_A4 } from '../music/notes';
+import { DEFAULT_TUNING_ID, type Tuning } from '../music/tunings';
+
+/* ----------------------------------------------------------------- types -- */
+
+export type ThemeMode = 'dark' | 'light' | 'system';
+export type ToleranceCents = 2 | 3 | 5 | 10;
+
+export interface Settings {
+  /** Concert-pitch reference, 415–466 Hz. */
+  a4: number;
+  naming: NoteNaming;
+  /** Half-width of the "in tune" window, in cents. */
+  tolerance: ToleranceCents;
+  /** Auto-detect which string is being played. */
+  auto: boolean;
+  /** Jump to the next untuned string once one lands. */
+  autoAdvance: boolean;
+  /** Play a reference tone when a string button is tapped. */
+  referenceTones: boolean;
+  /** Play a confirmation chime when a string lands in tune. */
+  chimeOnTuned: boolean;
+  toneVolume: number;
+  haptics: boolean;
+  keepAwake: boolean;
+  theme: ThemeMode;
+  /** Mirror the string row for left-handed players. */
+  leftHanded: boolean;
+  /** Capo position in frets — raises every target by this many semitones. */
+  capo: number;
+  inputDeviceId: string;
+  /** 0 = permissive (noisy rooms), 1 = strict (studio quiet). */
+  sensitivity: number;
+  showFrequency: boolean;
+  showMeter: boolean;
+}
+
+export interface Session {
+  tuningId: string;
+  recentTuningIds: string[];
+  favoriteTuningIds: string[];
+  customTunings: Tuning[];
+  /** Set once, shown never again — gates the first-run mic explainer. */
+  onboarded: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  a4: DEFAULT_A4,
+  naming: 'sharp',
+  tolerance: 5,
+  auto: true,
+  autoAdvance: true,
+  referenceTones: true,
+  chimeOnTuned: false,
+  toneVolume: 0.55,
+  haptics: true,
+  keepAwake: true,
+  theme: 'dark',
+  leftHanded: false,
+  capo: 0,
+  inputDeviceId: 'default',
+  sensitivity: 0.4,
+  showFrequency: true,
+  showMeter: true,
+};
+
+export const DEFAULT_SESSION: Session = {
+  tuningId: DEFAULT_TUNING_ID,
+  recentTuningIds: [DEFAULT_TUNING_ID],
+  favoriteTuningIds: [],
+  customTunings: [],
+  onboarded: false,
+};
+
+/* ----------------------------------------------------------------- store -- */
+
+export interface Store<T extends object> {
+  get(): T;
+  set(patch: Partial<T> | ((state: T) => Partial<T>)): void;
+  reset(): void;
+  subscribe(listener: () => void): () => void;
+}
+
+function createStore<T extends object>(key: string, initial: T): Store<T> {
+  let state: T = hydrate(key, initial);
+  const listeners = new Set<() => void>();
+
+  const persist = () => {
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch {
+      /* private mode / quota — the app still works, it just won't remember */
+    }
+  };
+
+  return {
+    get: () => state,
+    set(patch) {
+      const next = typeof patch === 'function' ? patch(state) : patch;
+      let changed = false;
+      for (const k of Object.keys(next) as (keyof T)[]) {
+        if (!Object.is(state[k], next[k])) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return;
+      state = { ...state, ...next };
+      persist();
+      listeners.forEach((l) => l());
+    },
+    reset() {
+      state = { ...initial };
+      persist();
+      listeners.forEach((l) => l());
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+/**
+ * Merges stored values over the defaults so a new setting added in a later
+ * version doesn't come back `undefined` for existing users.
+ */
+function hydrate<T extends object>(key: string, initial: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return { ...initial };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return { ...initial };
+    const merged = { ...initial } as Record<string, unknown>;
+    for (const k of Object.keys(initial as object)) {
+      if (parsed[k] !== undefined && parsed[k] !== null) merged[k] = parsed[k];
+    }
+    return merged as T;
+  } catch {
+    return { ...initial };
+  }
+}
+
+export const settingsStore = createStore<Settings>('opustuner.settings.v1', DEFAULT_SETTINGS);
+export const sessionStore = createStore<Session>('opustuner.session.v1', DEFAULT_SESSION);
+
+/* ----------------------------------------------------------------- hooks -- */
+
+export function useSettings(): Settings {
+  return useSyncExternalStore(settingsStore.subscribe, settingsStore.get, settingsStore.get);
+}
+
+export function useSession(): Session {
+  return useSyncExternalStore(sessionStore.subscribe, sessionStore.get, sessionStore.get);
+}
+
+export const MAX_RECENT = 8;
+
+/** Pushes a tuning to the front of the recents list, de-duplicated. */
+export function markTuningUsed(id: string): void {
+  sessionStore.set((s) => ({
+    tuningId: id,
+    recentTuningIds: [id, ...s.recentTuningIds.filter((t) => t !== id)].slice(0, MAX_RECENT),
+  }));
+}
+
+export function toggleFavorite(id: string): void {
+  sessionStore.set((s) => ({
+    favoriteTuningIds: s.favoriteTuningIds.includes(id)
+      ? s.favoriteTuningIds.filter((t) => t !== id)
+      : [...s.favoriteTuningIds, id],
+  }));
+}
