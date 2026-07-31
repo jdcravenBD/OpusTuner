@@ -8,6 +8,21 @@
    thing read as a measuring device rather than an app.
    ========================================================================== */
 
+/*
+ * 7-Segment by Jan Bobrowski (torinak.com/font/7-segment), under the SIL Open
+ * Font License. Bundled rather than linked: the app has to work with no network
+ * at all, and a webfont that fails to arrive would take the strobe's readout
+ * with it. Used only on canvas, so it is loaded explicitly at startup — a
+ * @font-face nothing in the DOM renders is never fetched otherwise.
+ */
+@font-face {
+  font-family: 'SevenSegment';
+  src: url('../assets/7segment.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   /* --- type ------------------------------------------------------------ */
   --font-ui:
@@ -351,7 +366,7 @@ button {
   color: var(--text-3);
   /* Dimmed as a whole rather than by moving the colour token, so the ghost
      letter keeps its ratio against the rest of the mark. */
-  opacity: 0.72;
+  opacity: 0.55;
   user-select: none;
 }
 

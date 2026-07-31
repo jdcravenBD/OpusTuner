@@ -307,10 +307,31 @@ export function useSheetGestures(
       }
     };
 
+    /**
+     * A wheel over a sideways scroller moves it sideways.
+     *
+     * Mice mostly have one wheel and it points the wrong way for a row of
+     * filter chips, so a scroll there would otherwise skate straight past them
+     * and move the list underneath instead. Trackpads that do send a horizontal
+     * delta are used as-is.
+     */
+    const onWheel = (e: WheelEvent) => {
+      const track = horizontalScroller(e.target, panel);
+      if (!track) return;
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (!delta) return;
+      const before = track.scrollLeft;
+      track.scrollLeft = before + delta;
+      // Only claim the gesture if the row actually had somewhere to go, so a
+      // wheel at either end still falls through to the list.
+      if (track.scrollLeft !== before) e.preventDefault();
+    };
+
     panel.addEventListener('pointerdown', onDown);
     panel.addEventListener('pointermove', onMove);
     panel.addEventListener('pointerup', onUp);
     panel.addEventListener('pointercancel', onUp);
+    panel.addEventListener('wheel', onWheel, { passive: false });
 
     return () => {
       stopGlide();
@@ -318,6 +339,7 @@ export function useSheetGestures(
       panel.removeEventListener('pointermove', onMove);
       panel.removeEventListener('pointerup', onUp);
       panel.removeEventListener('pointercancel', onUp);
+      panel.removeEventListener('wheel', onWheel);
     };
   }, [open, panelRef, bodyRef]);
 }

@@ -1,6 +1,11 @@
 import { useRef } from 'react';
 import { noteOctave, pitchClassName } from '../../music/notes';
-import { drawSegmentText, segmentWidth } from './segments';
+import {
+  drawSegmentText,
+  loadSegmentFont,
+  segmentFontReady,
+  segmentWidth,
+} from './segments';
 import { clamp, useVisualCanvas, type VisualProps } from './shared';
 
 const TAU = Math.PI * 2;
@@ -27,17 +32,17 @@ const BASE_BLOCKS = 7;
  * are. That outer edge stops short of the top, leaving the dial sitting in the
  * screen rather than jammed against it.
  */
-const BAND_OUTER = 0.87;
+const BAND_OUTER = 0.92;
 const BAND_THICKNESS = 0.109;
 const BAND_GAP = 0.015;
 const BAND_INNER =
   BAND_OUTER - HARMONICS.length * BAND_THICKNESS - (HARMONICS.length - 1) * BAND_GAP;
 
 /* Readout placement in the well below the dial, as fractions of the side. */
-const NOTE_Y = 0.68;
-const NOTE_HEIGHT = 0.15;
-const CENTS_Y = 0.875;
-const CENTS_HEIGHT = 0.09;
+const NOTE_Y = 0.66;
+const NOTE_SIZE = 0.21;
+const CENTS_Y = 0.855;
+const CENTS_SIZE = 0.13;
 
 /*
  * Speed.
@@ -105,6 +110,8 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
   namingRef.current = naming;
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
+
+  loadSegmentFont();
 
   const canvasRef = useVisualCanvas({
     themeKey,
@@ -191,18 +198,6 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
         }
       });
 
-      /* --- index line at twelve o'clock ----------------------------------- */
-      // The stationary reference. Without it the bands have nothing to be still
-      // against, and "barely creeping" looks the same as "stopped". A block
-      // edge lands exactly on it once the stack locks.
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = p.tickHot;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - BAND_OUTER * S);
-      ctx.lineTo(cx, cy - (BAND_INNER - 0.03) * S);
-      ctx.stroke();
-
       /* --- inner rim ------------------------------------------------------ */
       ctx.globalAlpha = 0.22;
       ctx.strokeStyle = p.tick;
@@ -225,24 +220,26 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
           ? '0'
           : `${rounded > 0 ? '+' : '-'}${Math.abs(rounded)}`;
 
-      const style = { colour: hot, alpha, ghost: 0.09 + fade * 0.05 };
+      if (segmentFontReady()) {
+        const style = { colour: hot, alpha, ghost: 0.1 + fade * 0.06 };
 
-      // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
-      const fit = (text: string, height: number) => {
-        const max = S * 0.82;
-        const wanted = segmentWidth(text, height);
-        return wanted > max ? (height * max) / wanted : height;
-      };
+        // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
+        const fit = (text: string, size: number) => {
+          const max = S * 0.8;
+          const wanted = segmentWidth(ctx, text, size);
+          return wanted > max ? (size * max) / wanted : size;
+        };
 
-      drawSegmentText(ctx, note, cx, cy - (1 - NOTE_Y) * S, fit(note, NOTE_HEIGHT * S), style);
-      drawSegmentText(
-        ctx,
-        centsLabel,
-        cx,
-        cy - (1 - CENTS_Y) * S,
-        fit(centsLabel, CENTS_HEIGHT * S),
-        style,
-      );
+        drawSegmentText(ctx, note, cx, cy - (1 - NOTE_Y) * S, fit(note, NOTE_SIZE * S), style);
+        drawSegmentText(
+          ctx,
+          centsLabel,
+          cx,
+          cy - (1 - CENTS_Y) * S,
+          fit(centsLabel, CENTS_SIZE * S),
+          style,
+        );
+      }
 
       ctx.restore();
     },

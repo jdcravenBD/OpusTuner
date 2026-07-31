@@ -290,6 +290,9 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           on a clean signal.
           <br />
           Defaults: A = {DEFAULT_SETTINGS.a4} Hz, ±{DEFAULT_SETTINGS.tolerance}¢ window.
+          <br />
+          Strobe readout set in 7-Segment by Jan Bobrowski, under the SIL Open Font
+          License.
         </div>
       </Section>
     </Sheet>
