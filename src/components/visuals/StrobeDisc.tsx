@@ -1,5 +1,7 @@
 import { useRef } from 'react';
-import { clamp, colourFor, useVisualCanvas, visualFont, type VisualProps } from './shared';
+import { noteOctave, pitchClassName } from '../../music/notes';
+import { drawSegmentText, segmentWidth } from './segments';
+import { clamp, useVisualCanvas, type VisualProps } from './shared';
 
 const TAU = Math.PI * 2;
 
@@ -22,13 +24,20 @@ const BASE_BLOCKS = 7;
  *
  * The stack is anchored at its *outer* edge and grows inward, so the dial keeps
  * filling the screen whatever the band thickness or however many bands there
- * are.
+ * are. That outer edge stops short of the top, leaving the dial sitting in the
+ * screen rather than jammed against it.
  */
-const BAND_OUTER = 1;
+const BAND_OUTER = 0.87;
 const BAND_THICKNESS = 0.109;
 const BAND_GAP = 0.015;
 const BAND_INNER =
   BAND_OUTER - HARMONICS.length * BAND_THICKNESS - (HARMONICS.length - 1) * BAND_GAP;
+
+/* Readout placement in the well below the dial, as fractions of the side. */
+const NOTE_Y = 0.68;
+const NOTE_HEIGHT = 0.15;
+const CENTS_Y = 0.875;
+const CENTS_HEIGHT = 0.09;
 
 /*
  * Speed.
@@ -42,7 +51,7 @@ const BAND_INNER =
  * a given point.
  */
 /** Degrees per second on the fundamental band, per cent, near zero. */
-const DEG_PER_CENT = 6.43;
+const DEG_PER_CENT = 4.82;
 /** Cents at which the rate is half what a straight line would have given. */
 const KNEE_CENTS = 34;
 /**
@@ -71,7 +80,7 @@ const MIN_CONTRAST = 0.16;
  * multiples of one another, so aligning each band independently is what makes
  * the edges line up all the way through the stack.
  */
-const LOCK_DEG_PER_SEC = 13;
+const LOCK_DEG_PER_SEC = 9.75;
 const SNAP_RATE = 9;
 
 /**
@@ -87,13 +96,15 @@ const SNAP_RATE = 9;
  * the most sensitive thing human vision does, which is why the mechanical
  * original is still the reference instrument.
  */
-export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
+export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
   const phases = useRef(HARMONICS.map(() => 0));
   const displayCents = useRef(0);
   const signalFade = useRef(0);
 
-  const toleranceRef = useRef(tolerance);
-  toleranceRef.current = tolerance;
+  const namingRef = useRef(naming);
+  namingRef.current = naming;
+  const fallbackRef = useRef(fallbackMidi);
+  fallbackRef.current = fallbackMidi;
 
   const canvasRef = useVisualCanvas({
     themeKey,
@@ -117,8 +128,11 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
 
       const fade = signalFade.current;
       const alpha = 0.3 + fade * 0.7;
-      const inTune = frame.hasSignal && Math.abs(frame.cents) <= toleranceRef.current;
-      const hot = colourFor(p, frame.hasSignal ? frame.cents : 9999, toleranceRef.current);
+      // One colour throughout. A strobe answers by moving or not moving, and a
+      // dial that also changes colour is answering the same question twice —
+      // worse, it invites you to read the colour instead of the motion, which
+      // is the less precise of the two by a wide margin.
+      const hot = p.amber;
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -164,7 +178,7 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
         ctx.stroke();
 
         /* --- blocks ------------------------------------------------------ */
-        ctx.globalAlpha = alpha * contrast * (inTune ? 0.95 : 0.8);
+        ctx.globalAlpha = alpha * contrast * 0.85;
         ctx.strokeStyle = hot;
         for (let i = 0; i < blocks; i++) {
           // Canvas angles run clockwise from due east; the visible half is the
@@ -181,12 +195,11 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
       // The stationary reference. Without it the bands have nothing to be still
       // against, and "barely creeping" looks the same as "stopped". A block
       // edge lands exactly on it once the stack locks.
-      const stackTop = BAND_OUTER;
-      ctx.globalAlpha = inTune ? 0.95 : 0.5;
-      ctx.strokeStyle = inTune ? p.green : p.tickHot;
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = p.tickHot;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(cx, cy - stackTop * S);
+      ctx.moveTo(cx, cy - BAND_OUTER * S);
       ctx.lineTo(cx, cy - (BAND_INNER - 0.03) * S);
       ctx.stroke();
 
@@ -198,17 +211,38 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
       ctx.arc(cx, cy, (BAND_INNER - 0.03) * S, Math.PI, TAU);
       ctx.stroke();
 
-      /* --- cent readout, in the well under the dial ------------------------ */
-      if (frame.hasSignal) {
-        const rounded = Math.round(frame.cents);
-        const label = rounded === 0 ? '0' : `${rounded > 0 ? '+' : '-'}${Math.abs(rounded)}`;
-        ctx.font = visualFont(Math.max(15, Math.round(S * 0.13)));
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = hot;
-        ctx.fillText(label, cx, cy - S * 0.27);
-      }
+      /* --- the readout, in the well under the dial ------------------------- */
+      // Note over cents, on a segment display. The note is the larger of the
+      // two because it is the one you look for; the cents are the fine print
+      // you only consult once the bands are nearly still.
+      const midi = frame.targetMidi > 0 ? frame.targetMidi : fallbackRef.current;
+      const note =
+        midi > 0 ? pitchClassName(midi, namingRef.current) + noteOctave(midi) : '--';
+      const rounded = Math.round(frame.cents);
+      const centsLabel = !frame.hasSignal
+        ? '--'
+        : rounded === 0
+          ? '0'
+          : `${rounded > 0 ? '+' : '-'}${Math.abs(rounded)}`;
+
+      const style = { colour: hot, alpha, ghost: 0.09 + fade * 0.05 };
+
+      // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
+      const fit = (text: string, height: number) => {
+        const max = S * 0.82;
+        const wanted = segmentWidth(text, height);
+        return wanted > max ? (height * max) / wanted : height;
+      };
+
+      drawSegmentText(ctx, note, cx, cy - (1 - NOTE_Y) * S, fit(note, NOTE_HEIGHT * S), style);
+      drawSegmentText(
+        ctx,
+        centsLabel,
+        cx,
+        cy - (1 - CENTS_Y) * S,
+        fit(centsLabel, CENTS_HEIGHT * S),
+        style,
+      );
 
       ctx.restore();
     },
