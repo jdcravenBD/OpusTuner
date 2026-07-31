@@ -35,6 +35,11 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
 
   if (!open) return null;
 
+  // Rendered into the app element rather than <body>: on desktop the app is
+  // drawn in a phone-shaped frame, and a sheet mounted on the body would slide
+  // up over the whole browser window instead of over the app.
+  const host = document.getElementById('app') ?? document.body;
+
   return createPortal(
     <>
       <div className="scrim" onClick={onClose} />
@@ -61,6 +66,6 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
         <div className="sheet__body">{children}</div>
       </div>
     </>,
-    document.body,
+    host,
   );
 }

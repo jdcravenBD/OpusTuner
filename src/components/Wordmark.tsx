@@ -1,31 +1,33 @@
 /**
- * The app wordmark.
+ * The app wordmark: EASYASSTUNING, tracked out across the full width.
  *
- * Three parts, each doing a different job:
- *   "Easy"    heavy grotesque, full-strength ink
- *   "as"      set in the mono face at half size, the way every other technical
- *             annotation in this app is set — it reads as a connector, not a
- *             word, and lets the two real words carry the mark
- *   "Tuning"  same grotesque, in the signal green
+ * Set as individual letters in a space-between row rather than with
+ * letter-spacing, because letter-spacing adds its gap *after* the final glyph
+ * and would leave the mark visibly off-centre. This way the two end letters sit
+ * flush with the edges and every gap between them is identical.
  *
- * The final "s" of "ass" is dropped to the faintest ink in the palette, so the
- * mark reads as "Easy as Tuning" at a glance and rewards a second look.
+ * One letter is dimmed: the second S of "ass". Everything else is one colour.
  *
- * Exposed to assistive tech as a single labelled image, so screen readers get
- * the clean spelling rather than three fragments and a stray letter.
+ * Exposed as a single labelled image, so assistive tech gets the readable name
+ * rather than thirteen separate letters.
  */
+const LETTERS = 'EASYASSTUNING';
+
+/** Index of the second S in "ass" — E-A-S-Y-A-S-[S]-T-U-N-I-N-G. */
+const GHOST_INDEX = 6;
+
 export function Wordmark({ className = 'wordmark' }: { className?: string }) {
   return (
     <span className={className} role="img" aria-label="Easy as Tuning">
-      <span className="wordmark__word" aria-hidden="true">
-        Easy
-      </span>
-      <span className="wordmark__joint" aria-hidden="true">
-        as<span className="wordmark__ghost">s</span>
-      </span>
-      <span className="wordmark__word wordmark__word--accent" aria-hidden="true">
-        Tuning
-      </span>
+      {LETTERS.split('').map((letter, i) => (
+        <span
+          key={i}
+          className={i === GHOST_INDEX ? 'wordmark__ghost' : undefined}
+          aria-hidden="true"
+        >
+          {letter}
+        </span>
+      ))}
     </span>
   );
 }

@@ -223,7 +223,15 @@ button {
 
 /* ------------------------------------------------------------------- app -- */
 
+/*
+ * The app is a sizing container, and everything inside sizes against it with
+ * cq units rather than vh/vw. On a phone the two are identical; in the desktop
+ * frame below they are not, and viewport units would size the interior against
+ * the browser window instead of the phone-shaped box it is drawn in.
+ */
 .app {
+  container-type: size;
+  container-name: app;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -278,8 +286,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px 8px;
+  gap: 9px;
+  padding: 5px 12px 8px;
   flex: 0 0 auto;
 }
 
@@ -293,49 +301,27 @@ button {
 
 /* --- wordmark --- */
 
+/*
+ * Letters spread edge to edge with identical gaps. space-between rather than
+ * letter-spacing, which would add its gap after the final glyph and throw the
+ * mark off centre.
+ */
 .wordmark {
   display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: clamp(5px, 1.6vw, 10px);
-  max-width: 100%;
-  font-size: clamp(26px, 10vw, 44px);
-  line-height: 1;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.wordmark__word {
+  justify-content: space-between;
+  width: 100%;
   font-family: var(--font-ui);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  color: var(--text);
-}
-
-.wordmark__word--accent {
-  color: var(--green);
-  text-shadow: 0 0 18px var(--green-glow);
-}
-
-/*
- * The connector, set in the mono face at half size like every other technical
- * annotation in the app. Raised slightly off the baseline so the small text
- * optically centres against the two large words rather than sitting low.
- */
-.wordmark__joint {
-  position: relative;
-  top: -0.07em;
-  font-family: var(--font-mono);
-  font-size: 0.46em;
-  font-weight: 600;
-  letter-spacing: 0.13em;
+  font-size: clamp(8.5px, 2.9cqw, 13px);
+  font-weight: 700;
+  line-height: 1;
   color: var(--text-3);
+  user-select: none;
 }
 
 /* The joke: dropped to the faintest ink so the eye reads past it. */
 .wordmark__ghost {
   color: var(--text-4);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 /* Raised control: lit top edge, grounded shadow, presses in. */
@@ -451,7 +437,7 @@ button {
   justify-content: center;
   /* Tight: at this size the glyphs' own side bearings supply most of the
      breathing room, so the gap only has to keep them from touching. */
-  gap: clamp(2px, 1.4vw, 9px);
+  gap: clamp(2px, 1.4cqw, 9px);
   width: 100%;
   padding: 0 8px;
   line-height: 1;
@@ -469,19 +455,19 @@ button {
 }
 
 .carousel__note[data-dist='2'] {
-  font-size: clamp(22px, 6.2vw, 34px);
+  font-size: clamp(22px, 6.2cqw, 34px);
   opacity: 0.22;
 }
 
 .carousel__note[data-dist='1'] {
-  font-size: clamp(34px, 10vw, 56px);
+  font-size: clamp(34px, 10cqw, 56px);
   opacity: 0.44;
 }
 
 .carousel__note--focus {
   display: flex;
   align-items: baseline;
-  font-size: clamp(72px, 18vh, 124px);
+  font-size: clamp(72px, 18cqh, 124px);
   font-weight: 760;
   letter-spacing: -0.045em;
   color: var(--text);
@@ -529,15 +515,15 @@ button {
  * the letter names everyone else sees.
  */
 .carousel[data-naming='solfege'] .carousel__note--focus {
-  font-size: clamp(54px, 13.5vh, 94px);
+  font-size: clamp(54px, 13.5cqh, 94px);
 }
 
 .carousel[data-naming='solfege'] .carousel__note[data-dist='1'] {
-  font-size: clamp(25px, 7.2vw, 41px);
+  font-size: clamp(25px, 7.2cqw, 41px);
 }
 
 .carousel[data-naming='solfege'] .carousel__note[data-dist='2'] {
-  font-size: clamp(16px, 4.5vw, 25px);
+  font-size: clamp(16px, 4.5cqw, 25px);
 }
 
 .carousel__octave {
@@ -597,7 +583,7 @@ button {
 .field {
   position: relative;
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(80vh - 300px), 400px);
+  width: min(100% - 20px, calc(80cqh - 300px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -774,7 +760,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 2vw, 14px);
+  gap: clamp(6px, 2cqw, 14px);
   max-width: 560px;
   margin: 0 auto;
 }
@@ -789,15 +775,15 @@ button {
   flex: 0 1 auto;
   display: grid;
   place-items: center;
-  width: clamp(38px, 11.5vw, 54px);
-  height: clamp(38px, 11.5vw, 54px);
+  width: clamp(38px, 11.5cqw, 54px);
+  height: clamp(38px, 11.5cqw, 54px);
   border-radius: 30%;
   background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
   border: 1px solid var(--border);
   box-shadow: var(--hi), var(--elev-1);
   color: var(--text-2);
   font-family: var(--font-mono);
-  font-size: clamp(13px, 3.7vw, 17px);
+  font-size: clamp(13px, 3.7cqw, 17px);
   font-weight: 650;
   letter-spacing: -0.02em;
   transition:
@@ -907,7 +893,8 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px calc(12px + var(--safe-b));
+  /* The app already pads for the home indicator; adding it again double-counts. */
+  padding: 6px 14px 12px;
 }
 
 .tuning-btn {
@@ -1037,8 +1024,14 @@ button {
 
 /* ----------------------------------------------------------------- sheet -- */
 
+/*
+ * Sheets are rendered into the .app element and positioned against it, not the
+ * viewport. On a phone the two are the same box; inside the desktop frame they
+ * are not, and a viewport-fixed sheet would slide out over the whole browser
+ * window instead of over the app.
+ */
 .scrim {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: var(--scrim);
   backdrop-filter: blur(6px) saturate(0.8);
@@ -1054,21 +1047,20 @@ button {
 }
 
 .sheet {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  max-height: min(90dvh, 780px);
+  max-height: min(90%, 780px);
   background: linear-gradient(180deg, var(--bg-1), var(--bg-0) 140px);
   border-top-left-radius: var(--r-xl);
   border-top-right-radius: var(--r-xl);
   border-top: 1px solid var(--border-hi);
   box-shadow: var(--elev-3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   animation: slide-up 280ms var(--ease-out);
-  padding-bottom: var(--safe-b);
 }
 
 /*
@@ -1078,37 +1070,13 @@ button {
  * time they changed tab was the jarring part.
  */
 .sheet--tall {
-  height: min(90dvh, 780px);
-}
-
-@media (min-width: 720px) {
-  .sheet {
-    left: 50%;
-    right: auto;
-    bottom: 24px;
-    width: 620px;
-    transform: translateX(-50%);
-    border-radius: var(--r-xl);
-    border: 1px solid var(--border-hi);
-    animation: slide-up-center 280ms var(--ease-out);
-  }
+  height: min(90%, 780px);
 }
 
 @keyframes slide-up {
   from {
     transform: translateY(12%);
     opacity: 0;
-  }
-}
-
-@keyframes slide-up-center {
-  from {
-    transform: translate(-50%, 5%);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
   }
 }
 
@@ -1782,7 +1750,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 32px calc(28px + var(--safe-l)) calc(40px + var(--safe-b));
+  padding: 32px 28px 40px;
   text-align: center;
   background:
     radial-gradient(90% 50% at 50% 38%, rgba(52, 224, 138, 0.05), transparent 70%),
@@ -1806,9 +1774,9 @@ button {
   height: 56px;
 }
 
-/* Same mark, given more room on the opening screen. */
+/* Same mark, a touch larger on the opening screen. */
 .splash__title {
-  font-size: clamp(30px, 9.5vw, 48px);
+  font-size: clamp(9.5px, 3.3cqw, 15px);
 }
 
 .splash__eyebrow {
@@ -1925,6 +1893,43 @@ button {
   gap: 8px;
 }
 
+/*
+ * Desktop: draw the app in a handset-shaped frame instead of stretching a
+ * one-handed tuner across a monitor. 390x844 is an iPhone 12/13/14, so what
+ * you see in a browser tab is the proportion you get in the hand. Everything
+ * inside sizes from container units, so the interior scales with the frame
+ * rather than with the browser window.
+ */
+@media (min-width: 620px) and (min-height: 560px) {
+  body {
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background:
+      radial-gradient(80% 60% at 50% 32%, var(--bg-1) 0%, transparent 70%),
+      var(--bg-void);
+  }
+
+  #root {
+    height: min(844px, calc(100dvh - 40px));
+    aspect-ratio: 390 / 844;
+    max-width: calc(100vw - 40px);
+    border-radius: 44px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px var(--border-hi),
+      0 0 0 8px var(--bg-void),
+      0 0 0 9px var(--border),
+      0 44px 90px -28px rgba(0, 0, 0, 0.8),
+      0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .app {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1935,35 +1940,32 @@ button {
   }
 }
 
-/* Short screens: shrink the type and the screen, keep the chassis intact. */
-@media (max-height: 620px) {
+/* Short screens: shrink the type and the screen, keep the chassis intact.
+   Queries the app box, not the window, so it still fires inside the frame. */
+@container app (max-height: 620px) {
   .field {
-    width: min(100% - 20px, calc(85vh - 326px), 400px);
+    width: min(100% - 20px, calc(85cqh - 326px), 400px);
     border-radius: var(--r-md);
   }
 
   .carousel__note--focus {
-    font-size: clamp(56px, 15vh, 96px);
+    font-size: clamp(56px, 15cqh, 96px);
   }
 
   .carousel__note[data-dist='1'] {
-    font-size: clamp(27px, 8vw, 44px);
+    font-size: clamp(27px, 8cqw, 44px);
   }
 
   .carousel__note[data-dist='2'] {
-    font-size: clamp(17px, 4.8vw, 26px);
+    font-size: clamp(17px, 4.8cqw, 26px);
   }
 
   .strings__hint {
     margin-top: 6px;
   }
 
-  .wordmark {
-    font-size: clamp(20px, 6.2vw, 30px);
-  }
-
   .topbar {
     gap: 7px;
-    padding: 9px 14px 6px;
+    padding: 4px 12px 6px;
   }
 }

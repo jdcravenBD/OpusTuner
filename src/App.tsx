@@ -160,7 +160,7 @@ export default function App() {
   void version;
 
   return (
-    <div className="app" ref={appRef} data-intune="false">
+    <div className="app" id="app" ref={appRef} data-intune="false">
       <header className="topbar">
         <Wordmark />
 
