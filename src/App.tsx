@@ -165,7 +165,6 @@ export default function App() {
       <div className="device-chrome" aria-hidden="true">
         <div className="device-chrome__notch">
           <span className="device-chrome__speaker" />
-          <span className="device-chrome__camera" />
         </div>
         <div className="device-chrome__home" />
       </div>

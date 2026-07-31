@@ -1111,6 +1111,14 @@ button {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 0 14px 20px;
+  /* Scrolls, but without a visible bar — handsets don't show one, and the
+     panel is a fixed height now so the bar was the only thing that moved. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sheet__body::-webkit-scrollbar {
+  display: none;
 }
 
 .sheet__section {
@@ -1919,8 +1927,15 @@ button {
  * Everything here is sized in cqw — a fraction of the app width — so the whole
  * simulation stays in proportion when the frame shrinks to fit a short window.
  * The reference is a 390pt-wide iPhone 12: a 160pt notch is 41% of that.
+ *
+ * The plate is the bezel colour, not black, and the frame drops its innermost
+ * hairline so the two meet with nothing between them: the notch reads as the
+ * surrounding bezel dipping down into the screen rather than as an island.
  */
 .device-chrome__notch {
+  --notch-ink: var(--bg-void);
+  --fillet: 1.9cqw;
+
   position: absolute;
   top: 0;
   left: 50%;
@@ -1928,12 +1943,44 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2.8cqw;
   width: 41cqw;
   height: 7.7cqw;
-  background: #000;
+  background: var(--notch-ink);
   border-bottom-left-radius: 4.9cqw;
   border-bottom-right-radius: 4.9cqw;
+}
+
+/*
+ * Concave fillets where the plate meets the top edge. Each is a square of
+ * bezel ink with a quarter-disc cut out of the corner nearest the screen, so
+ * the top edge sweeps into the side of the notch instead of meeting it at a
+ * hard right angle — the same easing the real hardware has.
+ */
+.device-chrome__notch::before,
+.device-chrome__notch::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: var(--fillet);
+  height: var(--fillet);
+}
+
+.device-chrome__notch::before {
+  left: calc(-1 * var(--fillet));
+  background: radial-gradient(
+    circle at 0 100%,
+    transparent var(--fillet),
+    var(--notch-ink) calc(var(--fillet) + 0.5px)
+  );
+}
+
+.device-chrome__notch::after {
+  right: calc(-1 * var(--fillet));
+  background: radial-gradient(
+    circle at 100% 100%,
+    transparent var(--fillet),
+    var(--notch-ink) calc(var(--fillet) + 0.5px)
+  );
 }
 
 /* Earpiece grille: a recessed slot, lit along its lower lip. */
@@ -1945,14 +1992,6 @@ button {
   box-shadow:
     inset 0 1px 2px rgba(0, 0, 0, 0.9),
     inset 0 -1px 0 rgba(255, 255, 255, 0.07);
-}
-
-.device-chrome__camera {
-  width: 2.3cqw;
-  height: 2.3cqw;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #26364a 0%, #0a0e14 62%, #05070a 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .device-chrome__home {
@@ -2037,10 +2076,11 @@ button {
     /* 44pt corners, expressed so they stay circular as the frame scales. */
     border-radius: 11.3% / 5.21%;
     overflow: hidden;
+    /* No hairline on the inner edge: the bezel has to meet the notch plate
+       with nothing between them, or the notch reads as a separate island. */
     box-shadow:
-      0 0 0 1px var(--border-hi),
       0 0 0 8px var(--bg-void),
-      0 0 0 9px var(--border),
+      0 0 0 9px var(--border-hi),
       0 44px 90px -28px rgba(0, 0, 0, 0.8),
       0 6px 20px rgba(0, 0, 0, 0.35);
   }
