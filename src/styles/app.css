@@ -583,7 +583,7 @@ button {
 .field {
   position: relative;
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(80cqh - 300px), 400px);
+  width: min(100% - 20px, calc(80cqh - 264px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -1900,34 +1900,71 @@ button {
  * inside sizes from container units, so the interior scales with the frame
  * rather than with the browser window.
  */
-@media (min-width: 620px) and (min-height: 560px) {
-  body {
-    display: grid;
-    place-items: center;
-    padding: 20px;
-    background:
-      radial-gradient(80% 60% at 50% 32%, var(--bg-1) 0%, transparent 70%),
-      var(--bg-void);
-  }
+/* --------------------------------------------------- simulated handset -- */
 
-  #root {
-    height: min(844px, calc(100dvh - 40px));
-    aspect-ratio: 390 / 844;
-    max-width: calc(100vw - 40px);
-    border-radius: 44px;
-    overflow: hidden;
-    box-shadow:
-      0 0 0 1px var(--border-hi),
-      0 0 0 8px var(--bg-void),
-      0 0 0 9px var(--border),
-      0 44px 90px -28px rgba(0, 0, 0, 0.8),
-      0 6px 20px rgba(0, 0, 0, 0.35);
-  }
+/*
+ * Notch and home indicator, drawn only inside the desktop frame. A real device
+ * supplies its own, and the safe-area insets there are real rather than
+ * simulated, so this stays hidden.
+ */
+.device-chrome {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
 
-  .app {
-    height: 100%;
-    min-height: 0;
-  }
+/*
+ * Everything here is sized in cqw — a fraction of the app width — so the whole
+ * simulation stays in proportion when the frame shrinks to fit a short window.
+ * The reference is a 390pt-wide iPhone 12: a 160pt notch is 41% of that.
+ */
+.device-chrome__notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.8cqw;
+  width: 41cqw;
+  height: 7.7cqw;
+  background: #000;
+  border-bottom-left-radius: 4.9cqw;
+  border-bottom-right-radius: 4.9cqw;
+}
+
+/* Earpiece grille: a recessed slot, lit along its lower lip. */
+.device-chrome__speaker {
+  width: 10.8cqw;
+  height: 1.3cqw;
+  border-radius: 999px;
+  background: #14161a;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.9),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.device-chrome__camera {
+  width: 2.3cqw;
+  height: 2.3cqw;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #26364a 0%, #0a0e14 62%, #05070a 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.device-chrome__home {
+  position: absolute;
+  bottom: 2cqw;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34.4cqw;
+  height: 1.3cqw;
+  border-radius: 999px;
+  background: var(--text-2);
+  opacity: 0.42;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1969,3 +2006,52 @@ button {
     padding: 4px 12px 6px;
   }
 }
+
+@media (min-width: 620px) and (min-height: 560px) {
+  body {
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background:
+      radial-gradient(80% 60% at 50% 32%, var(--bg-1) 0%, transparent 70%),
+      var(--bg-void);
+  }
+
+  #root {
+    /*
+     * The real handset's safe-area insets, which the browser reports as zero
+     * here. They do two jobs: keep content clear of the rounded corners, and
+     * make the preview lay out exactly as it will on the device.
+     *
+     * As percentages of the frame (47/390, 34/390) rather than fixed pixels,
+     * so they stay in proportion if the frame shrinks. Percentage padding
+     * always resolves against the containing block's *width*, which is what
+     * makes this work for the top and bottom insets too.
+     */
+    --safe-t: 12.05%;
+    --safe-b: 8.72%;
+
+    height: min(844px, calc(100dvh - 40px));
+    aspect-ratio: 390 / 844;
+    max-width: calc(100vw - 40px);
+    /* 44pt corners, expressed so they stay circular as the frame scales. */
+    border-radius: 11.3% / 5.21%;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px var(--border-hi),
+      0 0 0 8px var(--bg-void),
+      0 0 0 9px var(--border),
+      0 44px 90px -28px rgba(0, 0, 0, 0.8),
+      0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .app {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .device-chrome {
+    display: block;
+  }
+}
+

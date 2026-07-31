@@ -161,6 +161,15 @@ export default function App() {
 
   return (
     <div className="app" id="app" ref={appRef} data-intune="false">
+      {/* Simulated handset chrome. Hidden on real devices — see .device-chrome. */}
+      <div className="device-chrome" aria-hidden="true">
+        <div className="device-chrome__notch">
+          <span className="device-chrome__speaker" />
+          <span className="device-chrome__camera" />
+        </div>
+        <div className="device-chrome__home" />
+      </div>
+
       <header className="topbar">
         <Wordmark />
 
