@@ -33,8 +33,8 @@ export const VISUALS: VisualMeta[] = [
   {
     id: 'strobe',
     name: 'Strobe',
-    range: 'DRIFT',
-    desc: 'Bands that stop dead when you are there. The finest of the three.',
+    range: '1× 2× 4×',
+    desc: 'Harmonic bands that stop and line up when you arrive. The finest of the three.',
   },
 ];
 
