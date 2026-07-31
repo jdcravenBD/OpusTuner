@@ -6,7 +6,7 @@
  * would close a cycle (store -> visual -> hooks -> store).
  */
 
-export type VisualId = 'field' | 'needle' | 'strobe';
+export type VisualId = 'field' | 'strobe';
 
 export interface VisualMeta {
   id: VisualId;
@@ -23,12 +23,6 @@ export const VISUALS: VisualMeta[] = [
     name: 'Field',
     range: '±250 ¢',
     desc: 'A semitone either way, with the last few seconds trailing behind.',
-  },
-  {
-    id: 'needle',
-    name: 'Needle',
-    range: '±50 ¢',
-    desc: 'A moving-coil meter. Less range, far more resolution.',
   },
   {
     id: 'strobe',

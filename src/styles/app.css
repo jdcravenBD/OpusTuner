@@ -349,6 +349,9 @@ button {
   font-weight: 700;
   line-height: 1;
   color: var(--text-3);
+  /* Dimmed as a whole rather than by moving the colour token, so the ghost
+     letter keeps its ratio against the rest of the mark. */
+  opacity: 0.72;
   user-select: none;
 }
 

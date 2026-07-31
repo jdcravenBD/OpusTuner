@@ -394,6 +394,50 @@ console.log('Reference tone: the string model must be in tune with itself');
     `${db.toFixed(1)} dB from 50 ms to 1.5 s`,
   );
 }
+{
+  /*
+   * The twang test.
+   *
+   * A plucked string is bright for a moment and then warms; a naive
+   * Karplus-Strong loop at 48 kHz barely damps its harmonics at all and keeps
+   * an edge on the note the whole way down, which is what makes it sound like a
+   * sitar. Brightness here is the share of a window's energy sitting up in the
+   * treble, measured with a one-pole difference — crude, but it is a pure ratio
+   * and it tracks the thing the ear objects to.
+   *
+   * The bar is an absolute one on the *sustain*, not a fall from the attack:
+   * the two-point-average loop this replaced also fell to a tenth of its own
+   * attack value, because the attack was that much brighter still. It carried
+   * six times as much treble as this does through the body of a low E, which is
+   * where the twang actually lived.
+   */
+  const SUSTAIN_BRIGHTNESS = 0.02;
+  const brightness = (buf: Float32Array, from: number) => {
+    const n = 8192;
+    let hi = 0;
+    let all = 0;
+    for (let i = 1; i < n; i++) {
+      const d = buf[from + i] - buf[from + i - 1];
+      hi += d * d;
+      all += buf[from + i] ** 2;
+    }
+    return all > 0 ? hi / all : 0;
+  };
+  for (const [name, freq] of [
+    ['E2', 82.4069],
+    ['A2', 110],
+    ['E4', 329.628],
+  ] as [string, number][]) {
+    const rendered = renderPluck(SAMPLE_RATE, freq, 2.2)!;
+    const attack = brightness(rendered, Math.round(SAMPLE_RATE * 0.03));
+    const sustain = brightness(rendered, Math.round(SAMPLE_RATE * 0.4));
+    check(
+      `tone warms ${name}`.padEnd(22),
+      sustain < SUSTAIN_BRIGHTNESS && sustain < attack * 0.5,
+      `treble share ${attack.toFixed(4)} at the attack, ${sustain.toFixed(4)} in the sustain`,
+    );
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 

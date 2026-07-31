@@ -1,16 +1,14 @@
 /**
  * The tuner screens, and the pager that moves between them.
  *
- * Three readings of the same number, each best at a different distance. The
- * field shows you a semitone either way and the shape of the last few seconds;
- * the needle trades that range for resolution; the strobe throws away the
- * number entirely and leaves you with motion against stillness, which is the
- * finest of the three and the one you finish on.
+ * Two readings of the same number, each best at a different distance. The field
+ * shows you a semitone either way and the shape of the last few seconds; the
+ * strobe throws the number away and leaves you with motion against stillness,
+ * which is the finer of the two and the one you finish on.
  */
 
 import { useRef, type ComponentType } from 'react';
 import { PitchField } from './PitchField';
-import { ArcMeter } from './ArcMeter';
 import { StrobeDisc } from './StrobeDisc';
 import { useSwipe } from '../../hooks/drag';
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons';
@@ -22,7 +20,6 @@ export type { VisualId } from './registry';
 
 const COMPONENTS: Record<VisualId, ComponentType<VisualProps>> = {
   field: PitchField,
-  needle: ArcMeter,
   strobe: StrobeDisc,
 };
 

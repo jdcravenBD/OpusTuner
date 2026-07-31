@@ -10,7 +10,7 @@ import { useSyncExternalStore } from 'react';
 import type { NoteNaming } from '../music/notes';
 import { DEFAULT_A4 } from '../music/notes';
 import { DEFAULT_TUNING_ID, type Tuning } from '../music/tunings';
-import { DEFAULT_VISUAL, type VisualId } from '../components/visuals/registry';
+import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/registry';
 
 /* ----------------------------------------------------------------- types -- */
 
@@ -105,8 +105,15 @@ export interface Store<T extends object> {
   subscribe(listener: () => void): () => void;
 }
 
-function createStore<T extends object>(key: string, initial: T): Store<T> {
-  let state: T = hydrate(key, initial);
+function createStore<T extends object>(
+  key: string,
+  initial: T,
+  /** Runs once over the hydrated state — for values that were valid in an
+   *  older build and are not any more. */
+  migrate?: (state: T) => T,
+): Store<T> {
+  const hydrated = hydrate(key, initial);
+  let state: T = migrate ? migrate(hydrated) : hydrated;
   const listeners = new Set<() => void>();
 
   const persist = () => {
@@ -165,7 +172,17 @@ function hydrate<T extends object>(key: string, initial: T): T {
   }
 }
 
-export const settingsStore = createStore<Settings>('opustuner.settings.v1', DEFAULT_SETTINGS);
+export const settingsStore = createStore<Settings>(
+  'opustuner.settings.v1',
+  DEFAULT_SETTINGS,
+  (s) => ({
+    ...s,
+    // Someone who was last using a screen that has since been removed. Without
+    // this the app falls back for *rendering* but the settings picker still
+    // matches nothing, so it shows no selection at all.
+    visual: VISUALS.some((v) => v.id === s.visual) ? s.visual : DEFAULT_VISUAL,
+  }),
+);
 export const sessionStore = createStore<Session>('opustuner.session.v1', DEFAULT_SESSION);
 
 /* ----------------------------------------------------------------- hooks -- */

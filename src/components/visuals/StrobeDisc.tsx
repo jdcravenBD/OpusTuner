@@ -11,7 +11,7 @@ const TAU = Math.PI * 2;
  */
 const HARMONICS = [1, 2, 4];
 /** Blocks on the fundamental band, over the whole circle. Half are on screen. */
-const BASE_BLOCKS = 28;
+const BASE_BLOCKS = 7;
 
 /*
  * Band geometry, as fractions of the square's side. The dial's centre sits on
@@ -19,37 +19,50 @@ const BASE_BLOCKS = 28;
  * semicircle is nearly twice as wide as the screen and runs off both sides —
  * which is the point. Cropping the ends is what flattens the arcs enough for
  * the block edges to read as vertical columns rather than as spokes.
+ *
+ * The stack is anchored at its *outer* edge and grows inward, so the dial keeps
+ * filling the screen whatever the band thickness or however many bands there
+ * are.
  */
-const BAND_INNER = 0.535;
-const BAND_THICKNESS = 0.145;
+const BAND_OUTER = 1;
+const BAND_THICKNESS = 0.109;
 const BAND_GAP = 0.015;
+const BAND_INNER =
+  BAND_OUTER - HARMONICS.length * BAND_THICKNESS - (HARMONICS.length - 1) * BAND_GAP;
 
 /*
  * Speed.
  *
+ * Calibrated in *degrees* per second, not blocks per second, so that changing
+ * how wide the blocks are does not change how fast the dial appears to move.
  * Linear near zero and compressing beyond the knee: sensitive where the last
  * cent lives, and still meaningful at a semitone out without running away.
- * Blocks per second on band k is `harmonic² × rate`, because the band moves
- * `harmonic` times as fast over blocks that are `harmonic` times narrower.
+ * Band k sweeps `harmonic` times as fast as the fundamental — which over blocks
+ * that are `harmonic` times narrower means `harmonic²` times as many edges pass
+ * a given point.
  */
-/** Blocks per second on the fundamental band, per cent, near zero. */
-const BLOCKS_PER_CENT = 0.5;
+/** Degrees per second on the fundamental band, per cent, near zero. */
+const DEG_PER_CENT = 6.43;
 /** Cents at which the rate is half what a straight line would have given. */
 const KNEE_CENTS = 34;
 /**
- * Fastest any band may actually run. Past this a band is showing more edges per
- * second than the display has frames, and drawing it honestly would produce
- * backwards-crawling nonsense rather than information — so it is held here and
- * washed out instead. Bands falling out of resolution one by one as the error
- * grows is the ladder working, not a fault.
+ * Two ceilings, whichever bites first, because a band can become unreadable in
+ * two different ways. Sweeping too fast, and the eye cannot follow a feature
+ * across the arc; passing too many edges a second, and there are more of them
+ * than the display has frames, so drawing it honestly yields backwards-crawling
+ * nonsense. Past either, a band is held at the limit and washed out instead.
+ * Bands dropping out one at a time as the error grows is the ladder working,
+ * not a fault — and wider blocks push the second limit further out, which is
+ * exactly right.
  */
+const MAX_DEG_PER_SEC = 240;
 const MAX_BLOCKS_PER_SEC = 20;
 /** Contrast a fully washed-out band falls back to, rather than vanishing. */
 const MIN_CONTRAST = 0.16;
 
 /**
- * Rate on the *fastest* band below which the stack starts pulling itself into
- * alignment, and how hard it pulls once it does.
+ * Sweep rate on the *fastest* band below which the stack starts pulling itself
+ * into alignment, and how hard it pulls once it does.
  *
  * Added as a velocity toward the nearest whole block rather than eased as a
  * position, so it can never jump: while the drift is winning it shows as a
@@ -58,7 +71,7 @@ const MIN_CONTRAST = 0.16;
  * multiples of one another, so aligning each band independently is what makes
  * the edges line up all the way through the stack.
  */
-const LOCK_BLOCKS_PER_SEC = 4;
+const LOCK_DEG_PER_SEC = 13;
 const SNAP_RATE = 9;
 
 /**
@@ -93,18 +106,14 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
       signalFade.current += ((frame.hasSignal ? 1 : 0) - signalFade.current) * 0.1;
 
       const cents = displayCents.current;
-      // Blocks per second on the fundamental band. c / (1 + |c| / knee) is a
+      // Degrees per second on the fundamental band. c / (1 + |c| / knee) is a
       // straight line through the origin that bends over into a ceiling.
-      const rate = (BLOCKS_PER_CENT * cents) / (1 + Math.abs(cents) / KNEE_CENTS);
+      const rate = (DEG_PER_CENT * cents) / (1 + Math.abs(cents) / KNEE_CENTS);
 
       // The fastest band decides when the stack tries to lock, since it is the
       // last one still visibly moving.
       const fastest = HARMONICS[HARMONICS.length - 1];
-      const lock = clamp(
-        1 - (Math.abs(rate) * fastest * fastest) / LOCK_BLOCKS_PER_SEC,
-        0,
-        1,
-      );
+      const lock = clamp(1 - (Math.abs(rate) * fastest) / LOCK_DEG_PER_SEC, 0, 1);
 
       const fade = signalFade.current;
       const alpha = 0.3 + fade * 0.7;
@@ -128,18 +137,23 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
         const thickness = BAND_THICKNESS * S;
 
         /* --- advance ---------------------------------------------------- */
-        const wanted = rate * harmonic * harmonic; // blocks per second
-        const shown = clamp(wanted, -MAX_BLOCKS_PER_SEC, MAX_BLOCKS_PER_SEC);
+        const wantedDeg = rate * harmonic;
+        const stepDeg = 360 / blocks;
+        // How far past legible this band is running, by whichever measure is
+        // worse — and hence how far its blocks fade toward a flat ring.
+        const strain = Math.max(
+          Math.abs(wantedDeg) / MAX_DEG_PER_SEC,
+          Math.abs(wantedDeg) / stepDeg / MAX_BLOCKS_PER_SEC,
+        );
+        const shownDeg = strain > 1 ? wantedDeg / strain : wantedDeg;
+        const contrast = 1 - clamp((strain - 1) / 2, 0, 1) * (1 - MIN_CONTRAST);
+
         let phase = phases.current[k];
         const nearest = Math.round(phase / step) * step;
-        phase += (shown * step + lock * SNAP_RATE * (nearest - phase)) * dt;
+        const drift = (shownDeg * Math.PI) / 180;
+        phase += (drift + lock * SNAP_RATE * (nearest - phase)) * dt;
         phase = ((phase % TAU) + TAU) % TAU;
         phases.current[k] = phase;
-
-        // How far past legible this band is running, and hence how far its
-        // blocks fade toward a flat translucent ring.
-        const strain = Math.abs(wanted) / MAX_BLOCKS_PER_SEC;
-        const contrast = 1 - clamp((strain - 1) / 2, 0, 1) * (1 - MIN_CONTRAST);
 
         /* --- track ------------------------------------------------------- */
         ctx.globalAlpha = 0.1 + (1 - contrast) * 0.14;
@@ -167,7 +181,7 @@ export function StrobeDisc({ tolerance, themeKey }: VisualProps) {
       // The stationary reference. Without it the bands have nothing to be still
       // against, and "barely creeping" looks the same as "stopped". A block
       // edge lands exactly on it once the stack locks.
-      const stackTop = BAND_INNER + HARMONICS.length * (BAND_THICKNESS + BAND_GAP);
+      const stackTop = BAND_OUTER;
       ctx.globalAlpha = inTune ? 0.95 : 0.5;
       ctx.strokeStyle = inTune ? p.green : p.tickHot;
       ctx.lineWidth = 1.5;

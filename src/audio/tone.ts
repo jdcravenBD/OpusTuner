@@ -52,9 +52,13 @@ export class ToneEngine {
 
   /**
    * The body. A bare string model sounds thin and buzzy — what makes an
-   * acoustic guitar is the box, which is mostly two resonances (the air cavity
-   * around 100 Hz and the top plate an octave above) sitting on a gentle tilt
-   * away from the very top end.
+   * acoustic guitar is the box: the air cavity around 100 Hz, the top plate an
+   * octave above, a scoop through the range where steel strings get their
+   * nasal edge, and a roll-off well before the top of the spectrum.
+   *
+   * The limiter on the end is not a nicety. Six strings ringing together, each
+   * through two resonant boosts, sums past full scale easily, and clipping in
+   * the output stage is by some distance the harshest thing this app can do.
    */
   private buildBody(ctx: AudioContext): GainNode {
     const input = ctx.createGain();
@@ -62,31 +66,46 @@ export class ToneEngine {
 
     const rumble = ctx.createBiquadFilter();
     rumble.type = 'highpass';
-    rumble.frequency.value = 65;
+    rumble.frequency.value = 62;
     rumble.Q.value = 0.7;
 
     const air = ctx.createBiquadFilter();
     air.type = 'peaking';
-    air.frequency.value = 104;
-    air.Q.value = 1.6;
-    air.gain.value = 4.5;
+    air.frequency.value = 102;
+    air.Q.value = 1.4;
+    air.gain.value = 3.5;
 
     const plate = ctx.createBiquadFilter();
     plate.type = 'peaking';
-    plate.frequency.value = 216;
-    plate.Q.value = 1.9;
-    plate.gain.value = 3;
+    plate.frequency.value = 214;
+    plate.Q.value = 1.8;
+    plate.gain.value = 2.5;
 
-    const tilt = ctx.createBiquadFilter();
-    tilt.type = 'highshelf';
-    tilt.frequency.value = 3600;
-    tilt.gain.value = -5;
+    const edge = ctx.createBiquadFilter();
+    edge.type = 'peaking';
+    edge.frequency.value = 2600;
+    edge.Q.value = 0.9;
+    edge.gain.value = -3.5;
+
+    const top = ctx.createBiquadFilter();
+    top.type = 'lowpass';
+    top.frequency.value = 6000;
+    top.Q.value = 0.6;
+
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -8;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 12;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.18;
 
     input.connect(rumble);
     rumble.connect(air);
     air.connect(plate);
-    plate.connect(tilt);
-    tilt.connect(ctx.destination);
+    plate.connect(edge);
+    edge.connect(top);
+    top.connect(limiter);
+    limiter.connect(ctx.destination);
     return input;
   }
 
@@ -112,7 +131,7 @@ export class ToneEngine {
     source.buffer = buffer;
 
     const gain = ctx.createGain();
-    gain.gain.value = this.volume * 0.62;
+    gain.gain.value = this.volume * 0.45;
 
     source.connect(gain);
     gain.connect(this.master);
@@ -206,28 +225,50 @@ export class ToneEngine {
 
 export const toneEngine = new ToneEngine();
 
+/** Frequency at which the loop's brightness decay is specified. */
+const BRIGHT_HZ = 2400;
+/** ...and how fast content there should die, in dB per second. */
+const BRIGHT_DB_PER_SEC = 34;
+/**
+ * Ceiling on the loop filter's damping term. Past 0.5 the filter inverts at
+ * Nyquist and the loop stops being a decay.
+ */
+const MAX_DAMP = 0.46;
+
 /**
  * Synthesises one plucked string.
  *
- * The waveguide loop must delay by exactly `sampleRate / freq` samples or the
- * note is out of tune, which for a tuner's own reference tone would be absurd.
- * An integer delay line alone is up to fifteen cents out at guitar pitches, so
- * the loop length is made of three parts: the integer line, the exactly
- * half-sample delay of the averaging filter, and an allpass section for the
- * remaining fraction. The allpass's phase delay is only exact at DC, but a
- * guitar's fundamental sits well under a thousandth of the sample rate, where
- * the error is far beyond hearing — `npm test` renders this and measures it.
+ * Two things have to be true at once, and they pull against each other.
  *
- * Exported separately from the engine so that test can run it with no
+ * **It has to be in tune.** The waveguide loop must delay by exactly
+ * `sampleRate / freq` samples, and an integer delay line alone is up to fifteen
+ * cents out at guitar pitches. So the loop length is made of three parts: the
+ * integer line, the loop filter's own delay, and an allpass section for the
+ * remaining fraction. That only works because the loop filter is *linear
+ * phase* — it delays every frequency by exactly one sample, so it cannot pull
+ * the pitch about. The allpass is exact only at DC, but a guitar's fundamental
+ * sits well under a thousandth of the sample rate, where the error is far
+ * beyond hearing. `npm test` renders this and measures it.
+ *
+ * **It has to darken as it rings.** The textbook two-point average is a
+ * disaster at 48 kHz: every guitar harmonic lands in the flat part of its
+ * response, so the twentieth partial decays barely faster than the fundamental
+ * and the note stays bright to the end. That is what a sitar does, and it is
+ * exactly the twang. The three-tap filter below keeps the linear phase but has
+ * a damping term that can be dialled — and it is set from the *wanted* decay at
+ * a fixed frequency, so a low E and a high E darken at the same rate in seconds
+ * rather than in periods.
+ *
+ * Exported separately from the engine so the test can run it with no
  * AudioContext in sight.
  */
 export function renderPluck(fs: number, freq: number, seconds: number): Float32Array | null {
   const period = fs / freq;
-  if (!isFinite(period) || period <= 4) return null;
+  if (!isFinite(period) || period <= 6) return null;
 
-  // The averaging filter contributes exactly 0.5 samples at every frequency.
-  const lineLength = Math.floor(period - 0.5);
-  const fraction = period - lineLength - 0.5;
+  // The three-tap loop filter contributes exactly 1 sample at every frequency.
+  const lineLength = Math.floor(period - 1);
+  const fraction = period - lineLength - 1;
   // Allpass coefficient for a delay of `fraction` samples.
   const apC = (1 - fraction) / (1 + fraction);
 
@@ -237,18 +278,19 @@ export function renderPluck(fs: number, freq: number, seconds: number): Float32A
   /* --- excitation ------------------------------------------------------- */
   const line = new Float32Array(lineLength);
   const rand = makeRandom(Math.round(freq * 1000));
-  // Low-passed noise: how hard the pick is. Pure white is a plectrum made of
-  // glass, and it is the single thing that makes naive Karplus-Strong sound
-  // synthetic.
+  // Low-passed noise, around 1.6 kHz: how hard and how soft the pick is. Pure
+  // white is a plectrum made of glass.
+  const pickTone = 1 - Math.exp((-2 * Math.PI * 1600) / fs);
   let lp = 0;
   for (let i = 0; i < lineLength; i++) {
-    lp += (rand() * 2 - 1 - lp) * 0.42;
+    lp += (rand() * 2 - 1 - lp) * pickTone;
     line[i] = lp;
   }
-  // Pluck position. Displacing the string a fifth of its length from the bridge
-  // puts a notch on every fifth harmonic — the comb that stops a waveguide
-  // sounding like a filtered buzz.
-  const pluckAt = Math.max(1, Math.round(lineLength * 0.19));
+  // Pluck position, as a fraction of the string from the bridge. Every harmonic
+  // that has a node here is cancelled, which is the comb that stops a waveguide
+  // sounding like a filtered buzz — and moving the point away from the bridge
+  // is what takes the hardness out of it.
+  const pluckAt = Math.max(1, Math.round(lineLength * 0.28));
   const shaped = new Float32Array(lineLength);
   for (let i = 0; i < lineLength; i++) {
     shaped[i] = line[i] - line[(i + pluckAt) % lineLength];
@@ -259,16 +301,26 @@ export function renderPluck(fs: number, freq: number, seconds: number): Float32A
   for (let i = 0; i < lineLength; i++) line[i] = shaped[i] * norm;
 
   /* --- decay ------------------------------------------------------------- */
-  // Bass strings ring longer than treble ones, so the loss is set from a wanted
-  // decay time rather than being a fixed per-loop constant.
+  // Bass strings ring longer than treble ones, so the overall loss is set from
+  // a wanted decay time rather than being a fixed per-loop constant...
   const t60 = clamp(3.5 - Math.log2(freq / 82.4) * 0.55, 1.1, 3.8);
   // ...expressed as a per-loop gain: the loop runs `freq` times a second, and
   // -60 dB is a factor of e^-6.91.
   const loss = Math.exp(-6.908 / (t60 * freq));
 
+  // Damping term for the loop filter, whose response is 1 - 2d(1 - cos w):
+  // unity at DC, falling smoothly with frequency. Solved for the per-loop gain
+  // that gives BRIGHT_DB_PER_SEC at BRIGHT_HZ, which means a string looping
+  // more times a second needs less of it.
+  const wBright = (2 * Math.PI * BRIGHT_HZ) / fs;
+  const perLoop = Math.pow(10, -BRIGHT_DB_PER_SEC / (20 * freq));
+  const damp = clamp((1 - perLoop) / (2 * (1 - Math.cos(wBright))), 0.01, MAX_DAMP);
+  const mid = 1 - 2 * damp;
+
   /* --- the loop ---------------------------------------------------------- */
   let read = 0;
-  let prevSample = 0; // averaging filter state
+  let x1 = 0; // loop filter history
+  let x2 = 0;
   let prevIn = 0; // allpass input state
   let prevOut = 0; // allpass output state
 
@@ -276,14 +328,12 @@ export function renderPluck(fs: number, freq: number, seconds: number): Float32A
     const s = line[read];
     out[n] = s;
 
-    // Two-point average: linear phase, so it damps the harmonics — high ones
-    // hardest, which is the tone darkening as the note rings — without
-    // disturbing the tuning.
-    const avg = 0.5 * (s + prevSample) * loss;
-    prevSample = s;
+    const filtered = (damp * s + mid * x1 + damp * x2) * loss;
+    x2 = x1;
+    x1 = s;
 
-    const ap = apC * avg + prevIn - apC * prevOut;
-    prevIn = avg;
+    const ap = apC * filtered + prevIn - apC * prevOut;
+    prevIn = filtered;
     prevOut = ap;
 
     line[read] = ap;
@@ -291,16 +341,16 @@ export function renderPluck(fs: number, freq: number, seconds: number): Float32A
   }
 
   /* --- pick noise and edges ---------------------------------------------- */
-  // A few milliseconds of the plectrum itself, on top of the string. Short
-  // enough to be a transient rather than a pitch.
-  const pickLen = Math.min(total, Math.round(fs * 0.006));
+  // A couple of milliseconds of the plectrum itself, on top of the string.
+  // Short and quiet enough to be a transient rather than a click.
+  const pickLen = Math.min(total, Math.round(fs * 0.004));
   let pick = 0;
   for (let n = 0; n < pickLen; n++) {
-    pick += (rand() * 2 - 1 - pick) * 0.55;
-    out[n] += pick * 0.2 * (1 - n / pickLen) ** 2;
+    pick += (rand() * 2 - 1 - pick) * 0.32;
+    out[n] += pick * 0.11 * (1 - n / pickLen) ** 2;
   }
   // A hard start would click; a hard stop would too.
-  const fadeIn = Math.min(48, total);
+  const fadeIn = Math.min(64, total);
   for (let n = 0; n < fadeIn; n++) out[n] *= n / fadeIn;
   const fadeOut = Math.min(Math.round(fs * 0.05), total);
   for (let n = 0; n < fadeOut; n++) out[total - 1 - n] *= n / fadeOut;
