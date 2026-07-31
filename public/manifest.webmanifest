@@ -2,7 +2,7 @@
   "name": "Easy as Tuning",
   "short_name": "Easy as Tuning",
   "description": "A precise chromatic tuner for guitar, bass, ukulele, banjo, mandolin and orchestral strings. Works offline.",
-  "id": "/opustuner/",
+  "id": "./",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

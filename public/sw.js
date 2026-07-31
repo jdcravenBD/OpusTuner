@@ -13,18 +13,35 @@
 const CACHE_VERSION = 'opustuner-v1';
 const SHELL = './index.html';
 
+/**
+ * Everything the app needs to start with no network, filled in at build time by
+ * the precache-sw plugin in vite.config.ts — the filenames are content-hashed
+ * and cannot be written by hand.
+ *
+ * Precaching rather than relying on the fetch handler is the difference between
+ * working offline after one visit and after two. A newly registered worker does
+ * not see the requests the page has already made, so on a first visit the
+ * script, the stylesheet and the font are fetched before it is running and none
+ * of them land in the cache. Anyone who opened the app once and then lost
+ * signal would find nothing there.
+ */
+const PRECACHE = [
+  './',
+  SHELL,
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  /* BUILD_ASSETS */
+];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
+      // One at a time rather than addAll, which rejects the whole batch if any
+      // single entry 404s and would leave the app with no offline copy at all.
       .then((cache) =>
-        cache.addAll([
-          './',
-          SHELL,
-          './manifest.webmanifest',
-          './icons/icon-192.png',
-          './icons/icon-512.png',
-        ]),
+        Promise.all(PRECACHE.map((url) => cache.add(url).catch(() => undefined))),
       )
       .catch(() => {
         /* a missing optional asset must not block installation */

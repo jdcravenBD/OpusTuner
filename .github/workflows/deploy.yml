@@ -31,9 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Vite 8 wants ^20.19 || >=22.12. Pinned to a major that satisfies it
+      # outright rather than to "20", which only works while the 20.x line
+      # happens to be past .19.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci

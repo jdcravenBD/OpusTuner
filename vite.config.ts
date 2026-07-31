@@ -1,6 +1,55 @@
-import { defineConfig } from 'vite';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join, posix, resolve } from 'node:path';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl';
+
+/**
+ * Writes the built asset filenames into the service worker's precache list.
+ *
+ * They are content-hashed, so the worker cannot name them itself, and without
+ * them the app only survives losing its connection from the *second* visit
+ * onwards — see the comment on PRECACHE in public/sw.js.
+ *
+ * Source maps are deliberately left out: a megabyte of them is no use to
+ * someone tuning a guitar in a room with no signal.
+ */
+function precacheServiceWorker(): Plugin {
+  return {
+    name: 'precache-sw',
+    apply: 'build',
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        const outDir = resolve('dist');
+        const swPath = join(outDir, 'sw.js');
+
+        const walk = (dir: string, base = ''): string[] =>
+          readdirSync(dir).flatMap((entry) => {
+            const full = join(dir, entry);
+            const rel = base ? posix.join(base, entry) : entry;
+            return statSync(full).isDirectory() ? walk(full, rel) : [rel];
+          });
+
+        let assets: string[];
+        try {
+          assets = walk(outDir).filter(
+            (f) =>
+              (f.startsWith('assets/') || f.startsWith('icons/')) && !f.endsWith('.map'),
+          );
+        } catch {
+          return; // no dist to annotate
+        }
+
+        const list = assets.map((f) => `  './${f}',`).join('\n');
+        const sw = readFileSync(swPath, 'utf8');
+        writeFileSync(swPath, sw.replace('  /* BUILD_ASSETS */', list), 'utf8');
+        this.info(`precached ${assets.length} assets into sw.js`);
+      },
+    },
+  };
+}
 
 /**
  * `npm run dev`      -> http://localhost:5173. localhost counts as a secure
@@ -22,7 +71,7 @@ export default defineConfig(({ mode }) => ({
   // site be served from a subdirectory without rebuilding.
   base: './',
 
-  plugins: [react(), ...(mode === 'https' ? [basicSsl()] : [])],
+  plugins: [react(), precacheServiceWorker(), ...(mode === 'https' ? [basicSsl()] : [])],
 
   server: {
     port: 5173,
