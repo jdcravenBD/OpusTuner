@@ -1,19 +1,35 @@
 /**
  * Reference-tone playback: tap a string to hear the pitch you're aiming for.
  *
+ * A digital waveguide — Karplus-Strong with the usual extensions — rather than
+ * a stack of sine oscillators. A plucked string is a delay line with a lossy
+ * filter round the loop, and modelling it that way gets the things that make it
+ * sound like a *string* for free: the broadband snap of the attack, harmonics
+ * that die at different rates so the tone darkens as it rings, and the comb
+ * notches from picking somewhere other than the exact middle. Additive
+ * synthesis can approximate all of it, but only by hand, and it still arrives
+ * sounding like a tuned bell.
+ *
  * Uses its own lazily-created AudioContext so it works whether or not the
- * microphone has been started. Additive synthesis with a plucked envelope —
- * musically pleasant, and exactly in tune by construction.
+ * microphone has been started.
  */
 
-/** Relative amplitudes of harmonics 1..8 — roughly a nylon-string spectrum. */
-const HARMONICS = [1, 0.46, 0.28, 0.15, 0.09, 0.055, 0.03, 0.018];
+/** Voices allowed to overlap. Strumming a tuning should ring, not stutter. */
+const MAX_VOICES = 6;
+/** How many rendered plucks to keep. A tuner replays the same six pitches. */
+const CACHE_SIZE = 12;
+
+interface Voice {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  endsAt: number;
+}
 
 export class ToneEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  private voices: { osc: OscillatorNode; gain: GainNode }[] = [];
-  private stopTimer: ReturnType<typeof setTimeout> | null = null;
+  private voices: Voice[] = [];
+  private cache = new Map<string, AudioBuffer>();
 
   volume = 0.55;
 
@@ -26,14 +42,52 @@ export class ToneEngine {
     if (!Ctor) return null;
     try {
       this.ctx = new Ctor();
-      this.master = this.ctx.createGain();
-      this.master.gain.value = 1;
-      this.master.connect(this.ctx.destination);
+      this.master = this.buildBody(this.ctx);
       if (this.ctx.state === 'suspended') void this.ctx.resume();
       return this.ctx;
     } catch {
       return null;
     }
+  }
+
+  /**
+   * The body. A bare string model sounds thin and buzzy — what makes an
+   * acoustic guitar is the box, which is mostly two resonances (the air cavity
+   * around 100 Hz and the top plate an octave above) sitting on a gentle tilt
+   * away from the very top end.
+   */
+  private buildBody(ctx: AudioContext): GainNode {
+    const input = ctx.createGain();
+    input.gain.value = 1;
+
+    const rumble = ctx.createBiquadFilter();
+    rumble.type = 'highpass';
+    rumble.frequency.value = 65;
+    rumble.Q.value = 0.7;
+
+    const air = ctx.createBiquadFilter();
+    air.type = 'peaking';
+    air.frequency.value = 104;
+    air.Q.value = 1.6;
+    air.gain.value = 4.5;
+
+    const plate = ctx.createBiquadFilter();
+    plate.type = 'peaking';
+    plate.frequency.value = 216;
+    plate.Q.value = 1.9;
+    plate.gain.value = 3;
+
+    const tilt = ctx.createBiquadFilter();
+    tilt.type = 'highshelf';
+    tilt.frequency.value = 3600;
+    tilt.gain.value = -5;
+
+    input.connect(rumble);
+    rumble.connect(air);
+    air.connect(plate);
+    plate.connect(tilt);
+    tilt.connect(ctx.destination);
+    return input;
   }
 
   /** Must be called from inside a user gesture at least once on iOS. */
@@ -46,53 +100,49 @@ export class ToneEngine {
     const ctx = this.ensure();
     if (!ctx || !this.master || !isFinite(freq) || freq <= 0) return;
 
-    this.stop();
-
     const now = ctx.currentTime;
-    const dur = durationMs / 1000;
-    const nyquist = ctx.sampleRate / 2;
+    this.reap(now);
+    // Strings ring over each other, but not without limit.
+    while (this.voices.length >= MAX_VOICES) this.release(this.voices.shift()!, now, 0.05);
 
-    const bus = ctx.createGain();
-    bus.gain.value = this.volume * 0.5;
+    const buffer = this.render(ctx, freq, durationMs / 1000);
+    if (!buffer) return;
 
-    // Gentle low-pass sweep gives the attack some bite that then mellows,
-    // which reads as "plucked" rather than "organ".
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.Q.value = 0.7;
-    filter.frequency.setValueAtTime(Math.min(nyquist * 0.9, freq * 12), now);
-    filter.frequency.exponentialRampToValueAtTime(Math.min(nyquist * 0.9, freq * 4), now + dur);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
 
-    bus.connect(filter);
-    filter.connect(this.master);
+    const gain = ctx.createGain();
+    gain.gain.value = this.volume * 0.62;
 
-    HARMONICS.forEach((amp, i) => {
-      const partial = freq * (i + 1);
-      if (partial >= nyquist * 0.95) return;
+    source.connect(gain);
+    gain.connect(this.master);
+    source.start(now);
 
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = partial;
+    const voice: Voice = { source, gain, endsAt: now + buffer.duration };
+    this.voices.push(voice);
+    source.onended = () => {
+      const i = this.voices.indexOf(voice);
+      if (i >= 0) this.voices.splice(i, 1);
+    };
+  }
 
-      const gain = ctx.createGain();
-      // Higher partials decay faster, as they do on a real string.
-      const decay = dur * (1 - i * 0.07);
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(amp, now + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.15, decay));
+  /** Renders a pluck into an AudioBuffer, memoised by pitch and length. */
+  private render(ctx: AudioContext, freq: number, seconds: number): AudioBuffer | null {
+    const key = `${ctx.sampleRate}:${freq.toFixed(3)}:${seconds.toFixed(2)}`;
+    const hit = this.cache.get(key);
+    if (hit) return hit;
 
-      osc.connect(gain);
-      gain.connect(bus);
-      osc.start(now);
-      osc.stop(now + dur + 0.1);
+    const samples = renderPluck(ctx.sampleRate, freq, seconds);
+    if (!samples) return null;
 
-      this.voices.push({ osc, gain });
-    });
+    const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+    buffer.getChannelData(0).set(samples);
 
-    this.stopTimer = setTimeout(() => {
-      this.voices = [];
-      this.stopTimer = null;
-    }, durationMs + 200);
+    if (this.cache.size >= CACHE_SIZE) {
+      this.cache.delete(this.cache.keys().next().value as string);
+    }
+    this.cache.set(key, buffer);
+    return buffer;
   }
 
   /** Two-note rising confirmation, played when a string lands in tune. */
@@ -120,29 +170,34 @@ export class ToneEngine {
     });
   }
 
+  /** Damps every ringing string, the way a palm across them would. */
   stop(): void {
-    if (this.stopTimer) {
-      clearTimeout(this.stopTimer);
-      this.stopTimer = null;
-    }
     const ctx = this.ctx;
     if (!ctx) return;
     const now = ctx.currentTime;
-    for (const { osc, gain } of this.voices) {
-      try {
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
-        osc.stop(now + 0.06);
-      } catch {
-        /* already stopped */
-      }
-    }
+    for (const voice of this.voices) this.release(voice, now, 0.05);
     this.voices = [];
+  }
+
+  private release(voice: Voice, now: number, seconds: number): void {
+    try {
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, 0.0001), now);
+      voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+      voice.source.stop(now + seconds + 0.02);
+    } catch {
+      /* already stopped */
+    }
+  }
+
+  /** Drops voices whose buffers have run out but whose `onended` was missed. */
+  private reap(now: number): void {
+    this.voices = this.voices.filter((v) => v.endsAt > now);
   }
 
   dispose(): void {
     this.stop();
+    this.cache.clear();
     this.ctx?.close().catch(() => {});
     this.ctx = null;
     this.master = null;
@@ -150,6 +205,121 @@ export class ToneEngine {
 }
 
 export const toneEngine = new ToneEngine();
+
+/**
+ * Synthesises one plucked string.
+ *
+ * The waveguide loop must delay by exactly `sampleRate / freq` samples or the
+ * note is out of tune, which for a tuner's own reference tone would be absurd.
+ * An integer delay line alone is up to fifteen cents out at guitar pitches, so
+ * the loop length is made of three parts: the integer line, the exactly
+ * half-sample delay of the averaging filter, and an allpass section for the
+ * remaining fraction. The allpass's phase delay is only exact at DC, but a
+ * guitar's fundamental sits well under a thousandth of the sample rate, where
+ * the error is far beyond hearing — `npm test` renders this and measures it.
+ *
+ * Exported separately from the engine so that test can run it with no
+ * AudioContext in sight.
+ */
+export function renderPluck(fs: number, freq: number, seconds: number): Float32Array | null {
+  const period = fs / freq;
+  if (!isFinite(period) || period <= 4) return null;
+
+  // The averaging filter contributes exactly 0.5 samples at every frequency.
+  const lineLength = Math.floor(period - 0.5);
+  const fraction = period - lineLength - 0.5;
+  // Allpass coefficient for a delay of `fraction` samples.
+  const apC = (1 - fraction) / (1 + fraction);
+
+  const total = Math.max(1, Math.ceil(seconds * fs));
+  const out = new Float32Array(total);
+
+  /* --- excitation ------------------------------------------------------- */
+  const line = new Float32Array(lineLength);
+  const rand = makeRandom(Math.round(freq * 1000));
+  // Low-passed noise: how hard the pick is. Pure white is a plectrum made of
+  // glass, and it is the single thing that makes naive Karplus-Strong sound
+  // synthetic.
+  let lp = 0;
+  for (let i = 0; i < lineLength; i++) {
+    lp += (rand() * 2 - 1 - lp) * 0.42;
+    line[i] = lp;
+  }
+  // Pluck position. Displacing the string a fifth of its length from the bridge
+  // puts a notch on every fifth harmonic — the comb that stops a waveguide
+  // sounding like a filtered buzz.
+  const pluckAt = Math.max(1, Math.round(lineLength * 0.19));
+  const shaped = new Float32Array(lineLength);
+  for (let i = 0; i < lineLength; i++) {
+    shaped[i] = line[i] - line[(i + pluckAt) % lineLength];
+  }
+  let peak = 0;
+  for (let i = 0; i < lineLength; i++) peak = Math.max(peak, Math.abs(shaped[i]));
+  const norm = peak > 1e-6 ? 0.72 / peak : 0;
+  for (let i = 0; i < lineLength; i++) line[i] = shaped[i] * norm;
+
+  /* --- decay ------------------------------------------------------------- */
+  // Bass strings ring longer than treble ones, so the loss is set from a wanted
+  // decay time rather than being a fixed per-loop constant.
+  const t60 = clamp(3.5 - Math.log2(freq / 82.4) * 0.55, 1.1, 3.8);
+  // ...expressed as a per-loop gain: the loop runs `freq` times a second, and
+  // -60 dB is a factor of e^-6.91.
+  const loss = Math.exp(-6.908 / (t60 * freq));
+
+  /* --- the loop ---------------------------------------------------------- */
+  let read = 0;
+  let prevSample = 0; // averaging filter state
+  let prevIn = 0; // allpass input state
+  let prevOut = 0; // allpass output state
+
+  for (let n = 0; n < total; n++) {
+    const s = line[read];
+    out[n] = s;
+
+    // Two-point average: linear phase, so it damps the harmonics — high ones
+    // hardest, which is the tone darkening as the note rings — without
+    // disturbing the tuning.
+    const avg = 0.5 * (s + prevSample) * loss;
+    prevSample = s;
+
+    const ap = apC * avg + prevIn - apC * prevOut;
+    prevIn = avg;
+    prevOut = ap;
+
+    line[read] = ap;
+    read = read + 1 === lineLength ? 0 : read + 1;
+  }
+
+  /* --- pick noise and edges ---------------------------------------------- */
+  // A few milliseconds of the plectrum itself, on top of the string. Short
+  // enough to be a transient rather than a pitch.
+  const pickLen = Math.min(total, Math.round(fs * 0.006));
+  let pick = 0;
+  for (let n = 0; n < pickLen; n++) {
+    pick += (rand() * 2 - 1 - pick) * 0.55;
+    out[n] += pick * 0.2 * (1 - n / pickLen) ** 2;
+  }
+  // A hard start would click; a hard stop would too.
+  const fadeIn = Math.min(48, total);
+  for (let n = 0; n < fadeIn; n++) out[n] *= n / fadeIn;
+  const fadeOut = Math.min(Math.round(fs * 0.05), total);
+  for (let n = 0; n < fadeOut; n++) out[total - 1 - n] *= n / fadeOut;
+
+  return out;
+}
+
+/** Deterministic PRNG, so the same string plucks the same way every time. */
+function makeRandom(seed: number): () => number {
+  let s = (seed >>> 0) || 1;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
 
 /** Short vibration for tactile feedback, where the platform supports it. */
 export function haptic(pattern: number | number[] = 12): void {

@@ -1,22 +1,20 @@
-import { useEffect, useRef } from 'react';
-import { useTunerFrame } from '../hooks';
-import { pitchClassName, type NoteNaming } from '../music/notes';
-import type { TunerFrame } from '../tuner/TunerController';
-
-/**
- * Canvas font stack. The symbol fonts are listed explicitly because the note
- * names carry real sharps (U+266F) and flats (U+266D), which plenty of UI
- * sans-serifs simply do not contain.
- */
-const fieldFont = (px: number) =>
-  `700 ${px}px system-ui, -apple-system, "Segoe UI Symbol", "Apple Symbols", ` +
-  `"Noto Sans Symbols 2", "DejaVu Sans", sans-serif`;
+import { useRef } from 'react';
+import { pitchClassName } from '../../music/notes';
+import type { NoteNaming } from '../../music/notes';
+import type { TunerFrame } from '../../tuner/TunerController';
+import {
+  clamp,
+  colourFor,
+  useVisualCanvas,
+  visualFont,
+  type Palette,
+  type Size,
+  type VisualProps,
+} from './shared';
 
 const RANGE_CENTS = 250; // field edge = 250 cents off
 const MAJOR_TICK_CENTS = 100; // semitone boundaries
 const MINOR_TICK_CENTS = 50;
-/** Past this the marker turns amber — nearer some other note than the target. */
-const FAR_CENTS = 50;
 
 /**
  * Where the marker sits, as a fraction of the field height. Leaves room above
@@ -32,38 +30,6 @@ const TRAIL_HZ = 40;
 /** Ring-buffer capacity — enough to fill the field at the slowest useful rate. */
 const TRAIL_CAPACITY = 256;
 
-interface Palette {
-  tick: string;
-  tickHot: string;
-  green: string;
-  amber: string;
-  text3: string;
-}
-
-function readPalette(): Palette {
-  const s = getComputedStyle(document.documentElement);
-  const get = (n: string, f: string) => s.getPropertyValue(n).trim() || f;
-  return {
-    // Gridlines and labels have their own tokens so the screen can be tuned
-    // independently of the surrounding chassis.
-    tick: get('--field-grid', get('--tick', 'rgba(255,255,255,0.17)')),
-    tickHot: get('--tick-hot', '#e9eef4'),
-    green: get('--green', '#34e08a'),
-    amber: get('--amber', '#ffb02e'),
-    text3: get('--field-label', get('--text-3', '#5b6573')),
-  };
-}
-
-interface Props {
-  /** Half-width of the in-tune window, in cents. */
-  tolerance: number;
-  /** Changing this re-reads the CSS custom properties. */
-  themeKey: string;
-  naming: NoteNaming;
-  /** Note to label gridlines against before anything has been detected. */
-  fallbackMidi: number;
-}
-
 /**
  * The tuning field.
  *
@@ -76,10 +42,7 @@ interface Props {
  * Driven straight from the tuner's frame stream; React never re-renders this
  * while a note is sounding.
  */
-export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const paletteRef = useRef<Palette | null>(null);
-  const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
+export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: VisualProps) {
   /**
    * Offscreen buffer for the trail. The trail is stroked opaque in here so that
    * where it crosses itself nothing accumulates, then faded once on the way
@@ -91,7 +54,6 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Props)
   const displayCents = useRef(0);
   const signalFade = useRef(0);
   const scrollOffset = useRef(0);
-  const lastTime = useRef(0);
   const sampleAccum = useRef(0);
 
   // Trail ring buffer. `y` is absolute and grows as each sample falls.
@@ -106,127 +68,66 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Props)
 
   const toleranceRef = useRef(tolerance);
   toleranceRef.current = tolerance;
-  /*
-   * The palette is re-read lazily at draw time rather than in an effect.
-   * PitchField is a child of the component that writes --h / --fh onto <html>,
-   * and child effects run *before* parent effects — so reading on a themeKey
-   * effect would sample the previous hue and leave the canvas a step behind
-   * every time the screen colour changes.
-   */
-  const themeKeyRef = useRef(themeKey);
-  themeKeyRef.current = themeKey;
-  const paletteKey = useRef<string | null>(null);
-
   const namingRef = useRef(naming);
   namingRef.current = naming;
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
 
-  /**
-   * Matches the backing store to the CSS box. Called from a ResizeObserver and
-   * again on every frame: the observer fires as part of the rendering
-   * lifecycle, so it can be missed entirely if the element is laid out while
-   * nothing is painting. Comparing clientWidth is cheap and makes the canvas
-   * self-healing whenever that happens. Returns false while the box has no
-   * size yet, which is the signal to skip the frame.
-   */
-  const syncSize = (canvas: HTMLCanvasElement): boolean => {
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    if (w <= 0 || h <= 0) return false;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const s = sizeRef.current;
-    if (s.w === w && s.h === h && s.dpr === dpr) return true;
-    sizeRef.current = { w, h, dpr };
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
+  const canvasRef = useVisualCanvas({
+    themeKey,
+    onResize: (size) => {
+      if (!trailCanvas.current) trailCanvas.current = document.createElement('canvas');
+      trailCanvas.current.width = Math.round(size.w * size.dpr);
+      trailCanvas.current.height = Math.round(size.h * size.dpr);
+      trail.current.count = 0; // geometry changed; old positions are meaningless
+    },
+    draw: (ctx, size, palette, frame, dt) => {
+      const { w, h } = size;
 
-    if (!trailCanvas.current) trailCanvas.current = document.createElement('canvas');
-    trailCanvas.current.width = canvas.width;
-    trailCanvas.current.height = canvas.height;
+      const fall = SCROLL_PX_PER_SEC * dt;
+      scrollOffset.current = (scrollOffset.current + fall) % GRID_SPACING;
 
-    trail.current.count = 0; // geometry changed; old positions are meaningless
-    return true;
-  };
+      const target = clamp(frame.cents, -RANGE_CENTS * 1.2, RANGE_CENTS * 1.2);
+      displayCents.current += (target - displayCents.current) * 0.3;
+      signalFade.current += ((frame.hasSignal ? 1 : 0) - signalFade.current) * 0.1;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const onResize = () => syncSize(canvas);
-    onResize();
-    const ro = new ResizeObserver(onResize);
-    ro.observe(canvas);
-    window.addEventListener('orientationchange', onResize);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('orientationchange', onResize);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      /* --- age the trail, then sample the current position ---------------- */
+      const t = trail.current;
+      const markerY = h * MARKER_Y;
+      for (let i = 0; i < t.count; i++) {
+        const idx = (t.head - 1 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
+        t.y[idx] += fall;
+      }
+      // Drop anything that has fallen out of the bottom of the field.
+      while (t.count > 0) {
+        const oldest = (t.head - t.count + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
+        if (t.y[oldest] <= h) break;
+        t.count--;
+      }
 
-  useTunerFrame((frame) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    if (!syncSize(canvas)) return;
-    if (!paletteRef.current || paletteKey.current !== themeKeyRef.current) {
-      paletteRef.current = readPalette();
-      paletteKey.current = themeKeyRef.current;
-    }
+      sampleAccum.current += dt;
+      const interval = 1 / TRAIL_HZ;
+      if (sampleAccum.current >= interval) {
+        sampleAccum.current %= interval;
+        t.x[t.head] = xOf(w, displayCents.current);
+        t.cents[t.head] = frame.cents;
+        t.live[t.head] = frame.hasSignal ? 1 : 0;
+        t.y[t.head] = markerY;
+        t.head = (t.head + 1) % TRAIL_CAPACITY;
+        if (t.count < TRAIL_CAPACITY) t.count++;
+      }
 
-    const { w, h } = sizeRef.current;
-
-    /* --- advance time -------------------------------------------------- */
-    const now = performance.now();
-    if (lastTime.current === 0) lastTime.current = now;
-    // Clamped so a backgrounded tab doesn't teleport the world on return.
-    const dt = Math.min(0.1, Math.max(0, (now - lastTime.current) / 1000));
-    lastTime.current = now;
-
-    const fall = SCROLL_PX_PER_SEC * dt;
-    scrollOffset.current = (scrollOffset.current + fall) % GRID_SPACING;
-
-    const target = clamp(frame.cents, -RANGE_CENTS * 1.2, RANGE_CENTS * 1.2);
-    displayCents.current += (target - displayCents.current) * 0.3;
-    signalFade.current += ((frame.hasSignal ? 1 : 0) - signalFade.current) * 0.1;
-
-    /* --- age the trail, then sample the current position ---------------- */
-    const t = trail.current;
-    const markerY = h * MARKER_Y;
-    for (let i = 0; i < t.count; i++) {
-      const idx = (t.head - 1 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
-      t.y[idx] += fall;
-    }
-    // Drop anything that has fallen out of the bottom of the field.
-    while (t.count > 0) {
-      const oldest = (t.head - t.count + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
-      if (t.y[oldest] <= h) break;
-      t.count--;
-    }
-
-    sampleAccum.current += dt;
-    const interval = 1 / TRAIL_HZ;
-    if (sampleAccum.current >= interval) {
-      sampleAccum.current %= interval;
-      t.x[t.head] = xOf(w, displayCents.current);
-      t.cents[t.head] = frame.cents;
-      t.live[t.head] = frame.hasSignal ? 1 : 0;
-      t.y[t.head] = markerY;
-      t.head = (t.head + 1) % TRAIL_CAPACITY;
-      if (t.count < TRAIL_CAPACITY) t.count++;
-    }
-
-    draw(ctx, sizeRef.current, paletteRef.current, frame, {
-      cents: displayCents.current,
-      fade: signalFade.current,
-      tolerance: toleranceRef.current,
-      scroll: scrollOffset.current,
-      naming: namingRef.current,
-      fallbackMidi: fallbackRef.current,
-      trail: t,
-      buffer: trailCanvas.current,
-    });
+      draw(ctx, size, palette, frame, {
+        cents: displayCents.current,
+        fade: signalFade.current,
+        tolerance: toleranceRef.current,
+        scroll: scrollOffset.current,
+        naming: namingRef.current,
+        fallbackMidi: fallbackRef.current,
+        trail: t,
+        buffer: trailCanvas.current,
+      });
+    },
   });
 
   return <canvas ref={canvasRef} className="field__canvas" aria-hidden />;
@@ -258,13 +159,6 @@ interface Trail {
   live: Uint8Array;
   head: number;
   count: number;
-}
-
-function colourFor(p: Palette, cents: number, tolerance: number): string {
-  const a = Math.abs(cents);
-  if (a <= tolerance) return p.green;
-  if (a > FAR_CENTS) return p.amber;
-  return p.tickHot;
 }
 
 /**
@@ -304,7 +198,7 @@ function nibPath(ctx: CanvasRenderingContext2D, x: number, y: number, scale: num
 
 function draw(
   ctx: CanvasRenderingContext2D,
-  size: { w: number; h: number; dpr: number },
+  size: Size,
   p: Palette,
   frame: TunerFrame,
   s: DrawState,
@@ -376,7 +270,7 @@ function draw(
   if (refMidi > 0) {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = p.text3;
-    ctx.font = fieldFont(Math.max(10, Math.round(h * 0.042)));
+    ctx.font = visualFont(Math.max(10, Math.round(h * 0.042)));
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (const c of [-200, -100, 100, 200]) {
@@ -403,8 +297,8 @@ function draw(
   if (frame.hasSignal) {
     const cents = Math.round(frame.cents);
     const label = cents === 0 ? '0' : `${cents > 0 ? '+' : '-'}${Math.abs(cents)}`;
-    const size = Math.max(13, Math.round(h * 0.055));
-    ctx.font = fieldFont(size);
+    const fontSize = Math.max(13, Math.round(h * 0.055));
+    ctx.font = visualFont(fontSize);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     // Rides with the marker but stays clear of the field edges.
@@ -437,7 +331,7 @@ function draw(
 function drawTrail(
   ctx: CanvasRenderingContext2D,
   buffer: HTMLCanvasElement | null,
-  size: { w: number; h: number; dpr: number },
+  size: Size,
   p: Palette,
   s: DrawState,
   markerY: number,
@@ -498,8 +392,4 @@ function drawTrail(
 
   ctx.globalAlpha = alpha * 0.92;
   ctx.drawImage(buffer, 0, 0, w, h);
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
 }

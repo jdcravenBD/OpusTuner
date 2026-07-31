@@ -33,10 +33,25 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur: 170ms;
 
+  /* Pager arrows either side of the tuner screen. Named because .field has to
+     subtract them from its own width to stay square and centred. */
+  --nav-w: 24px;
+  --nav-gap: 3px;
+
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
+
+  /*
+   * How far the wordmark rides up above the top of the layout. Never further
+   * than the safe area it is riding into: on a notched handset there is real
+   * clearance between the inset and the notch itself, but in a plain browser
+   * tab the inset is zero and any lift at all would post the mark off the top
+   * of the app. Overridden with a flat value in the desktop frame below, where
+   * --safe-t is a percentage and would resolve against the wrong axis here.
+   */
+  --mark-lift: min(7px, var(--safe-t));
 
   /* Fine fractal grain, kept near-invisible. Breaks up the flat gradients so
      large surfaces read as material instead of as empty canvas. */
@@ -322,6 +337,13 @@ button {
   display: flex;
   justify-content: space-between;
   width: 100%;
+  /*
+   * Lifted out of flow rather than given a negative margin: this rides up into
+   * the safe area, which on a notched handset has real clearance above the
+   * text, and the controls below it must not follow.
+   */
+  position: relative;
+  top: calc(-1 * var(--mark-lift));
   font-family: var(--font-ui);
   font-size: clamp(8.5px, 2.9cqw, 13px);
   font-weight: 700;
@@ -584,8 +606,42 @@ button {
   align-items: center;
 }
 
-.field-zone > .field {
+/*
+ * The screen and its pager. The arrows sit outside the screen rather than over
+ * it: the ♭ and ♯ marks already own the middle of each edge, and a chevron
+ * pointing left next to the flat mark would read as part of the scale.
+ */
+.field-row {
   grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nav-gap);
+  width: 100%;
+}
+
+.visual-nav {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: var(--nav-w);
+  height: 60px;
+  color: var(--text-4);
+  opacity: 0.85;
+  transition:
+    color var(--dur) var(--ease),
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.visual-nav:hover {
+  color: var(--text-2);
+  opacity: 1;
+}
+
+.visual-nav:active {
+  transform: scale(0.86);
+  color: var(--text);
 }
 
 /*
@@ -595,12 +651,19 @@ button {
 .field {
   position: relative;
   flex: 0 0 auto;
-  width: min(100% - 20px, calc(80cqh - 264px), 400px);
+  /*
+   * The subtraction covers both pager arrows, their gaps, and the margin left
+   * against the app edge. Everything else in the column is budgeted by the
+   * 264px constant — see the comment on .field-zone. Re-measure both after any
+   * change to the height or width of what surrounds this.
+   */
+  width: min(100% - (var(--nav-w) + var(--nav-gap) + 6px) * 2, calc(80cqh - 264px), 400px);
   min-width: 128px;
   aspect-ratio: 1;
-  margin: 0 auto;
   border-radius: var(--r-lg);
   overflow: hidden;
+  /* Horizontal swipe pages between screens; see useSwipe. */
+  touch-action: pan-y;
   background:
     radial-gradient(125% 88% at 50% -6%, rgba(255, 255, 255, 0.04), transparent 62%),
     linear-gradient(180deg, var(--field-top) 0%, var(--field-bg) 55%, var(--field-bottom) 100%);
@@ -712,8 +775,8 @@ button {
 .readout__cell {
   display: flex;
   align-items: baseline;
-  gap: 5px;
-  padding: 6px 11px;
+  gap: 4px;
+  padding: 4px 8px;
   white-space: nowrap;
 }
 
@@ -723,16 +786,16 @@ button {
 
 .readout__key {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--text-4);
 }
 
 .readout__val {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 650;
   color: var(--text-2);
   min-width: 4ch;
@@ -756,7 +819,7 @@ button {
 
 .readout__unit {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   color: var(--text-4);
 }
@@ -2058,6 +2121,8 @@ button {
      */
     --safe-t: 12.05%;
     --safe-b: 8.72%;
+    /* Flat, because the percentage above would resolve against height here. */
+    --mark-lift: 7px;
 
     height: min(844px, calc(100dvh - 40px));
     aspect-ratio: 390 / 844;

@@ -9,6 +9,7 @@
  */
 
 import { PitchDetector, PitchTracker } from '../src/audio/pitch';
+import { renderPluck } from '../src/audio/tone';
 
 const SAMPLE_RATE = 48000;
 const WINDOW = 4096;
@@ -338,6 +339,60 @@ const SETTLE_FRAMES = 15;
         `${centsError(last, tightened).toFixed(2)} cents off after 0.66 s`,
     );
   }
+}
+
+/* --- 8. reference tone ----------------------------------------------------- */
+// The reference tone is synthesised by a waveguide whose loop length sets its
+// pitch. Getting that length wrong by a fraction of a sample is worth tens of
+// cents, so the tuner is pointed at its own tone generator and made to grade it.
+console.log('Reference tone: the string model must be in tune with itself');
+{
+  const detector = new PitchDetector(WINDOW, SAMPLE_RATE, 24, 2200);
+  // Every open string of a standard guitar, plus a cello C and a violin E.
+  for (const [name, freq] of [
+    ['E2', 82.4069],
+    ['A2', 110.0],
+    ['D3', 146.832],
+    ['G3', 195.998],
+    ['B3', 246.942],
+    ['E4', 329.628],
+    ['C2', 65.4064],
+    ['E5', 659.255],
+  ] as [string, number][]) {
+    const rendered = renderPluck(SAMPLE_RATE, freq, 1.2);
+    if (!rendered) {
+      check(`tone ${name}`.padEnd(22), false, 'render returned nothing');
+      continue;
+    }
+    // Measured a little way in, past the pick transient and the fade.
+    const start = Math.round(SAMPLE_RATE * 0.25);
+    const r = detector.detect(rendered.subarray(start, start + WINDOW));
+    const err = centsError(r.frequency, freq);
+    check(
+      `tone ${name}`.padEnd(22),
+      Math.abs(err) < 1.0,
+      `${r.frequency.toFixed(3)} Hz (${err >= 0 ? '+' : ''}${err.toFixed(3)} cents, ` +
+        `clarity ${r.clarity.toFixed(3)})`,
+    );
+  }
+}
+{
+  // A pluck has to actually decay, or it is a drone with an attack.
+  const rendered = renderPluck(SAMPLE_RATE, 110, 2.2)!;
+  const rms = (from: number) => {
+    let sum = 0;
+    const n = 4096;
+    for (let i = 0; i < n; i++) sum += rendered[from + i] ** 2;
+    return Math.sqrt(sum / n);
+  };
+  const early = rms(Math.round(SAMPLE_RATE * 0.05));
+  const late = rms(Math.round(SAMPLE_RATE * 1.5));
+  const db = 20 * Math.log10(late / early);
+  check(
+    'tone decays'.padEnd(22),
+    db < -12 && db > -60,
+    `${db.toFixed(1)} dB from 50 ms to 1.5 s`,
+  );
 }
 
 /* -------------------------------------------------------------------------- */

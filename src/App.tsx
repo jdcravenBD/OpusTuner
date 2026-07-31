@@ -13,7 +13,7 @@ import {
   useTunerVersion,
   useWakeLock,
 } from './hooks';
-import { PitchField } from './components/PitchField';
+import { TunerVisual } from './components/visuals';
 import { NoteDisplay, Readout, TuningVerdict } from './components/Display';
 import { Wordmark } from './components/Wordmark';
 import { StringRow } from './components/StringRow';
@@ -214,29 +214,17 @@ export default function App() {
             the bottom of the zone so it cannot pull the field off centre. */}
         <div className="field-zone">
           <TuningVerdict tolerance={settings.tolerance} />
-          <div className="field">
-            <PitchField
-              tolerance={settings.tolerance}
-              // Hue is part of the key: the canvas caches its palette and must
-              // re-read the custom properties when the screen is re-tinted.
-              themeKey={`${settings.theme}:${settings.fieldHue}`}
-              naming={settings.naming}
-              fallbackMidi={fallbackMidi}
-            />
-            <span className="field__edge field__edge--flat" aria-hidden>
-              ♭
-            </span>
-            <span className="field__edge field__edge--sharp" aria-hidden>
-              ♯
-            </span>
-            {/* Instrument-face small print: scale and capture rate. */}
-            <span className="field__note field__note--bl" aria-hidden>
-              ±250 ¢
-            </span>
-            <span className="field__note field__note--br" aria-hidden>
-              {sampleRateLabel}
-            </span>
-          </div>
+          <TunerVisual
+            visual={settings.visual}
+            onChange={(visual) => settingsStore.set({ visual })}
+            sampleRateLabel={sampleRateLabel}
+            tolerance={settings.tolerance}
+            // Hue is part of the key: the canvas caches its palette and must
+            // re-read the custom properties when the screen is re-tinted.
+            themeKey={`${settings.theme}:${settings.fieldHue}`}
+            naming={settings.naming}
+            fallbackMidi={fallbackMidi}
+          />
           <Readout show={settings.showFrequency} />
         </div>
       </main>
@@ -248,6 +236,7 @@ export default function App() {
         tuned={tuner.tuned}
         auto={settings.auto}
         leftHanded={settings.leftHanded}
+        showHint={settings.showStringHint}
         onSelect={selectString}
       />
 

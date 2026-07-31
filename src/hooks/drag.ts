@@ -27,6 +27,11 @@ const GLIDE_DECAY = 0.94;
 /** Velocity below which the glide has effectively stopped, in px/frame. */
 const GLIDE_MIN = 0.35;
 
+/** Sideways travel that counts as a swipe rather than a stray press. */
+const SWIPE_DISTANCE = 44;
+/** ...or this much speed, in px/ms, however far it got. */
+const SWIPE_VELOCITY = 0.4;
+
 type Mode = 'idle' | 'undecided' | 'scroll-x' | 'scroll-y' | 'close';
 
 /** Controls that own their own pointer behaviour and must not be dragged over. */
@@ -59,6 +64,94 @@ function swallowNextClick(): void {
   };
   window.addEventListener('click', swallow, { capture: true, once: true });
   setTimeout(() => window.removeEventListener('click', swallow, true), 0);
+}
+
+/**
+ * Horizontal swipe on an element, for paging between panels.
+ *
+ * Every pointer type, because a swipe is the natural gesture on a phone and a
+ * perfectly good one with a mouse held down. The element needs
+ * `touch-action: none` (or at least `pan-y`) or the browser will claim the
+ * gesture before the first pointermove arrives.
+ *
+ * @param onSwipe called with -1 for a rightward swipe (go back) and +1 for a
+ *   leftward one (go forward), matching the direction the content moves.
+ */
+export function useSwipe(
+  ref: RefObject<HTMLElement | null>,
+  onSwipe: (direction: -1 | 1) => void,
+): void {
+  const handler = useRef(onSwipe);
+  handler.current = onSwipe;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let pointerId = -1;
+    let startX = 0;
+    let startY = 0;
+    let last = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let live = false;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      pointerId = e.pointerId;
+      live = true;
+      startX = last = e.clientX;
+      startY = e.clientY;
+      lastTime = e.timeStamp;
+      velocity = 0;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (!live || e.pointerId !== pointerId) return;
+      const dt = e.timeStamp - lastTime;
+      if (dt > 0) velocity = (e.clientX - last) / dt;
+      last = e.clientX;
+      lastTime = e.timeStamp;
+      // A mostly-vertical drag isn't ours; let go of it rather than firing on
+      // the small sideways component every such gesture carries.
+      if (Math.abs(e.clientY - startY) > Math.abs(e.clientX - startX) + SWIPE_DISTANCE) {
+        live = false;
+      }
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (!live || e.pointerId !== pointerId) return;
+      live = false;
+      pointerId = -1;
+      const dx = Math.abs(e.clientX - startX);
+      // A flick counts for less travel than a drag, but never for none: a fast
+      // twitch of a few pixels is a tap with an unsteady hand, and paging on it
+      // makes the screen feel like it changes at random.
+      const dragged = dx >= SWIPE_DISTANCE;
+      const flicked = Math.abs(velocity) >= SWIPE_VELOCITY && dx >= SWIPE_DISTANCE * 0.4;
+      if (!dragged && !flicked) return;
+      handler.current(e.clientX < startX ? 1 : -1);
+    };
+
+    const cancel = () => {
+      live = false;
+      pointerId = -1;
+    };
+
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', cancel);
+    el.addEventListener('pointerleave', cancel);
+
+    return () => {
+      el.removeEventListener('pointerdown', onDown);
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+      el.removeEventListener('pointercancel', cancel);
+      el.removeEventListener('pointerleave', cancel);
+    };
+  }, [ref]);
 }
 
 /**

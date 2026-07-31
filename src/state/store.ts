@@ -10,6 +10,7 @@ import { useSyncExternalStore } from 'react';
 import type { NoteNaming } from '../music/notes';
 import { DEFAULT_A4 } from '../music/notes';
 import { DEFAULT_TUNING_ID, type Tuning } from '../music/tunings';
+import { DEFAULT_VISUAL, type VisualId } from '../components/visuals/registry';
 
 /* ----------------------------------------------------------------- types -- */
 
@@ -49,6 +50,10 @@ export interface Settings {
   /** 0 = permissive (noisy rooms), 1 = strict (studio quiet). */
   sensitivity: number;
   showFrequency: boolean;
+  /** Caption under the string row telling you what to play. */
+  showStringHint: boolean;
+  /** Which tuner screen is on show — see components/visuals. */
+  visual: VisualId;
 }
 
 export interface Session {
@@ -79,6 +84,8 @@ export const DEFAULT_SETTINGS: Settings = {
   inputDeviceId: 'default',
   sensitivity: 0.4,
   showFrequency: true,
+  showStringHint: true,
+  visual: DEFAULT_VISUAL,
 };
 
 export const DEFAULT_SESSION: Session = {

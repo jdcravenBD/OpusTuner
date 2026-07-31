@@ -13,6 +13,7 @@ import {
   type ToleranceCents,
 } from '../state/store';
 import type { NoteNaming } from '../music/notes';
+import { VISUALS, visualIndex } from './visuals/registry';
 
 interface Props {
   open: boolean;
@@ -241,11 +242,28 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- display */}
       <Section label="Display">
+        <Row name="Tuner screen" desc={VISUALS[visualIndex(s.visual)].desc}>
+          <Segmented
+            value={s.visual}
+            options={VISUALS.map((v) => ({ value: v.id, label: v.name }))}
+            onChange={(v) => set('visual', v)}
+          />
+        </Row>
         <Row name="Show frequencies" desc="Detected and target pitch in hertz.">
           <Switch
             on={s.showFrequency}
             onChange={(v) => set('showFrequency', v)}
             label="Show frequencies"
+          />
+        </Row>
+        <Row
+          name="String caption"
+          desc="The line under the string buttons — “Auto — play any string”, or which string is selected."
+        >
+          <Switch
+            on={s.showStringHint}
+            onChange={(v) => set('showStringHint', v)}
+            label="String caption"
           />
         </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">

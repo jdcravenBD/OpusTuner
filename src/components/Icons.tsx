@@ -43,6 +43,12 @@ export const ChevronLeftIcon = ({ size = 22 }: IconProps) => (
   </svg>
 );
 
+export const ChevronRightIcon = ({ size = 22 }: IconProps) => (
+  <svg {...base(size)} strokeWidth={2.4}>
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
+
 export const CheckIcon = ({ size = 12 }: IconProps) => (
   <svg {...base(size)} strokeWidth={3.2}>
     <path d="M20 6 9 17l-5-5" />

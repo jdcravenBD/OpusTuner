@@ -9,6 +9,8 @@ interface Props {
   tuned: boolean[];
   auto: boolean;
   leftHanded: boolean;
+  /** Show the caption under the row saying what to play. */
+  showHint: boolean;
   onSelect: (index: number) => void;
 }
 
@@ -19,12 +21,15 @@ export function StringRow({
   tuned,
   auto,
   leftHanded,
+  showHint,
   onSelect,
 }: Props) {
   if (targets.length === 0) {
     return (
       <div className="strings">
-        <div className="strings__hint">Chromatic — every note, any instrument</div>
+        {showHint && (
+          <div className="strings__hint">Chromatic — every note, any instrument</div>
+        )}
       </div>
     );
   }
@@ -84,11 +89,13 @@ export function StringRow({
           );
         })}
       </div>
-      <div className="strings__hint">
-        {auto
-          ? 'Auto — play any string'
-          : `String ${count - selectedIndex} · ${pitchClassName(active, naming)}${noteOctave(active)} · tap to hear it`}
-      </div>
+      {showHint && (
+        <div className="strings__hint">
+          {auto
+            ? 'Auto — play any string'
+            : `String ${count - selectedIndex} · ${pitchClassName(active, naming)}${noteOctave(active)} · tap to hear it`}
+        </div>
+      )}
     </div>
   );
 }
