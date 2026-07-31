@@ -244,6 +244,18 @@ button {
   overflow: hidden;
   isolation: isolate;
   transition: background 400ms var(--ease);
+  /*
+   * Held on its own compositing layer permanently. The sheet's scrim carries a
+   * backdrop-filter, and promoting a layer only at the moment the sheet opens
+   * re-rasterises everything behind it — content that sat on fractional pixels
+   * snaps to whole ones and the whole app appears to twitch as the panel
+   * arrives. Promoting it up front means that rasterisation never changes.
+   * Free here: the app already forces grayscale antialiasing, so there is no
+   * subpixel text rendering to lose, and this surface animates at 60 fps
+   * anyway. will-change rather than a translateZ hack, which Chrome flattens
+   * back to a 2D identity matrix and may not honour.
+   */
+  will-change: transform;
 }
 
 /* Grain. Sits above the gradients, below everything else. */
@@ -286,8 +298,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
-  padding: 5px 12px 8px;
+  gap: 6px;
+  padding: 0 12px 8px;
   flex: 0 0 auto;
 }
 
@@ -1089,6 +1101,20 @@ button {
   flex: 0 0 auto;
 }
 
+/*
+ * The drag handle. touch-action: none hands the gesture to the script rather
+ * than the browser's own scrolling, which is safe here because neither the grip
+ * nor the header scrolls anything.
+ */
+.sheet__handle {
+  touch-action: none;
+  cursor: grab;
+}
+
+.sheet__handle:active {
+  cursor: grabbing;
+}
+
 .sheet__head {
   display: grid;
   grid-template-columns: 44px 1fr 44px;
@@ -1257,6 +1283,7 @@ button {
 /* ------------------------------------------------------------ list items -- */
 
 .row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1292,6 +1319,24 @@ button {
 .row__main {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/*
+ * Stretches the pick target over the whole row. The row is a flex container
+ * with padding, so without this the tappable area stops short of the visible
+ * card on every side and presses near the edge fall through to nothing.
+ */
+.row__main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* Lifted clear of that overlay so they keep their own presses. */
+.row__badge,
+.row__star {
+  position: relative;
+  z-index: 1;
 }
 
 .row__name {
@@ -1822,62 +1867,6 @@ button {
   background: var(--surface-sunk);
   border-radius: 4px;
   padding: 1px 4px;
-}
-
-/* ------------------------------------------------------------ celebration -- */
-
-.celebrate {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 18px 30px;
-  border-radius: var(--r-lg);
-  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
-  border: 1px solid var(--green-line);
-  box-shadow: var(--elev-3), var(--hi-strong), 0 0 50px -14px var(--green-glow);
-  pointer-events: none;
-  animation: celebrate 2000ms var(--ease) forwards;
-}
-
-.celebrate__title {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--green);
-}
-
-.celebrate__sub {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-@keyframes celebrate {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-  }
-  12% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  78% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.97);
-  }
 }
 
 /* --------------------------------------------------------------- utility -- */

@@ -135,18 +135,6 @@ export function useWakeLock(enabled: boolean): void {
 
 /* ----------------------------------------------------------- misc helpers -- */
 
-/** Locks body scroll while a sheet is open. */
-export function useScrollLock(active: boolean): void {
-  useEffect(() => {
-    if (!active) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [active]);
-}
-
 /** Calls `onClose` when Escape is pressed. */
 export function useEscape(active: boolean, onClose: () => void): void {
   const ref = useRef(onClose);

@@ -33,7 +33,6 @@ export default function App() {
   const [micError, setMicError] = useState<EngineError | null>(null);
   const [tuningOpen, setTuningOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [celebrating, setCelebrating] = useState(false);
 
   const appRef = useRef<HTMLDivElement>(null);
   const version = useTunerVersion();
@@ -76,18 +75,13 @@ export default function App() {
         toneEngine.chime();
       }
     } else if (event.type === 'all-tuned') {
-      setCelebrating(true);
+      // Acknowledged in the hand only — the string row already shows the state,
+      // and a panel over the tuner is in the way of the next thing you play.
       if (settingsStore.get().haptics) haptic([18, 55, 18, 55, 32]);
     } else if (event.type === 'status') {
       setMicState(tuner.micState);
     }
   });
-
-  useEffect(() => {
-    if (!celebrating) return;
-    const id = setTimeout(() => setCelebrating(false), 2000);
-    return () => clearTimeout(id);
-  }, [celebrating]);
 
   /* -------------------------------------------------------------- mic --- */
 
@@ -281,13 +275,6 @@ export default function App() {
           </span>
         </button>
       </footer>
-
-      {celebrating && (
-        <div className="celebrate" role="status">
-          <div className="celebrate__title">All strings in tune</div>
-          <div className="celebrate__sub">{tuning.name} · nicely done</div>
-        </div>
-      )}
 
       {!running && (
         <MicGate

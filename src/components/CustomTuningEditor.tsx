@@ -169,7 +169,7 @@ export function CustomTuningEditor({
         {onDelete && (
           <button className="btn btn--block btn--danger" style={{ marginTop: 8 }} onClick={onDelete}>
             <TrashIcon />
-            Delete tuning
+            {initial ? 'Delete tuning' : 'Discard tuning'}
           </button>
         )}
       </div>

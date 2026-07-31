@@ -262,6 +262,84 @@ console.log('Tracker: settles onto a steady note, survives one bad frame');
   );
 }
 
+/* --- 7. attack sharpening -------------------------------------------------- */
+console.log('Attack: a freshly plucked string runs sharp and must not throw the needle');
+/** Frames the engine spends flagging a note as still settling, at 60 Hz. */
+const SETTLE_FRAMES = 15;
+
+{
+  const freq = 110.0;
+  /**
+   * Sharpness still on the note when the blanking period ends. The pick
+   * transient itself never reaches the tracker; this is the residual tension
+   * sharpening, decaying with roughly a quarter-second time constant.
+   */
+  const RESIDUAL_CENTS = 9;
+  const FALLOFF = 15;
+
+  /** Replays one pluck of a string the needle is already sitting on. */
+  function pluck(settling: boolean): { peak: number; settled: number } {
+    const tracker = new PitchTracker();
+    for (let i = 0; i < 30; i++) tracker.update({ frequency: freq, clarity: 0.95, rms: 0.1 });
+
+    tracker.noteAttack();
+    let peak = 0;
+    let last = freq;
+    for (let i = 0; i < 60; i++) {
+      const sharp = RESIDUAL_CENTS * Math.exp(-i / FALLOFF);
+      last = tracker.update(
+        { frequency: freq * Math.pow(2, sharp / 1200), clarity: 0.97, rms: 0.1 },
+        settling && i < SETTLE_FRAMES,
+      ).frequency;
+      peak = Math.max(peak, centsError(last, freq));
+    }
+    return { peak, settled: centsError(last, freq) };
+  }
+
+  const damped = pluck(true);
+  const raw = pluck(false);
+
+  // The bar is the product one: a string that is in tune must stay inside the
+  // default ±5¢ window when it is struck, not merely wobble less than before.
+  check(
+    'attack jolt damped'.padEnd(22),
+    damped.peak < 5 && damped.peak < raw.peak * 0.7,
+    `needle rose ${damped.peak.toFixed(2)} cents on a +${RESIDUAL_CENTS} cent attack ` +
+      `(${raw.peak.toFixed(2)} undamped)`,
+  );
+  check(
+    'settles back on pitch'.padEnd(22),
+    Math.abs(damped.settled) < 0.5,
+    `${damped.settled.toFixed(3)} cents off once the note settled`,
+  );
+}
+{
+  // The damping must not swallow a real change: turn the peg and re-pluck, and
+  // the needle still has to get there.
+  for (const turn of [20, 70]) {
+    const tracker = new PitchTracker();
+    for (let i = 0; i < 30; i++) tracker.update({ frequency: 110, clarity: 0.95, rms: 0.1 });
+    tracker.noteAttack();
+    const tightened = 110 * Math.pow(2, turn / 1200);
+    let last = 110;
+    let atSettleEnd = 0;
+    for (let i = 0; i < 40; i++) {
+      last = tracker.update(
+        { frequency: tightened, clarity: 0.97, rms: 0.1 },
+        i < SETTLE_FRAMES,
+      ).frequency;
+      if (i === SETTLE_FRAMES - 1) atSettleEnd = last;
+    }
+    const covered = (100 * (atSettleEnd - 110)) / (tightened - 110);
+    check(
+      `follows a +${turn}¢ peg turn`.padEnd(22),
+      Math.abs(centsError(last, tightened)) < 1,
+      `${covered.toFixed(0)}% covered while settling, ` +
+        `${centsError(last, tightened).toFixed(2)} cents off after 0.66 s`,
+    );
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 
 console.log(

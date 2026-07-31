@@ -206,14 +206,13 @@ export function TuningSheet({ open, onClose, naming }: Props) {
           naming={naming}
           initial={editing === 'new' ? null : editing}
           onCancel={() => setEditing(null)}
-          onDelete={
-            editing !== 'new'
-              ? () => {
-                  deleteCustom(editing.id);
-                  setEditing(null);
-                }
-              : undefined
-          }
+          // A tuning being built has nothing stored yet, so deleting it is just
+          // throwing the draft away — but the button belongs there either way,
+          // so the way out is in the same place whichever you came in through.
+          onDelete={() => {
+            if (editing !== 'new') deleteCustom(editing.id);
+            setEditing(null);
+          }}
           onSave={(tuning) => {
             sessionStore.set((s) => {
               const exists = s.customTunings.some((t) => t.id === tuning.id);

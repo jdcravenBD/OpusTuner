@@ -57,6 +57,30 @@ const ONSET_FLOOR = 0.0045;
  * played, which is exactly when a naive tuner starts flapping between notes.
  */
 const NOTE_OFF_RATIO = 0.07;
+/**
+ * Samples held back *beyond* the analysis window before the first reading of a
+ * new note is trusted.
+ *
+ * Waiting exactly one window is not enough, and that is subtle: at the moment
+ * `sinceOnset` reaches `windowSize` the window spans [onset, onset + window],
+ * so the pick transient has moved to the leading edge but is still very much
+ * inside it. A transient is broadband and has no stable period, and the steep
+ * amplitude ramp behind it biases the autocorrelation toward shorter lags —
+ * both of which read *sharp*. This pushes the window clear of the attack
+ * proper, and past most of the string's own initial sharpening with it.
+ *
+ * The cost is latency: ~213 ms at 48 kHz from pluck to first new reading. That
+ * is not a blank screen — the previous reading stays up — and it buys the thing
+ * that actually matters, which is that the first number shown is the right one.
+ */
+const ATTACK_TAIL_SAMPLES = 6144;
+/**
+ * How long after the blank the pitch is still measurably falling. A plucked
+ * string is genuinely sharp while its amplitude is large — the extra
+ * displacement raises the average tension — and the tail of that runs on past
+ * the window above. ~256 ms at 48 kHz.
+ */
+const SETTLE_SAMPLES = 12288;
 
 export interface AudioEngineOptions {
   /** Analysis window in samples. Larger = better low-end, more latency. */
@@ -326,10 +350,12 @@ export class AudioEngine {
    *
    * Three guards keep the reading honest across the life of a plucked note:
    *
-   *  1. **Attack** — for one full analysis window after a pluck, the window
-   *     still contains the pick transient, which is broadband and has no
-   *     stable period. Rather than report the nonsense it produces, the
-   *     previous reading is frozen until the transient has scrolled out.
+   *  1. **Attack** — for a full analysis window plus a tail after a pluck, the
+   *     window still contains the pick transient, which is broadband and has
+   *     no stable period. Rather than report the nonsense it produces, the
+   *     previous reading is frozen until the transient has scrolled out, and
+   *     the tracker then resists the note's residual sharpness while it
+   *     settles.
    *  2. **Decay** — once the note falls far enough below its own sustain
    *     level, it is declared over. Otherwise the detector starts tracking
    *     whatever is loudest next: room noise, or another string ringing
@@ -355,12 +381,12 @@ export class AudioEngine {
       this.noteOn = true;
       this.pastAttack = false;
       this.samplesAtOnset = this.written;
-      this.tracker.reset();
+      this.tracker.noteAttack();
     }
     this.prevEnvelope = env;
 
     const sinceOnset = this.written - this.samplesAtOnset;
-    const attackClear = !this.noteOn || sinceOnset >= this.windowSize;
+    const attackClear = !this.noteOn || sinceOnset >= this.attackBlank;
 
     // First frame with a clean window: this level is the note's true sustain,
     // measured past the attack spike, so it is the right reference for decay.
@@ -392,8 +418,17 @@ export class AudioEngine {
       ? { frequency: 0, clarity: 0, rms: env }
       : detector.detect(scratch, this.clarityThreshold, this.rmsGate);
 
-    this.last = this.tracker.update(raw);
+    // Measured in samples rather than frames so the behaviour is identical on a
+    // 60 Hz and a 120 Hz display.
+    const settling = this.noteOn && sinceOnset < this.attackBlank + SETTLE_SAMPLES;
+
+    this.last = this.tracker.update(raw, settling);
     return this.last;
+  }
+
+  /** Samples after an onset during which no reading is trusted at all. */
+  private get attackBlank(): number {
+    return this.windowSize + ATTACK_TAIL_SAMPLES;
   }
 
   private updateLevelMeter(rms: number): void {
@@ -406,7 +441,7 @@ export class AudioEngine {
 
   /** True while the pick transient is still inside the analysis window. */
   get settling(): boolean {
-    return this.noteOn && this.written - this.samplesAtOnset < this.windowSize;
+    return this.noteOn && this.written - this.samplesAtOnset < this.attackBlank;
   }
 
   /** Set for the single frame on which a new pluck was detected. */

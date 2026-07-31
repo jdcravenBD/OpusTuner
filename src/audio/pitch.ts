@@ -230,6 +230,25 @@ export interface TrackedPitch {
  * uses a median to reject single-frame outliers, and applies an adaptive
  * exponential glide that snaps quickly on a new note but crawls once settled.
  */
+/**
+ * How far a note may run sharp purely because it was just plucked. A hard pick
+ * stretches the string, and the extra tension genuinely raises the pitch until
+ * the amplitude comes down; the detector's own envelope bias pushes the same
+ * way. Rises smaller than this during the settling phase are treated as that
+ * artefact, larger ones as the player actually turning the peg.
+ */
+const ATTACK_SHARP_CENTS = 35;
+/**
+ * How much more slowly the needle rises than it falls while a note settles.
+ *
+ * Deliberately a lean rather than a lock. Damping harder would flatten the
+ * artefact completely, but it would also mean a player who turns a peg and
+ * re-plucks every half second never lets a settling phase finish, and the
+ * needle would sit permanently flat of the truth. At this weight it still
+ * covers three quarters of a genuine change within one settling phase.
+ */
+const SETTLE_RISE_FACTOR = 0.3;
+
 export class PitchTracker {
   private history: number[] = [];
   private smoothCents = 0;
@@ -253,7 +272,27 @@ export class PitchTracker {
     this.octaveVotes = 0;
   }
 
-  update(result: PitchResult): TrackedPitch {
+  /**
+   * A fresh pluck of (probably) the same note.
+   *
+   * The median window is dropped because its contents belong to the previous
+   * note, but the smoothed value is deliberately kept. That is the whole point:
+   * a re-pluck resumes from where the needle already sits instead of snapping
+   * to the first post-attack reading, which is the sharpest one the note will
+   * ever produce. A genuine change of string is still caught downstream by the
+   * large-interval check in `update`, which snaps as before.
+   */
+  noteAttack(): void {
+    this.history.length = 0;
+    this.silentFrames = 0;
+    this.octaveVotes = 0;
+  }
+
+  /**
+   * @param settling true while the struck note is still falling from its
+   *   attack sharpening — see `ATTACK_SHARP_CENTS`.
+   */
+  update(result: PitchResult, settling = false): TrackedPitch {
     if (result.frequency <= 0) {
       this.silentFrames++;
       if (this.silentFrames > this.holdFrames) {
@@ -324,14 +363,23 @@ export class PitchTracker {
       this.smoothCents = med;
       this.hasValue = true;
     } else {
-      const dist = Math.abs(med - this.smoothCents);
+      const rise = med - this.smoothCents;
+      const dist = Math.abs(rise);
       // Far away -> chase hard (snappy note changes). Close -> creep (rock-steady needle).
       // Scaled by confidence, so a marginal frame nudges the needle instead of
       // yanking it: this is what stops the reading getting jittery as a note
       // fades and every frame becomes a little less certain than the last.
       const confidence = clamp((result.clarity - 0.6) / 0.32, 0.18, 1);
-      const alpha = clamp((0.09 + dist / 90) * confidence, 0.03, 0.6);
-      this.smoothCents += (med - this.smoothCents) * alpha;
+      let alpha = clamp((0.09 + dist / 90) * confidence, 0.03, 0.6);
+
+      // Just after a pluck the pitch only ever moves one way — down, off the
+      // attack sharpening and onto the note the string is actually tuned to.
+      // Damping the upward direction (and only by a plausible amount, and only
+      // during this phase) lets the needle ride the settling curve instead of
+      // being thrown sharp by its start.
+      if (settling && rise > 0 && rise < ATTACK_SHARP_CENTS) alpha *= SETTLE_RISE_FACTOR;
+
+      this.smoothCents += rise * alpha;
     }
 
     return {

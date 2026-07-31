@@ -1,0 +1,230 @@
+/**
+ * Pointer-drag gestures, so a mouse gets the same reach a finger has.
+ *
+ * On a phone the sheets are already direct-manipulation surfaces: you flick the
+ * list, you drag the panel away. With a mouse those same surfaces only respond
+ * to a wheel and a close button. These handlers close that gap — grab anywhere
+ * and pull.
+ *
+ * Touch is left almost entirely alone on purpose. Native touch scrolling has
+ * momentum, rubber-banding and hand-off to the compositor that no script can
+ * match, and taking it over would be a downgrade. The single exception is the
+ * sheet's grab handle, which is a drag target for every kind of pointer.
+ */
+
+import { useEffect, useRef, type RefObject } from 'react';
+
+/** Movement before a press stops being a click and becomes a drag. */
+const DRAG_SLOP = 6;
+/** Pull the sheet down further than this and it dismisses. */
+const CLOSE_DISTANCE = 96;
+/** ...or flick it faster than this, in px/ms, however far it got. */
+const CLOSE_VELOCITY = 0.55;
+/** Resistance applied when dragging a sheet *up*, which has nowhere to go. */
+const RUBBER_BAND = 0.22;
+/** Per-frame velocity decay for the glide after a drag-scroll is released. */
+const GLIDE_DECAY = 0.94;
+/** Velocity below which the glide has effectively stopped, in px/frame. */
+const GLIDE_MIN = 0.35;
+
+type Mode = 'idle' | 'undecided' | 'scroll-x' | 'scroll-y' | 'close';
+
+/** Controls that own their own pointer behaviour and must not be dragged over. */
+const INTERACTIVE = 'input, textarea, select, [contenteditable]';
+
+/**
+ * Nearest ancestor between `from` and `root` that actually scrolls sideways.
+ * Used to route a horizontal drag to the filter chips rather than the list.
+ */
+function horizontalScroller(from: EventTarget | null, root: Element): HTMLElement | null {
+  let el = from instanceof Element ? from : null;
+  while (el && el !== root) {
+    if (el instanceof HTMLElement && el.scrollWidth - el.clientWidth > 1) {
+      const overflow = getComputedStyle(el).overflowX;
+      if (overflow === 'auto' || overflow === 'scroll') return el;
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+
+/**
+ * Swallows the click that a browser fires at the end of a drag, so releasing
+ * over a list row doesn't also pick it.
+ */
+function swallowNextClick(): void {
+  const swallow = (e: MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  window.addEventListener('click', swallow, { capture: true, once: true });
+  setTimeout(() => window.removeEventListener('click', swallow, true), 0);
+}
+
+/**
+ * Wires drag-to-scroll and drag-to-dismiss onto a bottom sheet.
+ *
+ * @param open      whether the sheet is on screen. Load-bearing: the sheet
+ *   renders nothing while closed, so the refs below are null until this flips
+ *   and the effect has to re-run to find them.
+ * @param panelRef  the sheet itself — the thing that moves when dismissed
+ * @param bodyRef   its scrolling content area
+ * @param onClose   called once the sheet has been pulled far or fast enough
+ */
+export function useSheetGestures(
+  open: boolean,
+  panelRef: RefObject<HTMLDivElement | null>,
+  bodyRef: RefObject<HTMLDivElement | null>,
+  onClose: () => void,
+): void {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    const body = bodyRef.current;
+    if (!panel || !body) return;
+
+    let pointerId = -1;
+    let mode: Mode = 'idle';
+    let fromHandle = false;
+    let startX = 0;
+    let startY = 0;
+    let startScroll = 0;
+    let track: HTMLElement | null = null;
+    let last = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let glideId = 0;
+    let closing = false;
+
+    const stopGlide = () => {
+      if (glideId) cancelAnimationFrame(glideId);
+      glideId = 0;
+    };
+
+    const onDown = (e: PointerEvent) => {
+      if (closing || mode !== 'idle') return;
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      if (e.target instanceof Element && e.target.closest(INTERACTIVE)) return;
+
+      stopGlide();
+      fromHandle = e.target instanceof Element && !!e.target.closest('.sheet__handle');
+      // A finger keeps its native scrolling; only the grab handle is ours.
+      if (e.pointerType === 'touch' && !fromHandle) return;
+
+      pointerId = e.pointerId;
+      mode = 'undecided';
+      startX = e.clientX;
+      startY = e.clientY;
+      track = horizontalScroller(e.target, panel);
+      last = e.clientY;
+      lastTime = e.timeStamp;
+      velocity = 0;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId || mode === 'idle') return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (mode === 'undecided') {
+        if (Math.abs(dx) < DRAG_SLOP && Math.abs(dy) < DRAG_SLOP) return;
+        if (track && Math.abs(dx) > Math.abs(dy)) {
+          mode = 'scroll-x';
+          startScroll = track.scrollLeft;
+        } else if (fromHandle || (dy > 0 && body.scrollTop <= 0)) {
+          // Pulling down with nothing left to scroll means "put this away".
+          mode = 'close';
+          panel.style.animation = 'none';
+          panel.style.transition = 'none';
+        } else {
+          mode = 'scroll-y';
+          startScroll = body.scrollTop;
+        }
+        // Throws if the pointer has already been released out from under us.
+        try {
+          panel.setPointerCapture(pointerId);
+        } catch {
+          /* keep dragging without capture */
+        }
+        last = mode === 'scroll-x' ? e.clientX : e.clientY;
+        lastTime = e.timeStamp;
+      }
+
+      // Velocity over the last move only: a running average lags a flick badly,
+      // and a flick is exactly what needs to be caught here.
+      const pos = mode === 'scroll-x' ? e.clientX : e.clientY;
+      const dt = e.timeStamp - lastTime;
+      if (dt > 0) velocity = (pos - last) / dt;
+      last = pos;
+      lastTime = e.timeStamp;
+
+      if (mode === 'scroll-x' && track) {
+        track.scrollLeft = startScroll - dx;
+      } else if (mode === 'scroll-y') {
+        body.scrollTop = startScroll - dy;
+      } else if (mode === 'close') {
+        panel.style.transform = `translateY(${dy > 0 ? dy : dy * RUBBER_BAND}px)`;
+      }
+      e.preventDefault();
+    };
+
+    /** Inertial coast, so a flick keeps going the way a finger's would. */
+    const startGlide = (target: HTMLElement, axis: 'x' | 'y') => {
+      let v = velocity * 16; // px per frame at 60 Hz
+      if (Math.abs(v) < GLIDE_MIN) return;
+      const step = () => {
+        if (axis === 'x') target.scrollLeft -= v;
+        else target.scrollTop -= v;
+        v *= GLIDE_DECAY;
+        glideId = Math.abs(v) > GLIDE_MIN ? requestAnimationFrame(step) : 0;
+      };
+      glideId = requestAnimationFrame(step);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return;
+      const finished = mode;
+      const dy = e.clientY - startY;
+      mode = 'idle';
+      pointerId = -1;
+      try {
+        if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already gone */
+      }
+
+      if (finished === 'undecided' || finished === 'idle') return;
+      swallowNextClick();
+
+      if (finished === 'scroll-x' && track) startGlide(track, 'x');
+      else if (finished === 'scroll-y') startGlide(body, 'y');
+      else if (finished === 'close') {
+        if (dy > CLOSE_DISTANCE || velocity > CLOSE_VELOCITY) {
+          closing = true;
+          panel.style.transition = 'transform 180ms cubic-bezier(.4, 0, 1, 1)';
+          panel.style.transform = 'translateY(110%)';
+          setTimeout(() => closeRef.current(), 170);
+        } else {
+          panel.style.transition = 'transform 260ms cubic-bezier(.22, .61, .36, 1)';
+          panel.style.transform = '';
+        }
+      }
+    };
+
+    panel.addEventListener('pointerdown', onDown);
+    panel.addEventListener('pointermove', onMove);
+    panel.addEventListener('pointerup', onUp);
+    panel.addEventListener('pointercancel', onUp);
+
+    return () => {
+      stopGlide();
+      panel.removeEventListener('pointerdown', onDown);
+      panel.removeEventListener('pointermove', onMove);
+      panel.removeEventListener('pointerup', onUp);
+      panel.removeEventListener('pointercancel', onUp);
+    };
+  }, [open, panelRef, bodyRef]);
+}

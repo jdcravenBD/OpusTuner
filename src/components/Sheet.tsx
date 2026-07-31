@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useEscape, useScrollLock } from '../hooks';
+import { useEscape } from '../hooks';
+import { useSheetGestures } from '../hooks/drag';
 import { CloseIcon } from './Icons';
 
 interface Props {
@@ -22,14 +23,25 @@ interface Props {
 /** Bottom sheet on phones, centred dialog on wide screens. */
 export function Sheet({ open, title, onClose, children, left, right, tall }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
-  useScrollLock(open);
+  // No body scroll lock: nothing behind the sheet scrolls in the first place
+  // (the app is a fixed-height, overflow-hidden box), and toggling body
+  // overflow on a phone can talk the browser into showing or hiding its URL
+  // bar, which changes 100dvh and shifts the whole app under the panel.
   useEscape(open, onClose);
+  useSheetGestures(open, panelRef, bodyRef, onClose);
 
   // Move focus into the sheet so keyboard and screen-reader users land inside it.
+  //
+  // preventScroll matters here. The sheet is absolutely positioned against the
+  // app's padding box, which extends below its content box by the bottom safe
+  // area, so the app counts as having somewhere to scroll to. Focusing without
+  // it makes the browser helpfully scroll the sheet into view and shunt the
+  // whole tuner up behind the panel.
   useEffect(() => {
     if (!open) return;
-    const id = requestAnimationFrame(() => panelRef.current?.focus());
+    const id = requestAnimationFrame(() => panelRef.current?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(id);
   }, [open]);
 
@@ -51,8 +63,9 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
         tabIndex={-1}
         ref={panelRef}
       >
-        <div className="sheet__grip" />
-        <div className="sheet__head">
+        {/* Grip and header double as the sheet's grab handle — see useSheetGestures. */}
+        <div className="sheet__grip sheet__handle" />
+        <div className="sheet__head sheet__handle">
           <div>{left}</div>
           <div className="sheet__title">{title}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -63,7 +76,9 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
             )}
           </div>
         </div>
-        <div className="sheet__body">{children}</div>
+        <div className="sheet__body" ref={bodyRef}>
+          {children}
+        </div>
       </div>
     </>,
     host,
