@@ -19,7 +19,7 @@ import { Wordmark } from './components/Wordmark';
 import { StringRow } from './components/StringRow';
 import { TuningSheet } from './components/TuningSheet';
 import { SettingsSheet } from './components/SettingsSheet';
-import { MicGate } from './components/MicGate';
+import { PowerGate } from './components/PowerGate';
 import { ChevronUpIcon, GearIcon, ResetIcon } from './components/Icons';
 import type { EngineError } from './audio/AudioEngine';
 
@@ -267,8 +267,10 @@ export default function App() {
         </button>
       </footer>
 
+      {/* The tuner stays on screen behind this, dimmed. Nothing starts without
+          a real press — see PowerGate. */}
       {!running && (
-        <MicGate
+        <PowerGate
           starting={micState === 'starting'}
           error={micError}
           onStart={() => void startMic()}

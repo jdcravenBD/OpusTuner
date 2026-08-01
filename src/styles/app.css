@@ -1897,92 +1897,119 @@ button {
   border-color: var(--green-line);
 }
 
-/* ---------------------------------------------------------------- splash -- */
+/* ----------------------------------------------------------- power gate -- */
 
-.splash {
+/*
+ * The off state. Dims the whole instrument and takes every press, with the
+ * power button sitting over the middle of the tuner screen — so the app reads
+ * as switched off rather than as hidden behind a welcome page.
+ *
+ * Sits below the sheets at z-50 so a panel that is somehow already open stays
+ * usable, and above everything else.
+ */
+.powergate {
+  --power-size: clamp(62px, 20cqw, 84px);
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 45;
+  background: var(--scrim);
+  animation: fade 200ms var(--ease);
+}
+
+/*
+ * A zero-size anchor on the centre of the tuner screen. Everything hangs off
+ * it absolutely, so the caption can grow to several lines of error text without
+ * ever pushing the button off centre.
+ *
+ * Until the field has been measured it sits at the middle of the app, which is
+ * close by; the real position arrives on the next frame, inside the fade.
+ */
+.powergate__inner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.powergate__btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: var(--power-size);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: var(--text);
+  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
+  border: 1px solid var(--border-hi);
+  box-shadow: var(--elev-2), var(--hi-strong), 0 0 0 6px var(--green-soft);
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.powergate__btn:hover {
+  color: var(--green);
+  box-shadow: var(--elev-2), var(--hi-strong), 0 0 0 9px var(--green-soft);
+}
+
+.powergate__btn:active {
+  transform: translate(-50%, -50%) scale(0.93);
+  box-shadow: var(--sunk);
+}
+
+.powergate__btn:disabled {
+  opacity: 0.55;
+}
+
+.powergate__below {
+  position: absolute;
+  left: 0;
+  top: calc(var(--power-size) / 2 + 16px);
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 32px 28px 40px;
+  gap: 10px;
+  width: min(78cqw, 320px);
   text-align: center;
-  background:
-    radial-gradient(90% 50% at 50% 38%, rgba(52, 224, 138, 0.05), transparent 70%),
-    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 45%, var(--bg-void) 100%);
 }
 
-.splash__mark {
-  display: grid;
-  place-items: center;
-  width: 96px;
-  height: 96px;
-  border-radius: 24px;
-  color: var(--green);
-  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
-  border: 1px solid var(--border-hi);
-  box-shadow: var(--hi-strong), var(--elev-2), 0 0 40px -14px var(--green-glow);
-}
-
-.splash__mark svg {
-  width: 56px;
-  height: 56px;
-}
-
-/* Same mark, a touch larger on the opening screen. */
-.splash__title {
-  font-size: clamp(9.5px, 3.3cqw, 15px);
-}
-
-.splash__eyebrow {
+.powergate__label {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-4);
-  margin-top: -10px;
+  color: var(--text-3);
 }
 
-.splash__text {
-  max-width: 330px;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--text-2);
+.powergate__error {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--red);
 }
 
-.splash__error {
-  color: var(--amber);
-}
-
-.splash__note {
+.powergate__hint {
   font-size: 11.5px;
-  color: var(--text-4);
-  max-width: 330px;
-  line-height: 1.55;
+  color: var(--text-3);
 }
 
-.splash__note code {
+.powergate__hint code {
   font-family: var(--font-mono);
   font-size: 0.95em;
-  color: var(--text-3);
   background: var(--surface-sunk);
   border-radius: 4px;
   padding: 1px 4px;
 }
 
-/* --------------------------------------------------------------- utility -- */
-
-.empty {
-  padding: 26px 16px;
-  text-align: center;
-  color: var(--text-4);
-  font-size: 13px;
-  line-height: 1.65;
-}
 
 .stack {
   display: flex;

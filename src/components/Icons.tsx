@@ -81,6 +81,14 @@ export const ResetIcon = ({ size = 21 }: IconProps) => (
   </svg>
 );
 
+/** The universal power glyph: a broken ring with the stroke through its gap. */
+export const PowerIcon = ({ size = 30 }: IconProps) => (
+  <svg {...base(size)} strokeWidth={2}>
+    <path d="M12 3.5v8.2" />
+    <path d="M6.6 6.9a7.6 7.6 0 1 0 10.8 0" />
+  </svg>
+);
+
 export const PlusIcon = ({ size = 19 }: IconProps) => (
   <svg {...base(size)} strokeWidth={2.4}>
     <path d="M12 5v14M5 12h14" />
