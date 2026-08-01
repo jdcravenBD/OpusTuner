@@ -52,11 +52,18 @@ const ONSET_RISE_RATIO = 2.2;
 const ONSET_FLOOR = 0.0045;
 /**
  * A note is treated as finished once it falls this far below its own sustain
- * level (~-23 dB). Past that point the analysis window holds more room noise
+ * level (~-38 dB). Past that point the analysis window holds more room noise
  * and sympathetic ringing from the other strings than the note that was
  * played, which is exactly when a naive tuner starts flapping between notes.
+ *
+ * This was -23 dB, which at a normal guitar decay is about four seconds — the
+ * note was being given up on while it was still perfectly audible and still
+ * perfectly detectable. Fifteen dB more is roughly two and a half seconds more
+ * of ring. It is still a guard, just a less twitchy one: the string latch and
+ * the disagreement test in TunerController are what actually stop the reading
+ * wandering onto a neighbour during the tail, and they are untouched.
  */
-const NOTE_OFF_RATIO = 0.07;
+const NOTE_OFF_RATIO = 0.012;
 /**
  * Samples held back *beyond* the analysis window before the first reading of a
  * new note is trusted.

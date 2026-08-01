@@ -10,6 +10,7 @@
 
 import { PitchDetector, PitchTracker } from '../src/audio/pitch';
 import { renderPluck } from '../src/audio/tone';
+import { sensitivityToDb, sensitivityToRmsGate } from '../src/state/store';
 
 const SAMPLE_RATE = 48000;
 const WINDOW = 4096;
@@ -339,6 +340,42 @@ const SETTLE_FRAMES = 15;
         `${centsError(last, tightened).toFixed(2)} cents off after 0.66 s`,
     );
   }
+}
+
+/* --- 7b. quiet signals ----------------------------------------------------- */
+// A note that has decayed a long way is still a note. The NSDF is normalised,
+// so the detector's accuracy does not depend on level at all — the only thing
+// that should ever end a note early is a threshold we chose.
+console.log('Quiet signals: a decayed note is still a note');
+{
+  const detector = new PitchDetector(WINDOW, SAMPLE_RATE, 24, 2200);
+  const freq = 110;
+  const gate = sensitivityToRmsGate(0); // the most permissive setting
+  const base = synth(freq, WINDOW, { harmonics: 6 });
+  let sum = 0;
+  for (let i = 0; i < WINDOW; i++) sum += base[i] * base[i];
+  const baseRms = Math.sqrt(sum / WINDOW);
+
+  // Scaled by *rms*, since that is what the gate actually measures — a
+  // harmonic-rich waveform's peak sits some 12 dB above its rms, and labelling
+  // these by peak would quietly overstate how quiet they are.
+  for (const db of [-30, -45, -60, -66]) {
+    const quiet = new Float32Array(WINDOW);
+    const scale = Math.pow(10, db / 20) / baseRms;
+    for (let i = 0; i < WINDOW; i++) quiet[i] = base[i] * scale;
+    const r = detector.detect(quiet, 0.42, gate);
+    const err = centsError(r.frequency, freq);
+    check(
+      `A2 at ${db} dBFS rms`.padEnd(22),
+      r.frequency > 0 && Math.abs(err) < 1,
+      `${r.frequency.toFixed(3)} Hz (${err >= 0 ? '+' : ''}${err.toFixed(3)} cents)`,
+    );
+  }
+  check(
+    'gate floor'.padEnd(22),
+    sensitivityToDb(0) < -65,
+    `most permissive setting is ${sensitivityToDb(0).toFixed(1)} dBFS rms`,
+  );
 }
 
 /* --- 8. reference tone ----------------------------------------------------- */

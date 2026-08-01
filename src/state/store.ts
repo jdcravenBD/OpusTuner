@@ -206,9 +206,16 @@ export function useSession(): Session {
  * from the same numbers the engine is actually given, and cannot drift.
  */
 
-/** RMS below which input is treated as silence. */
+/**
+ * RMS below which input is treated as silence.
+ *
+ * Only the bottom of the range has moved, from -58 dBFS to -68: the top end is
+ * about rejecting a noisy room and already worked. The bottom end is what a
+ * quiet room asks for, and at -58 dB it was the gate rather than the room that
+ * decided a decaying note had finished.
+ */
 export function sensitivityToRmsGate(sensitivity: number): number {
-  return 0.0012 + sensitivity * 0.006;
+  return 0.0004 + sensitivity * 0.0068;
 }
 
 /** Minimum NSDF peak height for a detection to be trusted. */
