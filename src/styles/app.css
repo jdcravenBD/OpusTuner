@@ -66,7 +66,7 @@
    * of the app. Overridden with a flat value in the desktop frame below, where
    * --safe-t is a percentage and would resolve against the wrong axis here.
    */
-  --mark-lift: min(7px, var(--safe-t));
+  --mark-lift: min(3px, var(--safe-t));
 
   /* Fine fractal grain, kept near-invisible. Breaks up the flat gradients so
      large surfaces read as material instead of as empty canvas. */
@@ -210,6 +210,14 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  /*
+   * The page itself never scrolls — the app is a fixed-height box and every
+   * scrolling region inside it is its own element. Without this a phone will
+   * happily rubber-band the whole tuner up and down, because 100dvh and 100%
+   * disagree by a few pixels while the address bar is moving.
+   */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html {
@@ -265,8 +273,9 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
+  /* dvh alone. A min-height of 100% fights it whenever the two disagree, which
+     on a phone is every time the address bar moves, and the loser overflows. */
   height: 100dvh;
-  min-height: 100%;
   padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
@@ -368,6 +377,11 @@ button {
      letter keeps its ratio against the rest of the mark. */
   opacity: 0.55;
   user-select: none;
+}
+
+/* Hidden, not removed: visibility keeps the box so the controls below stay put. */
+.wordmark--off {
+  visibility: hidden;
 }
 
 /* The joke: dropped to the faintest ink so the eye reads past it. */
@@ -738,6 +752,16 @@ button {
 
 .field__edge--sharp {
   right: 11px;
+}
+
+/*
+ * The strobe's dial runs off both sides at mid-height, so the marks move up
+ * into the corners, which its arc leaves empty. Only the strobe: on the field
+ * the mid-edge is exactly where they belong, against the ends of the scale.
+ */
+.field[data-visual='strobe'] .field__edge {
+  top: 9px;
+  transform: none;
 }
 
 /* Corner annotations: the small print of an instrument face. Deliberately at
@@ -2140,7 +2164,7 @@ button {
     --safe-t: 12.05%;
     --safe-b: 8.72%;
     /* Flat, because the percentage above would resolve against height here. */
-    --mark-lift: 7px;
+    --mark-lift: 3px;
 
     height: min(844px, calc(100dvh - 40px));
     aspect-ratio: 390 / 844;

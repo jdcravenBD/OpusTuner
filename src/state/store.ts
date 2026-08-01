@@ -52,6 +52,8 @@ export interface Settings {
   showFrequency: boolean;
   /** Caption under the string row telling you what to play. */
   showStringHint: boolean;
+  /** The wordmark across the top. Hidden without moving anything else. */
+  showWordmark: boolean;
   /** Which tuner screen is on show — see components/visuals. */
   visual: VisualId;
 }
@@ -70,7 +72,7 @@ export const DEFAULT_SETTINGS: Settings = {
   naming: 'sharp',
   tolerance: 5,
   auto: true,
-  autoAdvance: true,
+  autoAdvance: false,
   referenceTones: true,
   chimeOnTuned: false,
   toneVolume: 0.55,
@@ -85,6 +87,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sensitivity: 0.4,
   showFrequency: true,
   showStringHint: true,
+  showWordmark: true,
   visual: DEFAULT_VISUAL,
 };
 

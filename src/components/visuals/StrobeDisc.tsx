@@ -221,7 +221,7 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
           : `${rounded > 0 ? '+' : '-'}${Math.abs(rounded)}`;
 
       if (segmentFontReady()) {
-        const style = { colour: hot, alpha, ghost: 0.1 + fade * 0.06 };
+        const style = { colour: hot, alpha, ghost: 0.045 + fade * 0.025 };
 
         // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
         const fit = (text: string, size: number) => {

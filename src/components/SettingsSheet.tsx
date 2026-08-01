@@ -266,6 +266,13 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="String caption"
           />
         </Row>
+        <Row name="Title" desc="The wordmark across the very top. Nothing else moves.">
+          <Switch
+            on={s.showWordmark}
+            onChange={(v) => set('showWordmark', v)}
+            label="Title"
+          />
+        </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />
         </Row>

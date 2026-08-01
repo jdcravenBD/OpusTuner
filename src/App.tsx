@@ -164,7 +164,9 @@ export default function App() {
       </div>
 
       <header className="topbar">
-        <Wordmark />
+        {/* Always rendered. Hiding it takes it out of sight but not out of the
+            layout, so nothing below shifts when it is turned off. */}
+        <Wordmark className={settings.showWordmark ? 'wordmark' : 'wordmark wordmark--off'} />
 
         <div className="topbar__row">
           <button

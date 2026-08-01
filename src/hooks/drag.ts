@@ -18,8 +18,23 @@ import { useEffect, useRef, type RefObject } from 'react';
 const DRAG_SLOP = 6;
 /** Pull the sheet down further than this and it dismisses. */
 const CLOSE_DISTANCE = 96;
-/** ...or flick it faster than this, in px/ms, however far it got. */
+/**
+ * ...or flick it faster than this, in px/ms, having got at least
+ * CLOSE_FLICK_FRACTION of the way.
+ *
+ * The distance floor is not optional. Velocity here is measured between two
+ * consecutive move events, which on a 120 Hz screen are 8 ms apart, so an
+ * unremarkable drag of five pixels already reads as 0.6 px/ms. Without a
+ * minimum travel, half the times you touched the sheet it would fly away.
+ */
 const CLOSE_VELOCITY = 0.55;
+const CLOSE_FLICK_FRACTION = 0.35;
+/**
+ * Weight of the newest sample in the velocity average. A single sample taken a
+ * few milliseconds apart is nearly noise; averaging means only *sustained*
+ * speed reads as a flick, which is what a flick is.
+ */
+const VELOCITY_SMOOTHING = 0.4;
 /** Resistance applied when dragging a sheet *up*, which has nowhere to go. */
 const RUBBER_BAND = 0.22;
 /** Per-frame velocity decay for the glide after a drag-scroll is released. */
@@ -109,7 +124,9 @@ export function useSwipe(
     const onMove = (e: PointerEvent) => {
       if (!live || e.pointerId !== pointerId) return;
       const dt = e.timeStamp - lastTime;
-      if (dt > 0) velocity = (e.clientX - last) / dt;
+      if (dt > 0) {
+        velocity += ((e.clientX - last) / dt - velocity) * VELOCITY_SMOOTHING;
+      }
       last = e.clientX;
       lastTime = e.timeStamp;
       // A mostly-vertical drag isn't ours; let go of it rather than firing on
@@ -250,7 +267,7 @@ export function useSheetGestures(
       // and a flick is exactly what needs to be caught here.
       const pos = mode === 'scroll-x' ? e.clientX : e.clientY;
       const dt = e.timeStamp - lastTime;
-      if (dt > 0) velocity = (pos - last) / dt;
+      if (dt > 0) velocity += ((pos - last) / dt - velocity) * VELOCITY_SMOOTHING;
       last = pos;
       lastTime = e.timeStamp;
 
@@ -295,7 +312,9 @@ export function useSheetGestures(
       if (finished === 'scroll-x' && track) startGlide(track, 'x');
       else if (finished === 'scroll-y') startGlide(body, 'y');
       else if (finished === 'close') {
-        if (dy > CLOSE_DISTANCE || velocity > CLOSE_VELOCITY) {
+        const flickedDown =
+          velocity > CLOSE_VELOCITY && dy > CLOSE_DISTANCE * CLOSE_FLICK_FRACTION;
+        if (dy > CLOSE_DISTANCE || flickedDown) {
           closing = true;
           panel.style.transition = 'transform 180ms cubic-bezier(.4, 0, 1, 1)';
           panel.style.transform = 'translateY(110%)';
@@ -327,11 +346,82 @@ export function useSheetGestures(
       if (track.scrollLeft !== before) e.preventDefault();
     };
 
+    /*
+     * Pull-to-dismiss with a finger, from anywhere in the list rather than only
+     * from the grab handle.
+     *
+     * This has to be touch events rather than the pointer path above, because
+     * the body scrolls natively: by the time a pointermove arrives the browser
+     * has already decided the gesture is a scroll, and nothing script does will
+     * take it back. Watching touchmove non-passively lets us claim it — but
+     * only when the list is against its top stop and the finger is heading
+     * down, so ordinary scrolling is never touched.
+     */
+    let touchStartY = 0;
+    let touchLastY = 0;
+    let touchTime = 0;
+    let touchVelocity = 0;
+    let pulling = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (closing || e.touches.length !== 1) return;
+      // The handle already has the pointer path, and touch-action: none on it.
+      if (e.target instanceof Element && e.target.closest('.sheet__handle')) return;
+      touchStartY = touchLastY = e.touches[0].clientY;
+      touchTime = e.timeStamp;
+      touchVelocity = 0;
+      pulling = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (closing || e.touches.length !== 1) return;
+      const y = e.touches[0].clientY;
+      const dy = y - touchStartY;
+
+      if (!pulling) {
+        if (dy < DRAG_SLOP || body.scrollTop > 0) return;
+        // Anything under the finger that scrolls sideways is not ours.
+        if (horizontalScroller(e.target, panel)) return;
+        pulling = true;
+        panel.style.animation = 'none';
+        panel.style.transition = 'none';
+      }
+
+      const dt = e.timeStamp - touchTime;
+      if (dt > 0) touchVelocity += ((y - touchLastY) / dt - touchVelocity) * VELOCITY_SMOOTHING;
+      touchLastY = y;
+      touchTime = e.timeStamp;
+
+      if (e.cancelable) e.preventDefault();
+      panel.style.transform = `translateY(${Math.max(0, dy - DRAG_SLOP)}px)`;
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!pulling) return;
+      pulling = false;
+      const travelled = (e.changedTouches[0]?.clientY ?? touchLastY) - touchStartY - DRAG_SLOP;
+      const flickedDown =
+        touchVelocity > CLOSE_VELOCITY && travelled > CLOSE_DISTANCE * CLOSE_FLICK_FRACTION;
+      if (travelled > CLOSE_DISTANCE || flickedDown) {
+        closing = true;
+        panel.style.transition = 'transform 180ms cubic-bezier(.4, 0, 1, 1)';
+        panel.style.transform = 'translateY(110%)';
+        setTimeout(() => closeRef.current(), 170);
+      } else {
+        panel.style.transition = 'transform 260ms cubic-bezier(.22, .61, .36, 1)';
+        panel.style.transform = '';
+      }
+    };
+
     panel.addEventListener('pointerdown', onDown);
     panel.addEventListener('pointermove', onMove);
     panel.addEventListener('pointerup', onUp);
     panel.addEventListener('pointercancel', onUp);
     panel.addEventListener('wheel', onWheel, { passive: false });
+    panel.addEventListener('touchstart', onTouchStart, { passive: true });
+    panel.addEventListener('touchmove', onTouchMove, { passive: false });
+    panel.addEventListener('touchend', onTouchEnd);
+    panel.addEventListener('touchcancel', onTouchEnd);
 
     return () => {
       stopGlide();
@@ -340,6 +430,10 @@ export function useSheetGestures(
       panel.removeEventListener('pointerup', onUp);
       panel.removeEventListener('pointercancel', onUp);
       panel.removeEventListener('wheel', onWheel);
+      panel.removeEventListener('touchstart', onTouchStart);
+      panel.removeEventListener('touchmove', onTouchMove);
+      panel.removeEventListener('touchend', onTouchEnd);
+      panel.removeEventListener('touchcancel', onTouchEnd);
     };
   }, [open, panelRef, bodyRef]);
 }

@@ -53,7 +53,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
         <ChevronLeftIcon />
       </button>
 
-      <div className="field" ref={fieldRef}>
+      <div className="field" ref={fieldRef} data-visual={meta.id}>
         <Component {...rest} />
         <span className="field__edge field__edge--flat" aria-hidden>
           ♭
