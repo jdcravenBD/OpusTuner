@@ -7,13 +7,12 @@ import {
   DEFAULT_SETTINGS,
   sensitivityToDb,
   settingsStore,
+  TOLERANCES,
   useSettings,
   type Settings,
   type ThemeMode,
-  type ToleranceCents,
 } from '../state/store';
 import type { NoteNaming } from '../music/notes';
-import { VISUALS, visualIndex } from './visuals/registry';
 
 interface Props {
   open: boolean;
@@ -81,12 +80,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         <Row name="In-tune window" desc="How close counts as tuned.">
           <Segmented
             value={s.tolerance}
-            options={[
-              { value: 2 as ToleranceCents, label: '±2¢' },
-              { value: 3 as ToleranceCents, label: '±3¢' },
-              { value: 5 as ToleranceCents, label: '±5¢' },
-              { value: 10 as ToleranceCents, label: '±10¢' },
-            ]}
+            options={TOLERANCES.map((t) => ({ value: t, label: `±${t}¢` }))}
             onChange={(v) => set('tolerance', v)}
           />
         </Row>
@@ -242,13 +236,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- display */}
       <Section label="Display">
-        <Row name="Tuner screen" desc={VISUALS[visualIndex(s.visual)].desc}>
-          <Segmented
-            value={s.visual}
-            options={VISUALS.map((v) => ({ value: v.id, label: v.name }))}
-            onChange={(v) => set('visual', v)}
-          />
-        </Row>
         <Row name="Show frequencies" desc="Detected and target pitch in hertz.">
           <Switch
             on={s.showFrequency}

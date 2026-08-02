@@ -15,7 +15,10 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /* ----------------------------------------------------------------- types -- */
 
 export type ThemeMode = 'dark' | 'light' | 'system';
-export type ToleranceCents = 2 | 3 | 5 | 10;
+export type ToleranceCents = 2 | 5 | 10 | 20;
+
+/** Every in-tune window on offer, in the order the picker shows them. */
+export const TOLERANCES: ToleranceCents[] = [2, 5, 10, 20];
 
 /** The stock blue-grey. Matches the hue baked into styles/app.css. */
 export const DEFAULT_HUE = 215;
@@ -70,13 +73,13 @@ export interface Session {
 export const DEFAULT_SETTINGS: Settings = {
   a4: DEFAULT_A4,
   naming: 'sharp',
-  tolerance: 5,
+  tolerance: 10,
   auto: true,
   autoAdvance: false,
   referenceTones: true,
   chimeOnTuned: false,
-  toneVolume: 0.55,
-  haptics: true,
+  toneVolume: 0.5,
+  haptics: false,
   keepAwake: true,
   theme: 'dark',
   appHue: DEFAULT_HUE,
@@ -84,7 +87,7 @@ export const DEFAULT_SETTINGS: Settings = {
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',
-  sensitivity: 0.4,
+  sensitivity: 0.09,
   showFrequency: true,
   showStringHint: true,
   showWordmark: true,
@@ -184,6 +187,9 @@ export const settingsStore = createStore<Settings>(
     // this the app falls back for *rendering* but the settings picker still
     // matches nothing, so it shows no selection at all.
     visual: VISUALS.some((v) => v.id === s.visual) ? s.visual : DEFAULT_VISUAL,
+    // ±3¢ was dropped from the choices; anyone holding it would otherwise see
+    // an in-tune window the settings panel shows no button for.
+    tolerance: TOLERANCES.includes(s.tolerance) ? s.tolerance : DEFAULT_SETTINGS.tolerance,
   }),
 );
 export const sessionStore = createStore<Session>('opustuner.session.v1', DEFAULT_SESSION);

@@ -55,6 +55,16 @@
 
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+  /*
+   * Fraction of the bottom inset the layout actually reserves — see .app.
+   *
+   * A plain number, not a derived length. Writing it as
+   * `calc(var(--safe-b) * 0.35)` here would look right and silently break: a
+   * var() inside a custom property is substituted where it is *declared*, so it
+   * would bake in this file's env() value of 0px and never see the desktop
+   * frame's override further down.
+   */
+  --safe-b-share: 0.35;
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
 
@@ -276,7 +286,17 @@ button {
   /* dvh alone. A min-height of 100% fights it whenever the two disagree, which
      on a phone is every time the address bar moves, and the loser overflows. */
   height: 100dvh;
-  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  /*
+   * The bottom inset is only partly reserved. The home indicator is an overlay
+   * drawn over whatever is beneath it, not a region nothing may enter, so
+   * holding all 34px back left a band of dead space under the controls —
+   * plainly visible on an iPhone 12, with the tuning button and the auto switch
+   * floating a centimetre off the bottom. A third of it keeps them clear of the
+   * very edge without stranding them up the screen, and the floor gives them
+   * some room in a browser tab, where the inset is zero.
+   */
+  padding: var(--safe-t) var(--safe-r) max(6px, calc(var(--safe-b) * var(--safe-b-share)))
+    var(--safe-l);
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
     linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
@@ -726,6 +746,43 @@ button {
     0 0 0 1px rgba(255, 255, 255, 0.9);
 }
 
+/*
+ * One screen's worth of the display: its canvas and its own small print,
+ * stacked so it can be slid in or out as a single piece. Both screens are
+ * mounted during a swap and the .field's overflow does the cropping.
+ */
+.field__screen {
+  position: absolute;
+  inset: 0;
+}
+
+.field__screen--in {
+  animation: field-slide-in 300ms var(--ease-out) both;
+}
+
+.field__screen--out {
+  animation: field-slide-out 300ms var(--ease-out) both;
+}
+
+@keyframes field-slide-in {
+  from {
+    transform: translateX(var(--slide-from));
+  }
+}
+
+@keyframes field-slide-out {
+  to {
+    transform: translateX(var(--slide-to));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field__screen--in,
+  .field__screen--out {
+    animation-duration: 1ms;
+  }
+}
+
 .field__canvas {
   display: block;
   width: 100%;
@@ -759,7 +816,7 @@ button {
  * into the corners, which its arc leaves empty. Only the strobe: on the field
  * the mid-edge is exactly where they belong, against the ends of the scale.
  */
-.field[data-visual='strobe'] .field__edge {
+.field__screen[data-visual='strobe'] .field__edge {
   top: 9px;
   transform: none;
 }
@@ -1010,8 +1067,9 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  /* The app already pads for the home indicator; adding it again double-counts. */
-  padding: 6px 14px 12px;
+  /* The app already reserves part of the home-indicator inset; this is only
+     the bar's own breathing room. */
+  padding: 6px 14px 4px;
 }
 
 .tuning-btn {
