@@ -64,7 +64,7 @@
    * would bake in this file's env() value of 0px and never see the desktop
    * frame's override further down.
    */
-  --safe-b-share: 0.35;
+  --safe-b-share: 0.15;
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
 
@@ -295,7 +295,7 @@ button {
    * very edge without stranding them up the screen, and the floor gives them
    * some room in a browser tab, where the inset is zero.
    */
-  padding: var(--safe-t) var(--safe-r) max(6px, calc(var(--safe-b) * var(--safe-b-share)))
+  padding: var(--safe-t) var(--safe-r) max(3px, calc(var(--safe-b) * var(--safe-b-share)))
     var(--safe-l);
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
@@ -663,17 +663,42 @@ button {
  * it: the ♭ and ♯ marks already own the middle of each edge, and a chevron
  * pointing left next to the flat mark would read as part of the scale.
  */
+/*
+ * The crop. Screens slide across this, so it is the full width of the app and
+ * clips at its edges rather than at the screen's own outline. The couple of
+ * pixels of vertical padding keep the lit hairline around each screen from
+ * being shaved off by that crop.
+ */
 .field-row {
   grid-row: 2;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--nav-gap);
   width: 100%;
+  padding: 3px 0;
+  overflow: hidden;
+}
+
+/*
+ * The square itself, and the thing that moves. Sized here rather than on
+ * .field so the frame, the recess and the small print all travel together.
+ */
+.field-deck {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100% - (var(--nav-w) + var(--nav-gap) + 6px) * 2, calc(80cqh - 264px), 400px);
+  min-width: 128px;
+  aspect-ratio: 1;
+  /* Horizontal drags are the pager's; nothing here scrolls. */
+  touch-action: none;
 }
 
 .visual-nav {
-  flex: 0 0 auto;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
   display: grid;
   place-items: center;
   width: var(--nav-w);
@@ -692,8 +717,23 @@ button {
 }
 
 .visual-nav:active {
-  transform: scale(0.86);
+  transform: translateY(-50%) scale(0.86);
   color: var(--text);
+}
+
+.visual-nav:first-of-type {
+  left: 6px;
+}
+
+.visual-nav:last-of-type {
+  right: 6px;
+}
+
+/* Out of the way while a screen is travelling — they point at a choice that is
+   already being made, and the screens pass straight over them. */
+.field-row[data-sliding='true'] .visual-nav {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /*
@@ -701,21 +741,12 @@ button {
  * its top edge, the well itself is darker than the body and shadowed inward.
  */
 .field {
-  position: relative;
-  flex: 0 0 auto;
-  /*
-   * The subtraction covers both pager arrows, their gaps, and the margin left
-   * against the app edge. Everything else in the column is budgeted by the
-   * 264px constant — see the comment on .field-zone. Re-measure both after any
-   * change to the height or width of what surrounds this.
-   */
-  width: min(100% - (var(--nav-w) + var(--nav-gap) + 6px) * 2, calc(80cqh - 264px), 400px);
-  min-width: 128px;
-  aspect-ratio: 1;
+  position: absolute;
+  inset: 0;
   border-radius: var(--r-lg);
   overflow: hidden;
-  /* Horizontal swipe pages between screens; see useSwipe. */
-  touch-action: pan-y;
+  /* Positioned by the pager; see TunerVisual. */
+  will-change: transform;
   background:
     radial-gradient(125% 88% at 50% -6%, rgba(255, 255, 255, 0.04), transparent 62%),
     linear-gradient(180deg, var(--field-top) 0%, var(--field-bg) 55%, var(--field-bottom) 100%);
@@ -744,43 +775,6 @@ button {
     inset 0 0 0 1px rgba(16, 26, 42, 0.04),
     inset 0 -1px 1px rgba(255, 255, 255, 0.9),
     0 0 0 1px rgba(255, 255, 255, 0.9);
-}
-
-/*
- * One screen's worth of the display: its canvas and its own small print,
- * stacked so it can be slid in or out as a single piece. Both screens are
- * mounted during a swap and the .field's overflow does the cropping.
- */
-.field__screen {
-  position: absolute;
-  inset: 0;
-}
-
-.field__screen--in {
-  animation: field-slide-in 300ms var(--ease-out) both;
-}
-
-.field__screen--out {
-  animation: field-slide-out 300ms var(--ease-out) both;
-}
-
-@keyframes field-slide-in {
-  from {
-    transform: translateX(var(--slide-from));
-  }
-}
-
-@keyframes field-slide-out {
-  to {
-    transform: translateX(var(--slide-to));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .field__screen--in,
-  .field__screen--out {
-    animation-duration: 1ms;
-  }
 }
 
 .field__canvas {
@@ -1069,7 +1063,7 @@ button {
   gap: 8px;
   /* The app already reserves part of the home-indicator inset; this is only
      the bar's own breathing room. */
-  padding: 6px 14px 4px;
+  padding: 6px 14px 2px;
 }
 
 .tuning-btn {

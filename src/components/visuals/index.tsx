@@ -5,12 +5,16 @@
  * shows you a semitone either way and the shape of the last few seconds; the
  * strobe throws the number away and leaves you with motion against stillness,
  * which is the finer of the two and the one you finish on.
+ *
+ * The whole screen — its frame, its recess, its small print — is what moves
+ * when you change between them. Dragging carries it under the finger rather
+ * than playing an animation at you, so a half-swipe shows you half of each and
+ * lets you change your mind.
  */
 
 import { useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import { PitchField } from './PitchField';
 import { StrobeDisc } from './StrobeDisc';
-import { useSwipe } from '../../hooks/drag';
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons';
 import { VISUALS, stepVisual, visualIndex, type VisualId } from './registry';
 import type { VisualProps } from './shared';
@@ -23,8 +27,18 @@ const COMPONENTS: Record<VisualId, ComponentType<VisualProps>> = {
   strobe: StrobeDisc,
 };
 
-/** Keep in step with the slide animation in app.css. */
-const SLIDE_MS = 300;
+/** Space between one screen and the next while they are both on the move. */
+const DECK_GAP = 18;
+/** Travel before a press is treated as a drag rather than a tap. */
+const SLOP = 6;
+/** Fraction of a screen's width that commits the change on release. */
+const COMMIT_FRACTION = 0.32;
+/** ...or this much speed, in px/ms, having moved at least a tenth of the way. */
+const COMMIT_VELOCITY = 0.45;
+const FLICK_MIN_FRACTION = 0.1;
+/** How long the release takes to settle. */
+const SETTLE_MS = 260;
+const SETTLE_EASE = 'cubic-bezier(.22, .61, .36, 1)';
 
 interface Props extends VisualProps {
   visual: VisualId;
@@ -34,81 +48,167 @@ interface Props extends VisualProps {
 }
 
 export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Props) {
-  const fieldRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
 
   /*
-   * The screen being left behind, kept mounted just long enough to slide out.
+   * Whether the neighbouring screen is mounted.
    *
-   * Both canvases are live during the handover — each one subscribes to the
-   * frame stream on mount — which is the point: the outgoing screen keeps
-   * reading right up until it is off the edge, so the swap looks like moving
-   * the instrument rather than like the picture being replaced.
+   * Only while a gesture is in flight: at rest a second screen would sit just
+   * off the edge, running a canvas nobody is looking at, and peeking past the
+   * crop on narrow screens.
    */
-  const [leaving, setLeaving] = useState<{ id: VisualId; dir: 1 | -1 } | null>(null);
-  // Direction is recorded when the user acts rather than inferred afterwards:
-  // with two screens, "next" and "previous" land on the same one.
-  const dirRef = useRef<1 | -1>(1);
-  const shown = useRef(visual);
+  const [active, setActive] = useState(false);
+  /** Set on release so the layout effect can run the settle animation. */
+  const [settleTo, setSettleTo] = useState<1 | -1 | 0 | null>(null);
 
-  // Layout effect, not an effect: this has to commit in the same frame the new
-  // screen first appears, or the screen pops into place and only then starts
-  // sliding.
-  useLayoutEffect(() => {
-    if (shown.current === visual) return;
-    setLeaving({ id: shown.current, dir: dirRef.current });
-    shown.current = visual;
-    const timer = setTimeout(() => setLeaving(null), SLIDE_MS);
-    return () => clearTimeout(timer);
-  }, [visual]);
+  const drag = useRef({ id: -1, startX: 0, lastX: 0, lastT: 0, velocity: 0, dx: 0, live: false });
+  const busy = useRef(false);
+  const otherId = stepVisual(visual, 1);
 
-  const go = (by: 1 | -1) => {
-    if (leaving) return; // one at a time; a queued swap has nowhere to slide from
-    dirRef.current = by;
-    onChange(stepVisual(visual, by));
+  /** Distance from one screen's centre to the next. */
+  const step = () => (deckRef.current?.offsetWidth ?? 0) + DECK_GAP;
+
+  /**
+   * Writes the deck's position straight to the DOM.
+   *
+   * The neighbour's side is taken from the sign of the drag rather than fixed
+   * at mount, because with two screens "previous" and "next" are the same one —
+   * it belongs on whichever side you are pulling from.
+   */
+  const place = (dx: number, animate: boolean) => {
+    const deck = deckRef.current;
+    if (!deck) return;
+    const w = step();
+    const side = dx > 0 ? -1 : 1;
+    for (const el of Array.from(deck.children) as HTMLElement[]) {
+      const slot = el.dataset.screen === visual ? 0 : side;
+      el.style.transition = animate ? `transform ${SETTLE_MS}ms ${SETTLE_EASE}` : 'none';
+      el.style.transform = `translateX(${dx + slot * w}px)`;
+    }
   };
 
-  // Swiping the screen itself is the direct way to do this; the arrows are
-  // there so the gesture is discoverable, and so a mouse has something to hit.
-  useSwipe(fieldRef, go);
+  /* --- release, and the arrow presses that borrow the same path ---------- */
+
+  useLayoutEffect(() => {
+    if (settleTo === null) return;
+    place(settleTo * step(), true);
+    const timer = setTimeout(() => {
+      busy.current = false;
+      if (settleTo !== 0) onChange(stepVisual(visual, settleTo === -1 ? 1 : -1));
+      setSettleTo(null);
+      setActive(false);
+      rowRef.current?.removeAttribute('data-sliding');
+    }, SETTLE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settleTo]);
+
+  // After a change lands, the incoming screen is already centred — it is the
+  // same element, kept mounted through the swap — so this only clears the
+  // inline transforms without moving anything.
+  useLayoutEffect(() => {
+    if (settleTo === null && !active) place(0, false);
+  });
+
+  const begin = (dir: 1 | -1) => {
+    if (busy.current) return;
+    busy.current = true;
+    setActive(true);
+    rowRef.current?.setAttribute('data-sliding', 'true');
+    // -1 sends the deck left, which brings the next screen in from the right.
+    setSettleTo(dir === 1 ? -1 : 1);
+  };
+
+  /* --- dragging ---------------------------------------------------------- */
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (busy.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const d = drag.current;
+    d.id = e.pointerId;
+    d.startX = d.lastX = e.clientX;
+    d.lastT = e.timeStamp;
+    d.velocity = 0;
+    d.dx = 0;
+    d.live = false;
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (d.id !== e.pointerId || busy.current) return;
+    const dx = e.clientX - d.startX;
+
+    if (!d.live) {
+      if (Math.abs(dx) < SLOP) return;
+      d.live = true;
+      setActive(true);
+      rowRef.current?.setAttribute('data-sliding', 'true');
+      deckRef.current?.setPointerCapture?.(e.pointerId);
+    }
+
+    const dt = e.timeStamp - d.lastT;
+    if (dt > 0) d.velocity += ((e.clientX - d.lastX) / dt - d.velocity) * 0.4;
+    d.lastX = e.clientX;
+    d.lastT = e.timeStamp;
+
+    // Resistance at the ends is deliberately absent: the list wraps, so there
+    // is always something real on both sides.
+    d.dx = dx;
+    place(dx, false);
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (d.id !== e.pointerId) return;
+    d.id = -1;
+    if (!d.live) return;
+    d.live = false;
+
+    const w = step();
+    const moved = Math.abs(d.dx);
+    const flicked =
+      Math.abs(d.velocity) >= COMMIT_VELOCITY && moved >= w * FLICK_MIN_FRACTION;
+    const commit = moved >= w * COMMIT_FRACTION || flicked;
+
+    busy.current = true;
+    setSettleTo(commit ? (d.dx < 0 ? -1 : 1) : 0);
+  };
 
   const prev = VISUALS[visualIndex(stepVisual(visual, -1))];
   const next = VISUALS[visualIndex(stepVisual(visual, 1))];
 
   return (
-    <div className="field-row">
+    <div className="field-row" ref={rowRef}>
       <button
         className="visual-nav"
-        onClick={() => go(-1)}
+        onClick={() => begin(-1)}
         aria-label={`Previous display: ${prev.name}`}
         title={prev.name}
       >
         <ChevronLeftIcon />
       </button>
 
-      <div className="field" id="field" ref={fieldRef}>
-        {leaving && (
-          <Screen
-            key={leaving.id}
-            id={leaving.id}
-            role="out"
-            dir={leaving.dir}
-            sampleRateLabel={sampleRateLabel}
-            {...rest}
-          />
+      <div
+        className="field-deck"
+        id="field"
+        ref={deckRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        {/* Keyed by screen, so the one you drag in keeps its canvas when it
+            becomes the current one — a remount here would blank it. */}
+        <Screen key={visual} id={visual} sampleRateLabel={sampleRateLabel} {...rest} />
+        {active && otherId !== visual && (
+          <Screen key={otherId} id={otherId} sampleRateLabel={sampleRateLabel} {...rest} />
         )}
-        <Screen
-          key={visual}
-          id={visual}
-          role={leaving ? 'in' : 'still'}
-          dir={leaving?.dir ?? 1}
-          sampleRateLabel={sampleRateLabel}
-          {...rest}
-        />
       </div>
 
       <button
         className="visual-nav"
-        onClick={() => go(1)}
+        onClick={() => begin(1)}
         aria-label={`Next display: ${next.name}`}
         title={next.name}
       >
@@ -119,39 +219,21 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
 }
 
 /**
- * One screen and the small print that belongs to it, as a single sliding layer.
- *
- * The ♭/♯ marks and the corner labels travel with their own screen rather than
- * staying put, because they differ between screens — the strobe wants its
- * accidentals in the corners — and leaving them behind would show the incoming
+ * One screen: the recessed square, its canvas, and the small print that belongs
+ * to it. The ♭/♯ marks travel with their own screen — the strobe wants its
+ * accidentals in the corners, and leaving them behind would show the incoming
  * screen's furniture over the outgoing one's face.
  */
 function Screen({
   id,
-  role,
-  dir,
   sampleRateLabel,
   ...rest
-}: VisualProps & {
-  id: VisualId;
-  role: 'in' | 'out' | 'still';
-  dir: 1 | -1;
-  sampleRateLabel: string;
-}) {
+}: VisualProps & { id: VisualId; sampleRateLabel: string }) {
   const meta = VISUALS[visualIndex(id)];
   const Component = COMPONENTS[id];
-  const edge = dir === 1 ? '100%' : '-100%';
 
   return (
-    <div
-      className={`field__screen${role === 'still' ? '' : ` field__screen--${role}`}`}
-      data-visual={id}
-      style={
-        role === 'still'
-          ? undefined
-          : ({ '--slide-from': edge, '--slide-to': dir === 1 ? '-100%' : '100%' } as React.CSSProperties)
-      }
-    >
+    <div className="field" data-screen={id} data-visual={id}>
       <Component {...rest} />
       <span className="field__edge field__edge--flat" aria-hidden>
         ♭
