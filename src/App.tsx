@@ -155,13 +155,6 @@ export default function App() {
 
   return (
     <div className="app" id="app" ref={appRef} data-intune="false">
-      {/* Simulated handset chrome. Hidden on real devices — see .device-chrome. */}
-      <div className="device-chrome" aria-hidden="true">
-        <div className="device-chrome__notch">
-          <span className="device-chrome__speaker" />
-        </div>
-      </div>
-
       <header className="topbar">
         {/* Always rendered. Hiding it takes it out of sight but not out of the
             layout, so nothing below shifts when it is turned off. */}

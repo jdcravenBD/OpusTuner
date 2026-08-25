@@ -42,7 +42,7 @@
   --r-sm: 8px;
   --r-md: 11px;
   --r-lg: 14px;
-  --r-xl: 20px;
+  --r-xl: 28px;
 
   --ease: cubic-bezier(0.2, 0.8, 0.3, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -246,7 +246,15 @@
 html,
 body,
 #root {
-  height: 100%;
+  /*
+   * dvh, not 100%. They disagree on iOS Safari — a percentage height resolves
+   * against the large viewport, with the toolbars retracted, while the app
+   * below is sized in dvh, which is the viewport as it currently stands. The
+   * difference is the height of the toolbar, and it showed as a band of body
+   * background sitting under the app with its top edge reading as the bottom
+   * of the app.
+   */
+  height: 100dvh;
   margin: 0;
   /*
    * The page itself never scrolls — the app is a fixed-height box and every
@@ -352,7 +360,8 @@ button {
  * returns black whatever the noise does, so it takes itself out. The in-tune
  * wash below still shows, which is the point of it.
  */
-:root[data-plain='true'] .app {
+:root[data-plain='true'] .app,
+:root[data-plain='true'] body {
   background: #000000;
 }
 
@@ -750,7 +759,7 @@ button {
    * row, bottom bar) plus the clearance the readout needs in the gap below.
    * Check it against the list in the .field-zone comment after any such change.
    */
-  --tall-h: min(var(--screen-w) * 4 / 3, 100cqh - 392px, 520px);
+  --tall-h: min(var(--screen-w) * 4 / 3, 100cqh - 372px, 520px);
 
   position: relative;
   flex: 0 0 auto;
@@ -1362,9 +1371,9 @@ button {
 
 .sheet__title {
   text-align: center;
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .sheet__body {
@@ -2166,107 +2175,6 @@ button {
   gap: 8px;
 }
 
-/*
- * Desktop: draw the app in a handset-shaped frame instead of stretching a
- * one-handed tuner across a monitor. 390x844 is an iPhone 12/13/14, so what
- * you see in a browser tab is the proportion you get in the hand. Everything
- * inside sizes from container units, so the interior scales with the frame
- * rather than with the browser window.
- */
-/* --------------------------------------------------- simulated handset -- */
-
-/*
- * The notch, drawn only inside the desktop frame. A real device supplies its
- * own, and the safe-area insets there are real rather than simulated, so this
- * stays hidden.
- *
- * There was a home indicator here too, and it had to go. It was a grey bar
- * across the foot of the screen at z-index 70 — above the sheet, above
- * everything — so it drew straight through whatever was beneath it: the last
- * row of the tuning list, the bottom of the tuning button. The real one is
- * drawn by the OS *over* the app and cannot be helped; this was a decoration
- * choosing to do the same thing on a machine that has no home indicator at
- * all.
- */
-.device-chrome {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 70;
-  pointer-events: none;
-}
-
-/*
- * Everything here is sized in cqw — a fraction of the app width — so the whole
- * simulation stays in proportion when the frame shrinks to fit a short window.
- * The reference is a 390pt-wide iPhone 12: a 160pt notch is 41% of that.
- *
- * The plate is the bezel colour, not black, and the frame drops its innermost
- * hairline so the two meet with nothing between them: the notch reads as the
- * surrounding bezel dipping down into the screen rather than as an island.
- */
-.device-chrome__notch {
-  --notch-ink: var(--bg-void);
-  --fillet: 1.9cqw;
-
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 41cqw;
-  height: 7.7cqw;
-  background: var(--notch-ink);
-  border-bottom-left-radius: 4.9cqw;
-  border-bottom-right-radius: 4.9cqw;
-}
-
-/*
- * Concave fillets where the plate meets the top edge. Each is a square of
- * bezel ink with a quarter-disc cut out of the corner nearest the screen, so
- * the top edge sweeps into the side of the notch instead of meeting it at a
- * hard right angle — the same easing the real hardware has.
- */
-.device-chrome__notch::before,
-.device-chrome__notch::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: var(--fillet);
-  height: var(--fillet);
-}
-
-.device-chrome__notch::before {
-  left: calc(-1 * var(--fillet));
-  background: radial-gradient(
-    circle at 0 100%,
-    transparent var(--fillet),
-    var(--notch-ink) calc(var(--fillet) + 0.5px)
-  );
-}
-
-.device-chrome__notch::after {
-  right: calc(-1 * var(--fillet));
-  background: radial-gradient(
-    circle at 100% 100%,
-    transparent var(--fillet),
-    var(--notch-ink) calc(var(--fillet) + 0.5px)
-  );
-}
-
-/* Earpiece grille: a recessed slot, lit along its lower lip. */
-.device-chrome__speaker {
-  width: 10.8cqw;
-  height: 1.3cqw;
-  border-radius: 999px;
-  background: #14161a;
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.9),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.07);
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -2306,54 +2214,19 @@ button {
   }
 }
 
-@media (min-width: 620px) and (min-height: 560px) {
-  body {
-    display: grid;
-    place-items: center;
-    padding: 20px;
-    background:
-      radial-gradient(80% 60% at 50% 32%, var(--bg-1) 0%, transparent 70%),
-      var(--bg-void);
-  }
-
+/*
+ * Desktop: a column the width of a phone, centred, and nothing else.
+ *
+ * There was a whole handset drawn around it here — bezel, notch, earpiece —
+ * and simulated safe-area insets to match, back when a browser on a laptop was
+ * the only way to see this. It is tested on the handset itself now, so the
+ * imitation was one more thing to keep true to a device that is sitting right
+ * there. What is left is the only part that was load-bearing: a one-handed
+ * tuner should not stretch across a monitor.
+ */
+@media (min-width: 620px) {
   #root {
-    /*
-     * The real handset's safe-area insets, which the browser reports as zero
-     * here. They do two jobs: keep content clear of the rounded corners, and
-     * make the preview lay out exactly as it will on the device.
-     *
-     * As percentages of the frame (47/390, 34/390) rather than fixed pixels,
-     * so they stay in proportion if the frame shrinks. Percentage padding
-     * always resolves against the containing block's *width*, which is what
-     * makes this work for the top and bottom insets too.
-     */
-    --safe-t: 12.05%;
-    --safe-b: 8.72%;
-    /* Flat, because the percentage above would resolve against height here. */
-    --mark-lift: 3px;
-
-    height: min(844px, calc(100dvh - 40px));
-    aspect-ratio: 390 / 844;
-    max-width: calc(100vw - 40px);
-    /* 44pt corners, expressed so they stay circular as the frame scales. */
-    border-radius: 11.3% / 5.21%;
-    overflow: hidden;
-    /* No hairline on the inner edge: the bezel has to meet the notch plate
-       with nothing between them, or the notch reads as a separate island. */
-    box-shadow:
-      0 0 0 8px var(--bg-void),
-      0 0 0 9px var(--border-hi),
-      0 44px 90px -28px rgba(0, 0, 0, 0.8),
-      0 6px 20px rgba(0, 0, 0, 0.35);
-  }
-
-  .app {
-    height: 100%;
-    min-height: 0;
-  }
-
-  .device-chrome {
-    display: block;
+    max-width: 430px;
+    margin-inline: auto;
   }
 }
-
