@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useEscape } from '../hooks';
 import { useSheetGestures } from '../hooks/drag';
@@ -20,10 +20,40 @@ interface Props {
   tall?: boolean;
 }
 
+/** How long the panel takes to leave. Matches the sheet-out keyframes. */
+const EXIT_MS = 210;
+
 /** Bottom sheet on phones, centred dialog on wide screens. */
 export function Sheet({ open, title, onClose, children, left, right, tall }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Kept mounted for a moment after `open` goes false, so the panel can slide
+   * back down rather than blinking out of existence.
+   */
+  const [visible, setVisible] = useState(open);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setVisible(true);
+      setClosing(false);
+      return;
+    }
+    /*
+     * The drag-to-dismiss gesture already animates the panel away itself, with
+     * an inline transform it has been driving under the finger. Running a
+     * keyframe animation over the top of that restarts the movement from zero,
+     * so the sheet jumps back up to the top before leaving.
+     */
+    if (!panelRef.current?.style.transform) setClosing(true);
+    const timer = setTimeout(() => {
+      setVisible(false);
+      setClosing(false);
+    }, EXIT_MS);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   // No body scroll lock: nothing behind the sheet scrolls in the first place
   // (the app is a fixed-height, overflow-hidden box), and toggling body
@@ -45,18 +75,19 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
     return () => cancelAnimationFrame(id);
   }, [open]);
 
-  if (!open) return null;
+  if (!visible) return null;
 
-  // Rendered into the app element rather than <body>: on desktop the app is
-  // drawn in a phone-shaped frame, and a sheet mounted on the body would slide
-  // up over the whole browser window instead of over the app.
+  // Rendered into the app element rather than <body>: on a wide window the app
+  // is a column narrower than the page, and a sheet mounted on the body would
+  // slide up across the whole browser window instead of over the app.
   const host = document.getElementById('app') ?? document.body;
 
   return createPortal(
     <>
-      <div className="scrim" onClick={onClose} />
+      <div className="scrim" data-closing={closing} onClick={onClose} />
       <div
         className={tall ? 'sheet sheet--tall' : 'sheet'}
+        data-closing={closing}
         role="dialog"
         aria-modal="true"
         aria-label={title}

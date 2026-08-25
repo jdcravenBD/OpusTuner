@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Sheet } from './Sheet';
 import { CustomTuningEditor } from './CustomTuningEditor';
 import { ClockIcon, CloseIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
@@ -26,12 +26,21 @@ const FILTERS: { id: Filter; label: string }[] = [
   ...INSTRUMENTS.map((i) => ({ id: i.id as Filter, label: i.name })),
 ];
 
+/**
+ * How long the chosen row is left lit before the sheet goes. Short enough not
+ * to feel like a wait, long enough to register as an answer.
+ */
+const CONFIRM_MS = 190;
+
 export function TuningSheet({ open, onClose, naming }: Props) {
   const session = useSession();
   const all = useAllTunings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [editing, setEditing] = useState<Tuning | 'new' | null>(null);
+  /** The row that has just been tapped, held green while the sheet leaves. */
+  const [picked, setPicked] = useState<string | null>(null);
+  const pickTimer = useRef<number | null>(null);
 
   const byId = useMemo(() => new Map(all.map((t) => [t.id, t])), [all]);
   const q = query.trim().toLowerCase();
@@ -54,10 +63,32 @@ export function TuningSheet({ open, onClose, naming }: Props) {
     onClose();
   };
 
+  /*
+   * A tuning is chosen the instant it is tapped, but the panel waits a beat
+   * before leaving so the row can light up green underneath the finger. Closing
+   * on the tap selected the tuning just as reliably and told you nothing: the
+   * sheet simply vanished, and whether the press had landed on the row you
+   * meant was anyone's guess.
+   */
   const pick = (t: Tuning) => {
+    if (picked) return;
     markTuningUsed(t.id);
-    close();
+    setPicked(t.id);
+    pickTimer.current = window.setTimeout(close, CONFIRM_MS);
   };
+
+  // Cleared on the way in rather than on the way out, so the row stays lit for
+  // the whole of the slide instead of dropping back a frame before it starts.
+  useEffect(() => {
+    if (open) setPicked(null);
+  }, [open]);
+
+  useEffect(
+    () => () => {
+      if (pickTimer.current !== null) clearTimeout(pickTimer.current);
+    },
+    [],
+  );
 
   // Chromatic is pinned to the top rather than buried under "Other" — it is
   // the mode people reach for when their instrument isn't in the list at all.
@@ -78,6 +109,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
       tuning={t}
       naming={naming}
       selected={t.id === session.tuningId}
+      picked={picked === t.id}
       favorite={session.favoriteTuningIds.includes(t.id)}
       onPick={() => pick(t)}
       onToggleFavorite={() => toggleFavorite(t.id)}
@@ -284,6 +316,7 @@ function TuningRow({
   tuning,
   naming,
   selected,
+  picked,
   favorite,
   onPick,
   onToggleFavorite,
@@ -292,6 +325,7 @@ function TuningRow({
   tuning: Tuning;
   naming: NoteNaming;
   selected: boolean;
+  picked: boolean;
   favorite: boolean;
   onPick: () => void;
   onToggleFavorite: () => void;
@@ -302,7 +336,7 @@ function TuningRow({
     : tuning.strings.map((m) => pitchClassName(m, naming) + noteOctave(m)).join('  ');
 
   return (
-    <div className="row" data-selected={selected}>
+    <div className="row" data-selected={selected} data-picked={picked}>
       <button
         className="row__main"
         onClick={onPick}
