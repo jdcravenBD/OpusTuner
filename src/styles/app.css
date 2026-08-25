@@ -478,6 +478,14 @@ button {
     border-color var(--dur) var(--ease);
 }
 
+/* Carries a word rather than a glyph, so it is sized by what is in it. The
+   square that fits an icon crops "Save" to its own edges. */
+.icon-btn--wide {
+  width: auto;
+  min-width: 40px;
+  padding: 0 15px;
+}
+
 .icon-btn:hover {
   color: var(--text);
   border-color: var(--border-hi);
@@ -1390,7 +1398,13 @@ button {
 
 .sheet__head {
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  /*
+   * The title takes its own width and the two slots either side split what is
+   * left, so it stays centred whatever is in them. Fixed 44px columns held the
+   * title in place too, but by clamping the slots — which cropped the Save
+   * button in the tuning editor to the width of an icon.
+   */
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 4px 10px 10px;
   flex: 0 0 auto;

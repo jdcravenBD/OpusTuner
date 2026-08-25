@@ -37,7 +37,7 @@ export default function App() {
   const appRef = useRef<HTMLDivElement>(null);
   const version = useTunerVersion();
 
-  useAppearance(settings.theme, settings.appHue, settings.fieldHue);
+  useAppearance(settings.theme, settings.hue);
   useWakeLock(settings.keepAwake && micState === 'running');
   useSyncControllerSettings();
 
@@ -215,7 +215,7 @@ export default function App() {
             tolerance={settings.tolerance}
             // Hue is part of the key: the canvas caches its palette and must
             // re-read the custom properties when the screen is re-tinted.
-            themeKey={`${settings.theme}:${settings.fieldHue}`}
+            themeKey={`${settings.theme}:${settings.hue}`}
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
           />

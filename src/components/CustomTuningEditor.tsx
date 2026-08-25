@@ -67,7 +67,7 @@ export function CustomTuningEditor({
       title={initial ? 'Edit tuning' : 'New tuning'}
       onClose={onCancel}
       right={
-        <button className="icon-btn" onClick={save} aria-label="Save tuning">
+        <button className="icon-btn icon-btn--wide" onClick={save} aria-label="Save tuning">
           <span style={{ fontSize: 14, fontWeight: 750, color: 'var(--green)' }}>Save</span>
         </button>
       }
@@ -169,7 +169,7 @@ export function CustomTuningEditor({
         {onDelete && (
           <button className="btn btn--block btn--danger" style={{ marginTop: 8 }} onClick={onDelete}>
             <TrashIcon />
-            {initial ? 'Delete tuning' : 'Discard tuning'}
+            {initial ? 'Delete tuning' : 'Cancel'}
           </button>
         )}
       </div>

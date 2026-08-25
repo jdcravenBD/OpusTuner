@@ -22,7 +22,10 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
  * black chassis and no gradients anywhere, so every surface is flat. The
  * signal colours survive both; they mean something.
  */
-export type ThemeMode = 'simple' | 'plain' | 'dark' | 'light' | 'system';
+export type ThemeMode = 'simple' | 'plain' | 'dark' | 'light';
+
+/** Every theme on offer, in the order the picker shows them. */
+export const THEMES: ThemeMode[] = ['simple', 'plain', 'dark', 'light'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /** Every in-tune window on offer, in the order the picker shows them. */
@@ -49,10 +52,15 @@ export interface Settings {
   haptics: boolean;
   keepAwake: boolean;
   theme: ThemeMode;
-  /** Chassis hue, 0–360. Drives every neutral in the UI. */
-  appHue: number;
-  /** Tuner screen hue, 0–360. Independent of the chassis. */
-  fieldHue: number;
+  /**
+   * The one hue, 0–360. Drives every neutral in the chassis and on the tuner
+   * screen alike.
+   *
+   * They used to be two, and nobody wants a tuner whose screen is a different
+   * colour from the case around it — the pair mostly gave you the chance to
+   * make it look wrong.
+   */
+  hue: number;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -89,9 +97,8 @@ export const DEFAULT_SETTINGS: Settings = {
   toneVolume: 0.5,
   haptics: false,
   keepAwake: true,
-  theme: 'dark',
-  appHue: DEFAULT_HUE,
-  fieldHue: DEFAULT_HUE,
+  theme: 'plain',
+  hue: DEFAULT_HUE,
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',
@@ -198,6 +205,9 @@ export const settingsStore = createStore<Settings>(
     // ±3¢ was dropped from the choices; anyone holding it would otherwise see
     // an in-tune window the settings panel shows no button for.
     tolerance: TOLERANCES.includes(s.tolerance) ? s.tolerance : DEFAULT_SETTINGS.tolerance,
+    // 'system' was dropped from the picker; anyone holding it would otherwise
+    // sit on a theme with no button, exactly as with the tolerance above.
+    theme: THEMES.includes(s.theme) ? s.theme : DEFAULT_SETTINGS.theme,
   }),
 );
 export const sessionStore = createStore<Session>('opustuner.session.v1', DEFAULT_SESSION);

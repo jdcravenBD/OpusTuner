@@ -71,44 +71,40 @@ export function useCurrentTuning(): Tuning {
  * theme. The browser chrome colour is then read back off the resolved body
  * background rather than hard-coded, so it tracks any hue automatically.
  */
-export function useAppearance(mode: ThemeMode, appHue: number, fieldHue: number): void {
+export function useAppearance(mode: ThemeMode, hue: number): void {
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--h', String(appHue));
-    root.style.setProperty('--fh', String(fieldHue));
-  }, [appHue, fieldHue]);
+    // Two variables, one number. The tokens stay split so the screen *could*
+    // be tinted apart from the chassis; the setting no longer offers to.
+    root.style.setProperty('--h', String(hue));
+    root.style.setProperty('--fh', String(hue));
+  }, [hue]);
 
   useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: light)');
-    const apply = () => {
-      const root = document.documentElement;
-      /*
-       * Both colourless themes ride on dark's tokens and drain the hue out of
-       * them in CSS, so they resolve to `dark` here and carry flags of their
-       * own. Doing either as a palette of its own would mean maintaining
-       * another copy of every lightness value.
-       *
-       * `plain` is the drain and nothing else. `simple` is the drain plus a
-       * black chassis and no gradients, so it sets both flags.
-       */
-      const colourless = mode === 'plain' || mode === 'simple';
-      const resolved =
-        mode === 'system' ? (media.matches ? 'light' : 'dark') : colourless ? 'dark' : mode;
-      root.dataset.theme = resolved;
-      if (colourless) root.dataset.plain = 'true';
-      else delete root.dataset.plain;
-      if (mode === 'simple') root.dataset.simple = 'true';
-      else delete root.dataset.simple;
-      const chrome = getComputedStyle(document.body).backgroundColor;
-      if (chrome) {
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);
-      }
-    };
-    apply();
-    if (mode !== 'system') return;
-    media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
-  }, [mode, appHue, fieldHue]);
+    const root = document.documentElement;
+    /*
+     * Both colourless themes ride on dark's tokens and drain the hue out of
+     * them in CSS, so they resolve to `dark` here and carry flags of their own.
+     * Doing either as a palette of its own would mean maintaining another copy
+     * of every lightness value.
+     *
+     * `plain` is the drain and nothing else. `simple` is the drain plus a black
+     * chassis and no gradients, so it sets both flags.
+     */
+    const colourless = mode === 'plain' || mode === 'simple';
+    root.dataset.theme = colourless ? 'dark' : mode;
+    if (colourless) root.dataset.plain = 'true';
+    else delete root.dataset.plain;
+    if (mode === 'simple') root.dataset.simple = 'true';
+    else delete root.dataset.simple;
+
+    // Tints the browser's own chrome to match, so the app does not sit in a
+    // band of someone else's colour on a phone.
+    const chrome = getComputedStyle(document.body).backgroundColor;
+    if (chrome) {
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);
+    }
+  }, [mode, hue]);
 }
 
 /* ------------------------------------------------------------- wake lock -- */
