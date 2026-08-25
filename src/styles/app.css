@@ -317,6 +317,21 @@ button {
   will-change: transform;
 }
 
+/*
+ * Pitch black, and nothing else with it.
+ *
+ * Only the chassis background is replaced — not a hue, not a theme. The
+ * panels, the buttons and the tuner screen all keep the colours they had, so
+ * the app reads as cut out of the dark rather than as a different palette.
+ *
+ * The grain above needs no special case: `overlay` against a black base
+ * returns black whatever the noise does, so it takes itself out. The in-tune
+ * wash below still shows, which is the point of it.
+ */
+.app[data-black='true'] {
+  background: #000000;
+}
+
 /* Grain. Sits above the gradients, below everything else. */
 .app::before {
   content: '';
@@ -743,6 +758,8 @@ button {
 .field {
   position: absolute;
   inset: 0;
+  /* Centred in the deck, because the two screens are not the same width. */
+  margin-inline: auto;
   border-radius: var(--r-lg);
   overflow: hidden;
   /* Positioned by the pager; see TunerVisual. */
@@ -775,6 +792,22 @@ button {
     inset 0 0 0 1px rgba(16, 26, 42, 0.04),
     inset 0 -1px 1px rgba(255, 255, 255, 0.9),
     0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+/*
+ * The needle screen is a tall 3:4 rectangle; the strobe stays square.
+ *
+ * The proportion is taken out of the width rather than added to the height, so
+ * both screens are still the full height of the deck and the deck's own box is
+ * unchanged. That matters more than it looks: the height of this row is the
+ * one number the whole column's budget is balanced against (see .field-deck),
+ * and growing it would have pushed the readout, the string row and the bottom
+ * bar around. Everything inside the screen is positioned against its height,
+ * so nothing moves or resizes either — only the cents scale, which now spans a
+ * narrower field, which is the point of a taller shape.
+ */
+.field[data-visual='field'] {
+  width: 75%;
 }
 
 .field__canvas {
@@ -810,7 +843,7 @@ button {
  * into the corners, which its arc leaves empty. Only the strobe: on the field
  * the mid-edge is exactly where they belong, against the ends of the scale.
  */
-.field__screen[data-visual='strobe'] .field__edge {
+.field[data-visual='strobe'] .field__edge {
   top: 9px;
   transform: none;
 }

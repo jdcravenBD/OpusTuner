@@ -45,6 +45,13 @@ export interface Settings {
   appHue: number;
   /** Tuner screen hue, 0–360. Independent of the chassis. */
   fieldHue: number;
+  /**
+   * Drops the chassis to pure black, and nothing else with it. Not a theme and
+   * not a hue: the panels, the buttons and the tuner screen keep the colours
+   * they already have, so this reads as the app being cut out of the dark
+   * rather than as a different palette.
+   */
+  blackBackground: boolean;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -84,6 +91,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   appHue: DEFAULT_HUE,
   fieldHue: DEFAULT_HUE,
+  blackBackground: false,
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',

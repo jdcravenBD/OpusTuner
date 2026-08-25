@@ -154,7 +154,13 @@ export default function App() {
   void version;
 
   return (
-    <div className="app" id="app" ref={appRef} data-intune="false">
+    <div
+      className="app"
+      id="app"
+      ref={appRef}
+      data-intune="false"
+      data-black={settings.blackBackground}
+    >
       {/* Simulated handset chrome. Hidden on real devices — see .device-chrome. */}
       <div className="device-chrome" aria-hidden="true">
         <div className="device-chrome__notch">

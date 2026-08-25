@@ -216,6 +216,13 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         <Row name="App colour" desc="Tints the chassis, panels and text.">
           <HueField value={s.appHue} onChange={(v) => set('appHue', v)} label="App colour" />
         </Row>
+        <Row name="Black background" desc="Pure black behind the app. Nothing else changes.">
+          <Switch
+            on={s.blackBackground}
+            onChange={(v) => set('blackBackground', v)}
+            label="Black background"
+          />
+        </Row>
         <Row name="Display colour" desc="Tints the tuner screen and its grid.">
           <HueField
             value={s.fieldHue}
@@ -223,11 +230,17 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Display colour"
           />
         </Row>
-        {(s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE) && (
+        {(s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE || s.blackBackground) && (
           <button
             className="btn btn--block"
             style={{ marginTop: 6 }}
-            onClick={() => settingsStore.set({ appHue: DEFAULT_HUE, fieldHue: DEFAULT_HUE })}
+            onClick={() =>
+              settingsStore.set({
+                appHue: DEFAULT_HUE,
+                fieldHue: DEFAULT_HUE,
+                blackBackground: false,
+              })
+            }
           >
             Reset colours
           </button>
