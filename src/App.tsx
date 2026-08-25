@@ -160,7 +160,6 @@ export default function App() {
         <div className="device-chrome__notch">
           <span className="device-chrome__speaker" />
         </div>
-        <div className="device-chrome__home" />
       </div>
 
       <header className="topbar">

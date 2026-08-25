@@ -39,6 +39,8 @@ const FLICK_MIN_FRACTION = 0.1;
 /** How long the release takes to settle. */
 const SETTLE_MS = 260;
 const SETTLE_EASE = 'cubic-bezier(.22, .61, .36, 1)';
+/** The screen being left behind is gone well before it stops moving. */
+const FADE_MS = 170;
 
 interface Props extends VisualProps {
   visual: VisualId;
@@ -66,25 +68,38 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
   const busy = useRef(false);
   const otherId = stepVisual(visual, 1);
 
+  /*
+   * Which side the neighbouring screen sits on, as a slot index.
+   *
+   * With two screens, "previous" and "next" are the same one, so this belongs
+   * to the gesture rather than to the screen: dragging right pulls in the one
+   * on the left, and the arrows say outright which side they mean. It is held
+   * rather than recomputed from the drag offset, because at the moment of
+   * release that offset is on its way back to zero — reading the side from it
+   * there sent the neighbour across the deck in the middle of the animation.
+   */
+  const side = useRef<1 | -1>(1);
+
   /** Distance from one screen's centre to the next. */
   const step = () => (deckRef.current?.offsetWidth ?? 0) + DECK_GAP;
 
-  /**
-   * Writes the deck's position straight to the DOM.
-   *
-   * The neighbour's side is taken from the sign of the drag rather than fixed
-   * at mount, because with two screens "previous" and "next" are the same one —
-   * it belongs on whichever side you are pulling from.
-   */
+  /** Writes the deck's position straight to the DOM. */
   const place = (dx: number, animate: boolean) => {
     const deck = deckRef.current;
     if (!deck) return;
     const w = step();
-    const side = dx > 0 ? -1 : 1;
     for (const el of Array.from(deck.children) as HTMLElement[]) {
-      const slot = el.dataset.screen === visual ? 0 : side;
-      el.style.transition = animate ? `transform ${SETTLE_MS}ms ${SETTLE_EASE}` : 'none';
-      el.style.transform = `translateX(${dx + slot * w}px)`;
+      const slot = el.dataset.screen === visual ? 0 : side.current;
+      const at = dx + slot * w;
+      // Only the screen that lands centred survives the settle. Fading the
+      // other one as it goes means it is already invisible by the time the
+      // movement ends, whenever the gesture actually gets torn down.
+      const leaving = animate && Math.abs(at) > 0.5;
+      el.style.transition = animate
+        ? `transform ${SETTLE_MS}ms ${SETTLE_EASE}, opacity ${FADE_MS}ms linear`
+        : 'none';
+      el.style.transform = `translateX(${at}px)`;
+      el.style.opacity = leaving ? '0' : '1';
     }
   };
 
@@ -92,28 +107,84 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
 
   useLayoutEffect(() => {
     if (settleTo === null) return;
+    const deck = deckRef.current;
+    if (!deck) return;
+
+    /*
+     * A screen mounted by the same render that started this has no transform
+     * of its own yet, so there is nothing for the browser to move it away
+     * from and it simply appears at the centre — which is what pressing an
+     * arrow used to look like: the new screen materialised on top and the old
+     * one slid out from under it. Park it at its edge and flush the style
+     * before starting, so it has somewhere to come from.
+     */
+    let parked = false;
+    for (const el of Array.from(deck.children) as HTMLElement[]) {
+      if (el.style.transform) continue;
+      const slot = el.dataset.screen === visual ? 0 : side.current;
+      el.style.transition = 'none';
+      el.style.transform = `translateX(${slot * step()}px)`;
+      el.style.opacity = '1';
+      parked = true;
+    }
+    if (parked) void deck.offsetHeight;
+
     place(settleTo * step(), true);
-    const timer = setTimeout(() => {
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
       busy.current = false;
       if (settleTo !== 0) onChange(stepVisual(visual, settleTo === -1 ? 1 : -1));
       setSettleTo(null);
       setActive(false);
       rowRef.current?.removeAttribute('data-sliding');
-    }, SETTLE_MS);
-    return () => clearTimeout(timer);
+    };
+
+    /*
+     * The movement itself runs on the compositor and lands on time. The timer
+     * that used to end the gesture runs on a main thread busy with an FFT and
+     * a canvas for each of the two screens, and can be a long way late — which
+     * is the outgoing screen still sitting there after the new one has
+     * settled. Take the end of the transition as the signal, and keep a timer
+     * only as a backstop for the case where none is ever reported.
+     */
+    const onEnd = (e: TransitionEvent) => {
+      if (e.propertyName !== 'transform') return;
+      if (!(e.target as HTMLElement).dataset?.screen) return;
+      finish();
+    };
+    deck.addEventListener('transitionend', onEnd);
+    const timer = setTimeout(finish, SETTLE_MS + 120);
+
+    return () => {
+      deck.removeEventListener('transitionend', onEnd);
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settleTo]);
 
-  // After a change lands, the incoming screen is already centred — it is the
-  // same element, kept mounted through the swap — so this only clears the
-  // inline transforms without moving anything.
+  /*
+   * After a change lands, the incoming screen is already centred — it is the
+   * same element, kept mounted through the swap — so this only clears the
+   * inline transforms without moving anything.
+   *
+   * It also catches the frame the neighbour mounts on. That screen arrives
+   * with no transform of its own, which is the centre, so for one frame it sat
+   * squarely on top of the screen being dragged until the next pointermove
+   * moved it out to the edge.
+   */
   useLayoutEffect(() => {
-    if (settleTo === null && !active) place(0, false);
+    if (settleTo !== null) return;
+    place(drag.current.live ? drag.current.dx : 0, false);
   });
 
   const begin = (dir: 1 | -1) => {
     if (busy.current) return;
     busy.current = true;
+    // Next arrives from the right, previous from the left.
+    side.current = dir === 1 ? 1 : -1;
     setActive(true);
     rowRef.current?.setAttribute('data-sliding', 'true');
     // -1 sends the deck left, which brings the next screen in from the right.
@@ -142,6 +213,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
     if (!d.live) {
       if (Math.abs(dx) < SLOP) return;
       d.live = true;
+      side.current = dx > 0 ? -1 : 1;
       setActive(true);
       rowRef.current?.setAttribute('data-sliding', 'true');
       deckRef.current?.setPointerCapture?.(e.pointerId);
@@ -155,6 +227,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
     // Resistance at the ends is deliberately absent: the list wraps, so there
     // is always something real on both sides.
     d.dx = dx;
+    side.current = dx > 0 ? -1 : 1;
     place(dx, false);
   };
 

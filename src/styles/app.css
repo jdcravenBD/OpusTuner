@@ -1293,7 +1293,14 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 14px 20px;
+  /*
+   * The whole bottom inset, not the fraction the chassis reserves. The sheet
+   * is a scrolling list that runs to the very edge of the screen, so on a
+   * handset its last row ends up underneath the home indicator with nothing
+   * to scroll past it — the list looks cut off rather than finished. The
+   * controls behind it are a fixed row and want to sit low; a list does not.
+   */
+  padding: 0 14px calc(20px + var(--safe-b));
   /* Scrolls, but without a visible bar — handsets don't show one, and the
      panel is a fixed height now so the bar was the only thing that moved. */
   scrollbar-width: none;
@@ -2084,9 +2091,17 @@ button {
 /* --------------------------------------------------- simulated handset -- */
 
 /*
- * Notch and home indicator, drawn only inside the desktop frame. A real device
- * supplies its own, and the safe-area insets there are real rather than
- * simulated, so this stays hidden.
+ * The notch, drawn only inside the desktop frame. A real device supplies its
+ * own, and the safe-area insets there are real rather than simulated, so this
+ * stays hidden.
+ *
+ * There was a home indicator here too, and it had to go. It was a grey bar
+ * across the foot of the screen at z-index 70 — above the sheet, above
+ * everything — so it drew straight through whatever was beneath it: the last
+ * row of the tuning list, the bottom of the tuning button. The real one is
+ * drawn by the OS *over* the app and cannot be helped; this was a decoration
+ * choosing to do the same thing on a machine that has no home indicator at
+ * all.
  */
 .device-chrome {
   display: none;
@@ -2165,18 +2180,6 @@ button {
   box-shadow:
     inset 0 1px 2px rgba(0, 0, 0, 0.9),
     inset 0 -1px 0 rgba(255, 255, 255, 0.07);
-}
-
-.device-chrome__home {
-  position: absolute;
-  bottom: 2cqw;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 34.4cqw;
-  height: 1.3cqw;
-  border-radius: 999px;
-  background: var(--text-2);
-  opacity: 0.42;
 }
 
 @media (prefers-reduced-motion: reduce) {
