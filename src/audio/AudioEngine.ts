@@ -82,6 +82,37 @@ export const ONSET_FLOOR_RATIO = 1.8;
  */
 export const SUSTAIN_GATE_RATIO = 0.25;
 /**
+ * How far a reading may disagree with the note already on screen before it is
+ * refused rather than followed, once the gate has been relaxed.
+ *
+ * A major sixth, which is the gap between the two things it has to separate.
+ * Below it: anything that happens to a note while it rings (a peg turn moves
+ * tens of cents, not hundreds) and any change of string — the widest adjacent
+ * pair in common use is the fifth at the bottom of DADGAD or drop D, 700
+ * cents, so 900 leaves room. Above it: everything this exists to catch, all of
+ * which is a whole-number ratio, the nearest being an octave at 1200.
+ *
+ * Late in a decay the played note and whatever else is ringing are comparable
+ * in level, and their sum is honestly periodic at a common sub-multiple. MPM
+ * reports that with *high* clarity, because it is true — which is why none of
+ * the tracker's guards stop it: the octave vote only recognises 2:1, and the
+ * low-clarity disagreement test is looking for the opposite symptom. The
+ * reading then clears the tracker's "genuine note change" threshold and snaps,
+ * which is a jump of a couple of thousand cents in a single frame.
+ *
+ * Relaxing the gate buys the tail of a note. It must not also buy a different
+ * note: down there we are following something we already have, not deciding
+ * what is being played. Refusing the frame lets the tracker coast and, if the
+ * disagreement persists, time out and reset — so this can delay a note change
+ * but never prevent one.
+ */
+export const HOLD_DISAGREE_CENTS = 900;
+
+/** True when `hz` is too far from the note being followed to be that note. */
+export function tooFarToFollow(followingHz: number, hz: number): boolean {
+  return Math.abs(1200 * Math.log2(hz / followingHz)) > HOLD_DISAGREE_CENTS;
+}
+/**
  * A note is treated as finished once it falls this far below its own sustain
  * level (~-38 dB). Past that point the analysis window holds more room noise
  * and sympathetic ringing from the other strings than the note that was
@@ -453,16 +484,36 @@ export class AudioEngine {
       r = (r + 1) & (RING_SIZE - 1);
     }
 
-    // Strict until a note is in hand, permissive while following it down.
-    const gate = this.noteOn ? this.rmsGate * SUSTAIN_GATE_RATIO : this.rmsGate;
-
-    const raw = noteDead
-      ? { frequency: 0, clarity: 0, rms: env }
-      : detector.detect(scratch, this.clarityThreshold, gate);
-
     // Measured in samples rather than frames so the behaviour is identical on a
     // 60 Hz and a 120 Hz display.
     const settling = this.noteOn && sinceOnset < this.attackBlank + SETTLE_SAMPLES;
+
+    /*
+     * Following means there is a note on screen and it has stopped settling.
+     *
+     * Deliberately not `noteOn`. That clears the moment the note falls far
+     * enough below its own sustain, and the slip this exists to catch happens
+     * *around* that point — a decayed note is refused on the frame `noteDead`
+     * fires, and on the very next frame `noteOn` is false, every guard hung
+     * off it is gone, and whatever else is in the room is the loudest periodic
+     * thing left. What matters is not whether the engine still calls it a
+     * note; it is whether there is a reading on screen to be dragged off.
+     *
+     * `settling` still matters, though: for the moment after an onset a new
+     * string has to be free to arrive from wherever it likes.
+     */
+    const following = !settling && this.last.frequency > 0;
+    const gate = following ? this.rmsGate * SUSTAIN_GATE_RATIO : this.rmsGate;
+
+    let raw = noteDead
+      ? { frequency: 0, clarity: 0, rms: env }
+      : detector.detect(scratch, this.clarityThreshold, gate);
+
+    // Down in the relaxed range, a reading that is nowhere near the note being
+    // followed is a slip onto a sub-multiple, not a change of mind.
+    if (following && raw.frequency > 0 && tooFarToFollow(this.last.frequency, raw.frequency)) {
+      raw = { frequency: 0, clarity: raw.clarity, rms: raw.rms };
+    }
 
     this.last = this.tracker.update(raw, settling);
     return this.last;

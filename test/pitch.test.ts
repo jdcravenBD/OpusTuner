@@ -10,7 +10,12 @@
 
 import { PitchDetector, PitchTracker } from '../src/audio/pitch';
 import { renderPluck } from '../src/audio/tone';
-import { ONSET_FLOOR_RATIO, SUSTAIN_GATE_RATIO } from '../src/audio/AudioEngine';
+import {
+  HOLD_DISAGREE_CENTS,
+  ONSET_FLOOR_RATIO,
+  SUSTAIN_GATE_RATIO,
+  tooFarToFollow,
+} from '../src/audio/AudioEngine';
 import { DEFAULT_SETTINGS, sensitivityToDb, sensitivityToRmsGate } from '../src/state/store';
 
 const SAMPLE_RATE = 48000;
@@ -527,6 +532,46 @@ console.log('Quiet instruments: an unplugged electric is still a guitar');
       `${r.frequency.toFixed(3)} Hz (${err >= 0 ? '+' : ''}${err.toFixed(3)} cents)`,
     );
   }
+}
+
+/* --- 7d. following a note down, not onto another one ----------------------- */
+// The relaxed gate buys the tail of a note. It must not also buy a different
+// note: late in a decay the played string and whatever else is ringing are
+// comparable in level, their sum is honestly periodic at a common sub-multiple,
+// and MPM reports that with high clarity because it is true. Reported from a
+// real guitar as the reading dropping to about -2780 cents mid-decay.
+console.log('Following: a sub-multiple is a slip, a neighbour is a note');
+{
+  const E2 = 82.407, A2 = 110, G3 = 195.998, B3 = 246.942, E4 = 329.628;
+  const D2 = 73.416; // drop D / DADGAD, the widest adjacent pair in common use
+
+  const slips: [string, number, number][] = [
+    ['E4 -> E4/5', E4, E4 / 5],
+    ['E4 -> E4/4', E4, E4 / 4],
+    ['E4 -> octave down', E4, E4 / 2],
+    ['E2 -> octave up', E2, E2 * 2],
+  ];
+  for (const [name, from, to] of slips) {
+    check(name.padEnd(22), tooFarToFollow(from, to), `${to.toFixed(1)} Hz refused`);
+  }
+
+  const notes: [string, number, number][] = [
+    ['E2 -> A2', E2, A2],
+    ['B3 -> G3', B3, G3],
+    ['D2 -> A2 (a fifth)', D2, A2],
+    ['E2 -> E2 +80c', E2, E2 * Math.pow(2, 80 / 1200)],
+  ];
+  for (const [name, from, to] of notes) {
+    check(name.padEnd(22), !tooFarToFollow(from, to), `${to.toFixed(1)} Hz followed`);
+  }
+
+  // The threshold has to sit in the gap between those two groups, and the gap
+  // is not wide. Pin both edges.
+  check(
+    'threshold in the gap'.padEnd(22),
+    HOLD_DISAGREE_CENTS > 700 && HOLD_DISAGREE_CENTS < 1200,
+    `${HOLD_DISAGREE_CENTS}¢: over a fifth, under an octave`,
+  );
 }
 
 /* -------------------------------------------------------------------------- */
