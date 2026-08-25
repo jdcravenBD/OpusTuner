@@ -2236,6 +2236,28 @@ button {
   gap: 8px;
 }
 
+/* ------------------------------------------------------------- debug hud -- */
+
+/*
+ * Only ever on screen when the URL carries `?debug`. Deliberately plain and
+ * deliberately ugly: it is an instrument panel, not part of the app.
+ */
+.debug-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre;
+  color: #9ef7c4;
+  background: rgba(0, 0, 0, 0.82);
+  border-bottom-right-radius: var(--r-xs, 6px);
+  pointer-events: none;
+}
+
 /* ---------------------------------------------------------------- simple -- */
 
 /*

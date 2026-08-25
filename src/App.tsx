@@ -20,6 +20,7 @@ import { StringRow } from './components/StringRow';
 import { TuningSheet } from './components/TuningSheet';
 import { SettingsSheet } from './components/SettingsSheet';
 import { PowerGate } from './components/PowerGate';
+import { DebugHud, debugRequested } from './components/DebugHud';
 import { ChevronUpIcon, GearIcon, ResetIcon } from './components/Icons';
 import type { EngineError } from './audio/AudioEngine';
 
@@ -155,6 +156,7 @@ export default function App() {
 
   return (
     <div className="app" id="app" ref={appRef} data-intune="false">
+      {debugRequested() && <DebugHud />}
       <header className="topbar">
         {/* Always rendered. Hiding it takes it out of sight but not out of the
             layout, so nothing below shifts when it is turned off. */}
