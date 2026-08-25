@@ -52,10 +52,10 @@ function precacheServiceWorker(): Plugin {
 }
 
 /**
- * `npm run dev`      -> http://localhost:5173. localhost counts as a secure
+ * `npm run dev`      -> http://localhost:5440. localhost counts as a secure
  *                       context, so the microphone works without certificates.
  * `npm run phone`    -> builds, then serves the *built* app over HTTPS on your
- *                       LAN. This is the one to point a phone at.
+ *                       LAN at :4440. This is the one to point a phone at.
  * `npm run host`     -> the dev server on your LAN. Rarely what you want on a
  *                       phone: dev mode ships every source file as its own
  *                       module request, which is hundreds of them over a
@@ -73,14 +73,32 @@ export default defineConfig(({ mode }) => ({
 
   plugins: [react(), precacheServiceWorker(), ...(mode === 'https' ? [basicSsl()] : [])],
 
+  /*
+   * Ports of our own, and no wandering off them.
+   *
+   * A browser keys service workers, caches, localStorage and IndexedDB by
+   * *origin* — scheme, host and port, nothing else. Two Vite projects on their
+   * default ports, reached over the LAN at the same address, are therefore the
+   * same origin as far as a phone is concerned, and they share all of it. The
+   * app that registered a service worker last owns the origin and answers the
+   * navigation, so opening this one served the other project's app instead of
+   * the tuner — and it cannot right itself, because this app's page never runs
+   * to register anything of its own.
+   *
+   * 440 for the A. Nothing else has a claim on either number.
+   *
+   * strictPort because the alternative is worse than a failure: with a port
+   * already taken, Vite quietly moves to the next one and prints an address
+   * that belongs to whatever it landed next to. Better to stop and say so.
+   */
   server: {
-    port: 5173,
-    strictPort: false,
+    port: 5440,
+    strictPort: true,
   },
 
   preview: {
-    port: 4173,
-    strictPort: false,
+    port: 4440,
+    strictPort: true,
   },
 
   build: {

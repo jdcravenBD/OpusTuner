@@ -20,21 +20,32 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173> and click **Start tuning**. `localhost` counts as a
-secure context, so the microphone works without any certificate setup.
+Open <http://localhost:5440> and press the power button in the middle of the
+tuner. `localhost` counts as a secure context, so the microphone works without
+any certificate setup.
 
 ## Running it on your phone
 
 Browsers only hand over a microphone over HTTPS, so the plain dev server won't
-work from a phone. Use the HTTPS host mode:
+work from a phone. Build it and serve the build over HTTPS:
 
 ```bash
-npm run host
+npm run phone
 ```
 
-Vite prints a `https://192.168.x.x:5173` address. Open that on your phone,
+Vite prints a `https://192.168.x.x:4440` address. Open that on your phone,
 accept the self-signed-certificate warning once, and you're in. Phone and PC
 must be on the same Wi-Fi.
+
+`npm run host` puts the *dev* server on your LAN instead. It is rarely what you
+want on a phone: dev mode ships every source file as its own module request,
+which is hundreds of them over a self-signed certificate, and Safari tends to
+stall partway and leave you a white screen.
+
+Both ports are deliberately off Vite's defaults of 5173 and 4173. A browser
+keys service workers and storage by origin — scheme, host and port — so two
+projects on the default ports, reached at the same LAN address, are one origin
+to your phone and will serve each other's apps.
 
 To keep it on your home screen as a real app:
 
