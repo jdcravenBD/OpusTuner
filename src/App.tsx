@@ -154,13 +154,7 @@ export default function App() {
   void version;
 
   return (
-    <div
-      className="app"
-      id="app"
-      ref={appRef}
-      data-intune="false"
-      data-black={settings.blackBackground}
-    >
+    <div className="app" id="app" ref={appRef} data-intune="false">
       {/* Simulated handset chrome. Hidden on real devices — see .device-chrome. */}
       <div className="device-chrome" aria-hidden="true">
         <div className="device-chrome__notch">
@@ -241,9 +235,7 @@ export default function App() {
         naming={settings.naming}
         selectedIndex={tuner.selectedIndex}
         tuned={tuner.tuned}
-        auto={settings.auto}
         leftHanded={settings.leftHanded}
-        showHint={settings.showStringHint}
         onSelect={selectString}
       />
 

@@ -30,17 +30,41 @@ export interface Palette {
   text3: string;
 }
 
+/**
+ * Hidden element used to turn a custom property into a real colour.
+ *
+ * Reading a custom property back gives the *token stream* it was declared
+ * with, not a colour — and since the palette drains its saturation with
+ * `calc(N% * var(--s))`, that stream contains a calc(). Chromium's canvas
+ * happens to parse that; relying on every engine to is asking for the screens
+ * to silently keep whatever colour they had last, which is exactly the kind of
+ * failure nobody notices until the tuner looks subtly wrong on one phone.
+ *
+ * Setting it as a real `color` and reading it back makes the engine do the
+ * resolving, and comes back as plain rgb() everywhere.
+ */
+let probe: HTMLElement | null = null;
+
+function resolveColour(name: string, fallback: string): string {
+  if (!probe) {
+    probe = document.createElement('span');
+    probe.setAttribute('aria-hidden', 'true');
+    probe.style.cssText = 'position:absolute;width:0;height:0;visibility:hidden';
+    document.body.appendChild(probe);
+  }
+  probe.style.color = `var(${name}, ${fallback})`;
+  return getComputedStyle(probe).color || fallback;
+}
+
 export function readPalette(): Palette {
-  const s = getComputedStyle(document.documentElement);
-  const get = (n: string, f: string) => s.getPropertyValue(n).trim() || f;
   return {
     // Gridlines and labels have their own tokens so the screen can be tuned
     // independently of the surrounding chassis.
-    tick: get('--field-grid', get('--tick', 'rgba(255,255,255,0.17)')),
-    tickHot: get('--tick-hot', '#e9eef4'),
-    green: get('--green', '#34e08a'),
-    amber: get('--amber', '#ffb02e'),
-    text3: get('--field-label', get('--text-3', '#5b6573')),
+    tick: resolveColour('--field-grid', 'var(--tick, rgba(255,255,255,0.17))'),
+    tickHot: resolveColour('--tick-hot', '#e9eef4'),
+    green: resolveColour('--green', '#34e08a'),
+    amber: resolveColour('--amber', '#ffb02e'),
+    text3: resolveColour('--field-label', 'var(--text-3, #5b6573)'),
   };
 }
 

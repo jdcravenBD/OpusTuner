@@ -14,7 +14,12 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 
 /* ----------------------------------------------------------------- types -- */
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+/**
+ * `plain` is a theme, not a switch: dark's lightness values with every hue
+ * drained out of them and a pure black chassis behind. The signal colours stay
+ * exactly as they are — they mean something.
+ */
+export type ThemeMode = 'plain' | 'dark' | 'light' | 'system';
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /** Every in-tune window on offer, in the order the picker shows them. */
@@ -45,13 +50,6 @@ export interface Settings {
   appHue: number;
   /** Tuner screen hue, 0–360. Independent of the chassis. */
   fieldHue: number;
-  /**
-   * Drops the chassis to pure black, and nothing else with it. Not a theme and
-   * not a hue: the panels, the buttons and the tuner screen keep the colours
-   * they already have, so this reads as the app being cut out of the dark
-   * rather than as a different palette.
-   */
-  blackBackground: boolean;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -60,8 +58,6 @@ export interface Settings {
   /** 0 = permissive (noisy rooms), 1 = strict (studio quiet). */
   sensitivity: number;
   showFrequency: boolean;
-  /** Caption under the string row telling you what to play. */
-  showStringHint: boolean;
   /** The wordmark across the top. Hidden without moving anything else. */
   showWordmark: boolean;
   /** Which tuner screen is on show — see components/visuals. */
@@ -91,13 +87,11 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   appHue: DEFAULT_HUE,
   fieldHue: DEFAULT_HUE,
-  blackBackground: false,
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',
   sensitivity: 0.09,
-  showFrequency: true,
-  showStringHint: true,
+  showFrequency: false,
   showWordmark: true,
   visual: DEFAULT_VISUAL,
 };

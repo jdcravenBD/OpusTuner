@@ -69,6 +69,15 @@
   --safe-r: env(safe-area-inset-right, 0px);
 
   /*
+   * Extra breathing room down both sides, on top of whatever each row already
+   * reserves. Added into those paddings where they are declared rather than to
+   * the chassis: the sheets and the scrim are positioned against .app's padding
+   * box, so putting it there would inset the panels from the screen edges and
+   * leave the backdrop blur stopping short of them.
+   */
+  --gutter: 8px;
+
+  /*
    * How far the wordmark rides up above the top of the layout. Never further
    * than the safe area it is riding into: on a notched handset there is real
    * clearance between the inset and the notch itself, but in a plain browser
@@ -96,37 +105,56 @@
 :root {
   --h: 215;
   --fh: 215;
+  /*
+   * Saturation scale. Every token built from a hue multiplies its own
+   * saturation by this, so one number drains the colour out of the whole
+   * palette without touching a single lightness value — which is the point:
+   * `plain` is meant to be this theme with the colour off, not a new set of
+   * greys that happen to look similar. Signal colours are literals and are
+   * unaffected, so green still means in tune.
+   */
+  --s: 1;
+}
+
+/* --------------------------------------------------------------- plain -- */
+
+/*
+ * Rides on the dark tokens with the hue drained and a pure black chassis
+ * behind. Set alongside data-theme="dark" by useAppearance.
+ */
+:root[data-plain='true'] {
+  --s: 0;
 }
 
 :root,
 :root[data-theme='dark'] {
-  --bg-void: hsl(var(--h) 18% 3.5%);
-  --bg-0: hsl(var(--h) 20% 5%);
-  --bg-1: hsl(var(--h) 19% 7.3%);
-  --bg-glow: hsl(var(--h) 42% 31% / 0.22);
+  --bg-void: hsl(var(--h) calc(18% * var(--s)) 3.5%);
+  --bg-0: hsl(var(--h) calc(20% * var(--s)) 5%);
+  --bg-1: hsl(var(--h) calc(19% * var(--s)) 7.3%);
+  --bg-glow: hsl(var(--h) calc(42% * var(--s)) 31% / 0.22);
 
-  --surface: hsl(var(--h) 20% 7.8%);
-  --surface-hi: hsl(var(--h) 19% 9.6%);
-  --surface-press: hsl(var(--h) 18% 5.2%);
+  --surface: hsl(var(--h) calc(20% * var(--s)) 7.8%);
+  --surface-hi: hsl(var(--h) calc(19% * var(--s)) 9.6%);
+  --surface-press: hsl(var(--h) calc(18% * var(--s)) 5.2%);
   /* Raised faces sit only just above the chassis — the lit top edge does the
      separating, not brightness. Sunk surfaces stay where they were. */
-  --surface-raised-a: hsl(var(--h) 21% 9%);
-  --surface-raised-b: hsl(var(--h) 24% 6.4%);
-  --surface-sunk: hsl(var(--h) 19% 5.3%);
+  --surface-raised-a: hsl(var(--h) calc(21% * var(--s)) 9%);
+  --surface-raised-b: hsl(var(--h) calc(24% * var(--s)) 6.4%);
+  --surface-sunk: hsl(var(--h) calc(19% * var(--s)) 5.3%);
 
   /* Selection is a neutral bright ring, kept clear of the green that means
      "in tune" so the two states can never be read for one another. */
   --select-ring: rgba(255, 255, 255, 0.5);
-  --select-glow: hsl(var(--h) 65% 85% / 0.22);
+  --select-glow: hsl(var(--h) calc(65% * var(--s)) 85% / 0.22);
 
   --border: rgba(255, 255, 255, 0.07);
   --border-hi: rgba(255, 255, 255, 0.13);
   --border-strong: rgba(255, 255, 255, 0.2);
 
-  --text: hsl(var(--h) 37% 95%);
-  --text-2: hsl(var(--h) 13% 61%);
-  --text-3: hsl(var(--h) 12% 40%);
-  --text-4: hsl(var(--h) 14% 27%);
+  --text: hsl(var(--h) calc(37% * var(--s)) 95%);
+  --text-2: hsl(var(--h) calc(13% * var(--s)) 61%);
+  --text-3: hsl(var(--h) calc(12% * var(--s)) 40%);
+  --text-4: hsl(var(--h) calc(14% * var(--s)) 27%);
 
   /* Signal colours are semantic, not decorative — they never follow the hue. */
   --green: #34e08a;
@@ -137,12 +165,12 @@
   --red: #ff5f5f;
 
   --tick: rgba(255, 255, 255, 0.17);
-  --tick-hot: hsl(var(--fh) 33% 94%);
-  --field-top: hsl(var(--fh) 19% 7.3%);
-  --field-bg: hsl(var(--fh) 20% 5%);
-  --field-bottom: hsl(var(--fh) 18% 3.5%);
-  --field-grid: hsl(var(--fh) 30% 88% / 0.16);
-  --field-label: hsl(var(--fh) 14% 35%);
+  --tick-hot: hsl(var(--fh) calc(33% * var(--s)) 94%);
+  --field-top: hsl(var(--fh) calc(19% * var(--s)) 7.3%);
+  --field-bg: hsl(var(--fh) calc(20% * var(--s)) 5%);
+  --field-bottom: hsl(var(--fh) calc(18% * var(--s)) 3.5%);
+  --field-grid: hsl(var(--fh) calc(30% * var(--s)) 88% / 0.16);
+  --field-label: hsl(var(--fh) calc(14% * var(--s)) 35%);
 
   /* Light comes from above: highlight on top edge, shadow below. */
   --hi: inset 0 1px 0 rgba(255, 255, 255, 0.055);
@@ -159,29 +187,29 @@
 /* ----------------------------------------------------------------- light -- */
 
 :root[data-theme='light'] {
-  --bg-void: hsl(var(--h) 26% 90%);
-  --bg-0: hsl(var(--h) 31% 94%);
-  --bg-1: hsl(var(--h) 45% 98%);
-  --bg-glow: hsl(var(--h) 55% 74% / 0.35);
+  --bg-void: hsl(var(--h) calc(26% * var(--s)) 90%);
+  --bg-0: hsl(var(--h) calc(31% * var(--s)) 94%);
+  --bg-1: hsl(var(--h) calc(45% * var(--s)) 98%);
+  --bg-glow: hsl(var(--h) calc(55% * var(--s)) 74% / 0.35);
 
-  --surface: hsl(var(--h) 40% 100%);
-  --surface-hi: hsl(var(--h) 43% 97%);
-  --surface-press: hsl(var(--h) 33% 92%);
-  --surface-raised-a: hsl(var(--h) 40% 99.5%);
-  --surface-raised-b: hsl(var(--h) 36% 94%);
-  --surface-sunk: hsl(var(--h) 33% 93%);
+  --surface: hsl(var(--h) calc(40% * var(--s)) 100%);
+  --surface-hi: hsl(var(--h) calc(43% * var(--s)) 97%);
+  --surface-press: hsl(var(--h) calc(33% * var(--s)) 92%);
+  --surface-raised-a: hsl(var(--h) calc(40% * var(--s)) 99.5%);
+  --surface-raised-b: hsl(var(--h) calc(36% * var(--s)) 94%);
+  --surface-sunk: hsl(var(--h) calc(33% * var(--s)) 93%);
 
-  --select-ring: hsl(var(--h) 45% 11% / 0.5);
-  --select-glow: hsl(var(--h) 45% 11% / 0.16);
+  --select-ring: hsl(var(--h) calc(45% * var(--s)) 11% / 0.5);
+  --select-glow: hsl(var(--h) calc(45% * var(--s)) 11% / 0.16);
 
   --border: rgba(16, 26, 42, 0.1);
   --border-hi: rgba(16, 26, 42, 0.16);
   --border-strong: rgba(16, 26, 42, 0.26);
 
-  --text: hsl(var(--h) 38% 8%);
-  --text-2: hsl(var(--h) 13% 38%);
-  --text-3: hsl(var(--h) 11% 56%);
-  --text-4: hsl(var(--h) 14% 70%);
+  --text: hsl(var(--h) calc(38% * var(--s)) 8%);
+  --text-2: hsl(var(--h) calc(13% * var(--s)) 38%);
+  --text-3: hsl(var(--h) calc(11% * var(--s)) 56%);
+  --text-4: hsl(var(--h) calc(14% * var(--s)) 70%);
 
   --green: #0fa059;
   --green-soft: rgba(15, 160, 89, 0.11);
@@ -191,12 +219,12 @@
   --red: #d63a3a;
 
   --tick: rgba(16, 26, 42, 0.2);
-  --tick-hot: hsl(var(--fh) 32% 9%);
-  --field-top: hsl(var(--fh) 45% 100%);
-  --field-bg: hsl(var(--fh) 50% 99%);
-  --field-bottom: hsl(var(--fh) 35% 96%);
-  --field-grid: hsl(var(--fh) 45% 11% / 0.16);
-  --field-label: hsl(var(--fh) 12% 64%);
+  --tick-hot: hsl(var(--fh) calc(32% * var(--s)) 9%);
+  --field-top: hsl(var(--fh) calc(45% * var(--s)) 100%);
+  --field-bg: hsl(var(--fh) calc(50% * var(--s)) 99%);
+  --field-bottom: hsl(var(--fh) calc(35% * var(--s)) 96%);
+  --field-grid: hsl(var(--fh) calc(45% * var(--s)) 11% / 0.16);
+  --field-label: hsl(var(--fh) calc(12% * var(--s)) 64%);
 
   --hi: inset 0 1px 0 rgba(255, 255, 255, 0.95);
   --hi-strong: inset 0 1px 0 rgba(255, 255, 255, 1);
@@ -318,17 +346,13 @@ button {
 }
 
 /*
- * Pitch black, and nothing else with it.
- *
- * Only the chassis background is replaced — not a hue, not a theme. The
- * panels, the buttons and the tuner screen all keep the colours they had, so
- * the app reads as cut out of the dark rather than as a different palette.
+ * Pitch black behind the plain theme.
  *
  * The grain above needs no special case: `overlay` against a black base
  * returns black whatever the noise does, so it takes itself out. The in-tune
  * wash below still shows, which is the point of it.
  */
-.app[data-black='true'] {
+:root[data-plain='true'] .app {
   background: #000000;
 }
 
@@ -373,7 +397,7 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 0 12px 8px;
+  padding: 0 calc(12px + var(--gutter)) 8px;
   flex: 0 0 auto;
 }
 
@@ -696,15 +720,43 @@ button {
 }
 
 /*
- * The square itself, and the thing that moves. Sized here rather than on
- * .field so the frame, the recess and the small print all travel together.
+ * The box the screens live in, and the thing that moves. Sized here rather
+ * than on .field so the frame, the recess and the small print all travel
+ * together.
+ *
+ * Two budgets, because the two screens are no longer the same shape.
+ *
+ * --screen-w is the square one: the strobe's side, and the deck's own width.
+ * --tall-h is the needle's height, from which its width follows at 3:4. It is
+ *   allowed to run taller than the deck is wide, into the room above and below
+ *   that a square never used — and since the ratio is fixed, height is the only
+ *   place the extra width can come from.
+ *
+ * Lengths in cqw, never percentages. A percentage inside a custom property
+ * resolves against whichever axis the property using it belongs to, so the
+ * `100%` that was right for `width` would silently resolve against the
+ * *height* the moment --screen-w was fed into --tall-h.
  */
 .field-deck {
+  --screen-w: min(
+    100cqw - (var(--nav-w) + var(--nav-gap) + 6px + var(--gutter)) * 2,
+    80cqh - 264px,
+    400px
+  );
+  /*
+   * The 392 is a measured budget, not a guess, and it has to be re-measured
+   * whenever anything above or below this row changes height: it is everything
+   * the column spends before it gets here (topbar, carousel, verdict, string
+   * row, bottom bar) plus the clearance the readout needs in the gap below.
+   * Check it against the list in the .field-zone comment after any such change.
+   */
+  --tall-h: min(var(--screen-w) * 4 / 3, 100cqh - 392px, 520px);
+
   position: relative;
   flex: 0 0 auto;
-  width: min(100% - (var(--nav-w) + var(--nav-gap) + 6px) * 2, calc(80cqh - 264px), 400px);
+  width: var(--screen-w);
+  height: max(var(--screen-w), var(--tall-h));
   min-width: 128px;
-  aspect-ratio: 1;
   /* Horizontal drags are the pager's; nothing here scrolls. */
   touch-action: none;
 }
@@ -758,8 +810,8 @@ button {
 .field {
   position: absolute;
   inset: 0;
-  /* Centred in the deck, because the two screens are not the same width. */
-  margin-inline: auto;
+  /* Centred in the deck on both axes — the screens share neither dimension. */
+  margin: auto;
   border-radius: var(--r-lg);
   overflow: hidden;
   /* Positioned by the pager; see TunerVisual. */
@@ -806,8 +858,14 @@ button {
  * so nothing moves or resizes either — only the cents scale, which now spans a
  * narrower field, which is the point of a taller shape.
  */
+.field[data-visual='strobe'] {
+  width: var(--screen-w);
+  height: var(--screen-w);
+}
+
 .field[data-visual='field'] {
-  width: 75%;
+  width: calc(var(--tall-h) * 3 / 4);
+  height: var(--tall-h);
 }
 
 .field__canvas {
@@ -954,7 +1012,7 @@ button {
 
 .strings {
   flex: 0 0 auto;
-  padding: 2px 10px 4px;
+  padding: 2px calc(10px + var(--gutter)) 4px;
 }
 
 .strings__inner {
@@ -1075,18 +1133,6 @@ button {
   }
 }
 
-.strings__hint {
-  margin: 9px auto 0;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--text-4);
-  min-height: 13px;
-}
-
 /* ------------------------------------------------------------- bottom bar -- */
 
 .bottombar {
@@ -1096,7 +1142,7 @@ button {
   gap: 8px;
   /* The app already reserves part of the home-indicator inset; this is only
      the bar's own breathing room. */
-  padding: 6px 14px 2px;
+  padding: 6px calc(14px + var(--gutter)) 2px;
 }
 
 .tuning-btn {
@@ -1793,6 +1839,12 @@ button {
   width: 92px;
 }
 
+/* Nothing to set while the palette has no colour in it. */
+.slider-field[data-disabled='true'] {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
 .hue-swatch {
   flex: 0 0 auto;
   width: 20px;
@@ -2228,8 +2280,11 @@ button {
 /* Short screens: shrink the type and the screen, keep the chassis intact.
    Queries the app box, not the window, so it still fires inside the frame. */
 @container app (max-height: 620px) {
+  .field-deck {
+    --screen-w: min(100cqw - 20px, 85cqh - 326px, 400px);
+  }
+
   .field {
-    width: min(100% - 20px, calc(85cqh - 326px), 400px);
     border-radius: var(--r-md);
   }
 
@@ -2243,10 +2298,6 @@ button {
 
   .carousel__note[data-dist='2'] {
     font-size: clamp(17px, 4.8cqw, 26px);
-  }
-
-  .strings__hint {
-    margin-top: 6px;
   }
 
   .topbar {

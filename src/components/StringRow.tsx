@@ -7,10 +7,7 @@ interface Props {
   naming: NoteNaming;
   selectedIndex: number;
   tuned: boolean[];
-  auto: boolean;
   leftHanded: boolean;
-  /** Show the caption under the row saying what to play. */
-  showHint: boolean;
   onSelect: (index: number) => void;
 }
 
@@ -19,23 +16,12 @@ export function StringRow({
   naming,
   selectedIndex,
   tuned,
-  auto,
   leftHanded,
-  showHint,
   onSelect,
 }: Props) {
-  if (targets.length === 0) {
-    return (
-      <div className="strings">
-        {showHint && (
-          <div className="strings__hint">Chromatic — every note, any instrument</div>
-        )}
-      </div>
-    );
-  }
+  if (targets.length === 0) return <div className="strings" />;
 
   const count = targets.length;
-  const active = targets[selectedIndex];
 
   /*
    * Tunings often repeat a pitch class — standard guitar has E on both the 6th
@@ -89,13 +75,6 @@ export function StringRow({
           );
         })}
       </div>
-      {showHint && (
-        <div className="strings__hint">
-          {auto
-            ? 'Auto — play any string'
-            : `String ${count - selectedIndex} · ${pitchClassName(active, naming)}${noteOctave(active)} · tap to hear it`}
-        </div>
-      )}
     </div>
   );
 }

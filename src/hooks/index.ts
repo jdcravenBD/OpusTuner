@@ -81,8 +81,18 @@ export function useAppearance(mode: ThemeMode, appHue: number, fieldHue: number)
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: light)');
     const apply = () => {
-      const resolved = mode === 'system' ? (media.matches ? 'light' : 'dark') : mode;
-      document.documentElement.dataset.theme = resolved;
+      const root = document.documentElement;
+      /*
+       * Plain rides on dark's tokens and drains the colour out of them in CSS,
+       * so it resolves to `dark` here and carries a flag of its own. Doing it
+       * as a fourth palette instead would mean maintaining a third copy of
+       * every lightness value.
+       */
+      const resolved =
+        mode === 'system' ? (media.matches ? 'light' : 'dark') : mode === 'plain' ? 'dark' : mode;
+      root.dataset.theme = resolved;
+      if (mode === 'plain') root.dataset.plain = 'true';
+      else delete root.dataset.plain;
       const chrome = getComputedStyle(document.body).backgroundColor;
       if (chrome) {
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);

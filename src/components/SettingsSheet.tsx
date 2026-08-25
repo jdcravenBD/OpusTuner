@@ -25,6 +25,7 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
+  const plain = s.theme === 'plain';
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
@@ -206,6 +207,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           <Segmented
             value={s.theme}
             options={[
+              { value: 'plain' as ThemeMode, label: 'Plain' },
               { value: 'dark' as ThemeMode, label: 'Dark' },
               { value: 'light' as ThemeMode, label: 'Light' },
               { value: 'system' as ThemeMode, label: 'Auto' },
@@ -214,13 +216,11 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           />
         </Row>
         <Row name="App colour" desc="Tints the chassis, panels and text.">
-          <HueField value={s.appHue} onChange={(v) => set('appHue', v)} label="App colour" />
-        </Row>
-        <Row name="Black background" desc="Pure black behind the app. Nothing else changes.">
-          <Switch
-            on={s.blackBackground}
-            onChange={(v) => set('blackBackground', v)}
-            label="Black background"
+          <HueField
+            value={s.appHue}
+            onChange={(v) => set('appHue', v)}
+            label="App colour"
+            disabled={plain}
           />
         </Row>
         <Row name="Display colour" desc="Tints the tuner screen and its grid.">
@@ -228,21 +228,16 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             value={s.fieldHue}
             onChange={(v) => set('fieldHue', v)}
             label="Display colour"
+            disabled={plain}
           />
         </Row>
-        {(s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE || s.blackBackground) && (
+        {!plain && (s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE) && (
           <button
             className="btn btn--block"
             style={{ marginTop: 6 }}
-            onClick={() =>
-              settingsStore.set({
-                appHue: DEFAULT_HUE,
-                fieldHue: DEFAULT_HUE,
-                blackBackground: false,
-              })
-            }
+            onClick={() => settingsStore.set({ appHue: DEFAULT_HUE, fieldHue: DEFAULT_HUE })}
           >
-            Reset colours
+            Reset colors
           </button>
         )}
       </Section>
@@ -256,17 +251,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Show frequencies"
           />
         </Row>
-        <Row
-          name="String caption"
-          desc="The line under the string buttons — “Auto — play any string”, or which string is selected."
-        >
-          <Switch
-            on={s.showStringHint}
-            onChange={(v) => set('showStringHint', v)}
-            label="String caption"
-          />
-        </Row>
-        <Row name="Title" desc="The wordmark across the very top. Nothing else moves.">
+                <Row name="Title" desc="The wordmark across the very top. Nothing else moves.">
           <Switch
             on={s.showWordmark}
             onChange={(v) => set('showWordmark', v)}
@@ -347,14 +332,20 @@ function HueField({
   value,
   onChange,
   label,
+  disabled,
 }: {
   value: number;
   onChange: (value: number) => void;
   label: string;
+  /** The plain theme has no hue to set — the control says so rather than lying. */
+  disabled?: boolean;
 }) {
   return (
-    <div className="slider-field">
-      <span className="hue-swatch" style={{ background: `hsl(${value} 45% 50%)` }} />
+    <div className="slider-field" data-disabled={disabled}>
+      <span
+        className="hue-swatch"
+        style={{ background: disabled ? 'hsl(0 0% 50%)' : `hsl(${value} 45% 50%)` }}
+      />
       <input
         className="slider slider--hue"
         type="range"
@@ -362,6 +353,7 @@ function HueField({
         max={359}
         step={1}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
         aria-valuetext={`${value} degrees`}
