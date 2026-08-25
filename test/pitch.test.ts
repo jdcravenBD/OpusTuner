@@ -10,7 +10,8 @@
 
 import { PitchDetector, PitchTracker } from '../src/audio/pitch';
 import { renderPluck } from '../src/audio/tone';
-import { sensitivityToDb, sensitivityToRmsGate } from '../src/state/store';
+import { ONSET_FLOOR_RATIO, SUSTAIN_GATE_RATIO } from '../src/audio/AudioEngine';
+import { DEFAULT_SETTINGS, sensitivityToDb, sensitivityToRmsGate } from '../src/state/store';
 
 const SAMPLE_RATE = 48000;
 const WINDOW = 4096;
@@ -472,6 +473,58 @@ console.log('Reference tone: the string model must be in tune with itself');
       `tone warms ${name}`.padEnd(22),
       sustain < SUSTAIN_BRIGHTNESS && sustain < attack * 0.5,
       `treble share ${attack.toFixed(4)} at the attack, ${sustain.toFixed(4)} in the sustain`,
+    );
+  }
+}
+
+/* --- 7c. a quiet instrument ------------------------------------------------ */
+// An unplugged electric is some twenty decibels down on an acoustic, and every
+// absolute threshold in the engine was calibrated on the loud one. Both of the
+// floors that used to be fixed now hang off the sensitivity gate, so the whole
+// detector moves together when that one slider does.
+console.log('Quiet instruments: an unplugged electric is still a guitar');
+{
+  const detector = new PitchDetector(WINDOW, SAMPLE_RATE, 24, 2200);
+  const freq = 82.407;
+  const acquire = sensitivityToRmsGate(DEFAULT_SETTINGS.sensitivity);
+  const asDb = (x: number) => 20 * Math.log10(x);
+
+  // The onset floor used to be a flat 0.0045 — thirteen decibels clear of the
+  // gate. Anything in between was audible to the detector and invisible to the
+  // note machinery, which is precisely where a quiet instrument sits.
+  const onset = acquire * ONSET_FLOOR_RATIO;
+  check(
+    'onset floor tracks gate'.padEnd(22),
+    onset < 0.0045 && asDb(onset) - asDb(acquire) < 8,
+    `${asDb(onset).toFixed(1)} dBFS, ${(asDb(onset) - asDb(acquire)).toFixed(1)} dB over the gate`,
+  );
+
+  // Following a note we already have is a different question from acquiring
+  // one, and gets a lower answer.
+  const sustain = acquire * SUSTAIN_GATE_RATIO;
+  check(
+    'sustain gate relaxes'.padEnd(22),
+    asDb(acquire) - asDb(sustain) >= 10,
+    `${asDb(sustain).toFixed(1)} dBFS while a note is on, ${asDb(acquire).toFixed(1)} to acquire`,
+  );
+
+  // And the detector has to actually be good down there, or relaxing the gate
+  // only buys a longer stretch of nonsense.
+  const base = synth(freq, WINDOW, { harmonics: 6 });
+  let sum = 0;
+  for (let i = 0; i < WINDOW; i++) sum += base[i] * base[i];
+  const baseRms = Math.sqrt(sum / WINDOW);
+
+  for (const db of [asDb(acquire) + 1, asDb(sustain) + 1]) {
+    const quiet = new Float32Array(WINDOW);
+    const scale = Math.pow(10, db / 20) / baseRms;
+    for (let i = 0; i < WINDOW; i++) quiet[i] = base[i] * scale;
+    const r = detector.detect(quiet, 0.42, sustain);
+    const err = centsError(r.frequency, freq);
+    check(
+      `E2 at ${db.toFixed(0)} dBFS rms`.padEnd(22),
+      r.frequency > 0 && Math.abs(err) < 1,
+      `${r.frequency.toFixed(3)} Hz (${err >= 0 ? '+' : ''}${err.toFixed(3)} cents)`,
     );
   }
 }

@@ -48,8 +48,39 @@ const CHUNK_SIZE = 512;
 const ENVELOPE_SAMPLES = 512;
 /** A pluck must raise the short-term level by at least this factor to count. */
 const ONSET_RISE_RATIO = 2.2;
-/** Absolute level below which an onset is never declared. */
-const ONSET_FLOOR = 0.0045;
+/**
+ * How far above the silence gate the level has to be before a rise in it is
+ * allowed to count as a pluck (~+5 dB).
+ *
+ * This was an absolute 0.0045 — -47 dBFS — while the gate sits at -60 by
+ * default, and those thirteen decibels were a dead band. Anything inside it
+ * was quiet enough never to register as a *note* and loud enough to be
+ * detected as a pitch, which is the worst of both: no attack blank, no
+ * settling damp, no tracker reset between plucks, and `sustainRef` pinned to
+ * the constant instead of the note, which also holds `decayFraction` under the
+ * relock threshold in TunerController for the whole life of the note.
+ *
+ * An unplugged electric guitar lives almost entirely in that band. It was not
+ * that the tuner could not hear it; it was that it never understood it had
+ * been played, so none of the machinery for holding on to a note ever ran.
+ */
+export const ONSET_FLOOR_RATIO = 1.8;
+/**
+ * How far the silence gate is allowed to drop once a note has been acquired
+ * (-12 dB).
+ *
+ * "Is anything there" and "is that still there" are different questions and
+ * deserve different answers. Acquiring has to be strict or a room invents
+ * notes; following one we already have can afford to be far more permissive,
+ * because a string is known to be ringing and every reading still has to clear
+ * the clarity test on its way out. One absolute floor for both meant a decay
+ * ran into a threshold calibrated for a loud instrument and the reading
+ * vanished while the string was plainly still sounding.
+ *
+ * Only ever in force after a real pluck: with no note on, the gate is exactly
+ * what the sensitivity slider says it is.
+ */
+export const SUSTAIN_GATE_RATIO = 0.25;
 /**
  * A note is treated as finished once it falls this far below its own sustain
  * level (~-38 dB). Past that point the analysis window holds more room noise
@@ -383,7 +414,8 @@ export class AudioEngine {
     // A pluck is a sharp rise in the short-term level. Requiring a minimum gap
     // since the last onset stops one attack registering as several.
     const gapOk = this.written - this.samplesAtOnset > this.windowSize * 0.4;
-    if (env > ONSET_FLOOR && env > this.prevEnvelope * ONSET_RISE_RATIO && gapOk) {
+    const onsetFloor = this.rmsGate * ONSET_FLOOR_RATIO;
+    if (env > onsetFloor && env > this.prevEnvelope * ONSET_RISE_RATIO && gapOk) {
       this.onsetFlag = true;
       this.noteOn = true;
       this.pastAttack = false;
@@ -399,7 +431,7 @@ export class AudioEngine {
     // measured past the attack spike, so it is the right reference for decay.
     if (attackClear && !this.pastAttack) {
       this.pastAttack = true;
-      this.sustainRef = Math.max(env, ONSET_FLOOR);
+      this.sustainRef = Math.max(env, onsetFloor);
     }
 
     this.updateLevelMeter(env);
@@ -421,9 +453,12 @@ export class AudioEngine {
       r = (r + 1) & (RING_SIZE - 1);
     }
 
+    // Strict until a note is in hand, permissive while following it down.
+    const gate = this.noteOn ? this.rmsGate * SUSTAIN_GATE_RATIO : this.rmsGate;
+
     const raw = noteDead
       ? { frequency: 0, clarity: 0, rms: env }
-      : detector.detect(scratch, this.clarityThreshold, this.rmsGate);
+      : detector.detect(scratch, this.clarityThreshold, gate);
 
     // Measured in samples rather than frames so the behaviour is identical on a
     // 60 Hz and a 120 Hz display.
