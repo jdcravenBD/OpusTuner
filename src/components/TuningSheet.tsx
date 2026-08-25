@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Sheet } from './Sheet';
+import { Sheet, SHEET_EXIT_MS } from './Sheet';
 import { CustomTuningEditor } from './CustomTuningEditor';
 import { ClockIcon, CloseIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
@@ -7,6 +7,7 @@ import { INSTRUMENTS, type InstrumentId, type Tuning } from '../music/tunings';
 import {
   MAX_RECENT,
   markTuningUsed,
+  selectTuning,
   sessionStore,
   toggleFavorite,
   useSession,
@@ -41,6 +42,9 @@ export function TuningSheet({ open, onClose, naming }: Props) {
   /** The row that has just been tapped, held green while the sheet leaves. */
   const [picked, setPicked] = useState<string | null>(null);
   const pickTimer = useRef<number | null>(null);
+  const recentTimer = useRef<number | null>(null);
+  /** Chosen, but not yet sorted into Recent — see `pick`. */
+  const pendingRecent = useRef<string | null>(null);
 
   const byId = useMemo(() => new Map(all.map((t) => [t.id, t])), [all]);
   const q = query.trim().toLowerCase();
@@ -72,20 +76,35 @@ export function TuningSheet({ open, onClose, naming }: Props) {
    */
   const pick = (t: Tuning) => {
     if (picked) return;
-    markTuningUsed(t.id);
+    selectTuning(t.id);
     setPicked(t.id);
+    // Recents are re-sorted only once the panel has gone — see the effect
+    // below. Doing it on the tap moves the chosen row up into Recent while it
+    // is still lit confirming the tap, so the row you just pressed jumps out
+    // from under your finger.
+    pendingRecent.current = t.id;
     pickTimer.current = window.setTimeout(close, CONFIRM_MS);
   };
 
-  // Cleared on the way in rather than on the way out, so the row stays lit for
-  // the whole of the slide instead of dropping back a frame before it starts.
   useEffect(() => {
-    if (open) setPicked(null);
+    // Cleared on the way in rather than on the way out, so the row stays lit
+    // for the whole of the slide instead of dropping a frame before it starts.
+    if (open) {
+      setPicked(null);
+      return;
+    }
+    const id = pendingRecent.current;
+    if (!id) return;
+    pendingRecent.current = null;
+    // Timed off the close itself rather than chained from the tap, so it
+    // cannot drift in front of the panel it is waiting for.
+    recentTimer.current = window.setTimeout(() => markTuningUsed(id), SHEET_EXIT_MS + 40);
   }, [open]);
 
   useEffect(
     () => () => {
       if (pickTimer.current !== null) clearTimeout(pickTimer.current);
+      if (recentTimer.current !== null) clearTimeout(recentTimer.current);
     },
     [],
   );

@@ -171,7 +171,7 @@ export default function App() {
 
           {/* Standing configuration, kept out of the reading itself. */}
           <button
-            className="status"
+            className={settings.showStatus ? 'status' : 'status status--off'}
             onClick={() => setSettingsOpen(true)}
             title="Reference pitch, in-tune window and capo — tap to change"
           >

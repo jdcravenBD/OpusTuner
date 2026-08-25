@@ -83,16 +83,22 @@ export function useAppearance(mode: ThemeMode, appHue: number, fieldHue: number)
     const apply = () => {
       const root = document.documentElement;
       /*
-       * Plain rides on dark's tokens and drains the colour out of them in CSS,
-       * so it resolves to `dark` here and carries a flag of its own. Doing it
-       * as a fourth palette instead would mean maintaining a third copy of
-       * every lightness value.
+       * Both colourless themes ride on dark's tokens and drain the hue out of
+       * them in CSS, so they resolve to `dark` here and carry flags of their
+       * own. Doing either as a palette of its own would mean maintaining
+       * another copy of every lightness value.
+       *
+       * `plain` is the drain and nothing else. `simple` is the drain plus a
+       * black chassis and no gradients, so it sets both flags.
        */
+      const colourless = mode === 'plain' || mode === 'simple';
       const resolved =
-        mode === 'system' ? (media.matches ? 'light' : 'dark') : mode === 'plain' ? 'dark' : mode;
+        mode === 'system' ? (media.matches ? 'light' : 'dark') : colourless ? 'dark' : mode;
       root.dataset.theme = resolved;
-      if (mode === 'plain') root.dataset.plain = 'true';
+      if (colourless) root.dataset.plain = 'true';
       else delete root.dataset.plain;
+      if (mode === 'simple') root.dataset.simple = 'true';
+      else delete root.dataset.simple;
       const chrome = getComputedStyle(document.body).backgroundColor;
       if (chrome) {
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);

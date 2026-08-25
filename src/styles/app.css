@@ -116,11 +116,12 @@
   --s: 1;
 }
 
-/* --------------------------------------------------------------- plain -- */
+/* ---------------------------------------------------- colourless themes -- */
 
 /*
- * Rides on the dark tokens with the hue drained and a pure black chassis
- * behind. Set alongside data-theme="dark" by useAppearance.
+ * Set alongside data-theme="dark" by useAppearance. `plain` drains the hue and
+ * changes nothing else. `simple` carries this too, and adds data-simple, which
+ * takes the chassis to black and the gradients off — see the foot of the file.
  */
 :root[data-plain='true'] {
   --s: 0;
@@ -444,6 +445,12 @@ button {
 
 /* Hidden, not removed: visibility keeps the box so the controls below stay put. */
 .wordmark--off {
+  visibility: hidden;
+}
+
+/* Hidden the same way the wordmark is: out of sight, still holding its place,
+   so the row keeps its height and nothing below it shifts. */
+.status--off {
   visibility: hidden;
 }
 
@@ -2215,13 +2222,13 @@ button {
   gap: 8px;
 }
 
-/* ----------------------------------------------------------------- plain -- */
+/* ---------------------------------------------------------------- simple -- */
 
 /*
- * Everything the plain theme paints differently, in one place.
+ * Everything the simple theme paints differently, in one place.
  *
- * The hue is already gone by here — every token drains its own saturation
- * through --s. What is left is shape: the chassis goes to true black, and the
+ * The hue is already gone by here — it went with data-plain, which simple
+ * carries too and which is all the plain theme does. What is left is shape: the chassis goes to true black, and the
  * shading comes off. Every raised face in this app is a two-stop vertical
  * gradient between adjacent surface tokens, which is what makes them read as
  * moulded rather than drawn; flat is the whole point of this theme, so they
@@ -2233,55 +2240,55 @@ button {
  * to that green rather than away from it.
  */
 
-:root[data-plain='true'] .app,
-:root[data-plain='true'] body {
+:root[data-simple='true'] .app,
+:root[data-simple='true'] body {
   background: #000000;
 }
 
-:root[data-plain='true'] .icon-btn,
-:root[data-plain='true'] .string,
-:root[data-plain='true'] .string[data-tuned='true'],
-:root[data-plain='true'] .tuning-btn,
-:root[data-plain='true'] .toggle,
-:root[data-plain='true'] .chip,
-:root[data-plain='true'] .row,
-:root[data-plain='true'] .setting,
-:root[data-plain='true'] .segmented button[data-on='true'],
-:root[data-plain='true'] .btn,
-:root[data-plain='true'] .editor__string,
-:root[data-plain='true'] .powergate__btn {
+:root[data-simple='true'] .icon-btn,
+:root[data-simple='true'] .string,
+:root[data-simple='true'] .string[data-tuned='true'],
+:root[data-simple='true'] .tuning-btn,
+:root[data-simple='true'] .toggle,
+:root[data-simple='true'] .chip,
+:root[data-simple='true'] .row,
+:root[data-simple='true'] .setting,
+:root[data-simple='true'] .segmented button[data-on='true'],
+:root[data-simple='true'] .btn,
+:root[data-simple='true'] .editor__string,
+:root[data-simple='true'] .powergate__btn {
   background: var(--surface-raised-a);
 }
 
 /* The lifted states sit one step up the same ramp, so they stay separable. */
-:root[data-plain='true'] .string[data-active='true'],
-:root[data-plain='true'] .string[data-tuned='true'][data-active='true'] {
+:root[data-simple='true'] .string[data-active='true'],
+:root[data-simple='true'] .string[data-tuned='true'][data-active='true'] {
   background: var(--surface-hi);
 }
 
-:root[data-plain='true'] .field {
+:root[data-simple='true'] .field {
   background: var(--field-bg);
 }
 
-:root[data-plain='true'] .sheet {
+:root[data-simple='true'] .sheet {
   background: var(--bg-1);
 }
 
 /* Disabled in this theme anyway — a spectrum there would be advertising a
    choice that does nothing. */
-:root[data-plain='true'] .slider--hue {
+:root[data-simple='true'] .slider--hue {
   background: var(--surface-sunk);
 }
 
-:root[data-plain='true'] .btn--primary {
+:root[data-simple='true'] .btn--primary {
   background: var(--green);
 }
 
-:root[data-plain='true'] .slider::-webkit-slider-thumb {
+:root[data-simple='true'] .slider::-webkit-slider-thumb {
   background: #ffffff;
 }
 
-:root[data-plain='true'] .slider::-moz-range-thumb {
+:root[data-simple='true'] .slider::-moz-range-thumb {
   background: #ffffff;
 }
 

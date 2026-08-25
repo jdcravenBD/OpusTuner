@@ -15,11 +15,14 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /* ----------------------------------------------------------------- types -- */
 
 /**
- * `plain` is a theme, not a switch: dark's lightness values with every hue
- * drained out of them and a pure black chassis behind. The signal colours stay
- * exactly as they are — they mean something.
+ * Two colourless themes, differing in how far they go.
+ *
+ * `plain` is dark with every hue drained out of it and nothing else changed —
+ * same lightness values, same moulding. `simple` takes that further: a pure
+ * black chassis and no gradients anywhere, so every surface is flat. The
+ * signal colours survive both; they mean something.
  */
-export type ThemeMode = 'plain' | 'dark' | 'light' | 'system';
+export type ThemeMode = 'simple' | 'plain' | 'dark' | 'light' | 'system';
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /** Every in-tune window on offer, in the order the picker shows them. */
@@ -60,6 +63,8 @@ export interface Settings {
   showFrequency: boolean;
   /** The wordmark across the top. Hidden without moving anything else. */
   showWordmark: boolean;
+  /** The A440 / tolerance / capo strip. Hidden the same way. */
+  showStatus: boolean;
   /** Which tuner screen is on show — see components/visuals. */
   visual: VisualId;
 }
@@ -93,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sensitivity: 0.09,
   showFrequency: false,
   showWordmark: true,
+  showStatus: true,
   visual: DEFAULT_VISUAL,
 };
 
@@ -240,6 +246,18 @@ export function sensitivityToDb(sensitivity: number): number {
 export const MAX_RECENT = 4;
 
 /** Pushes a tuning to the front of the recents list, de-duplicated. */
+/**
+ * Switch to a tuning without touching the recents list.
+ *
+ * The two were one call, and they should not be: choosing from the sheet has
+ * to change the tuner immediately, but re-sorting the list underneath the
+ * finger moves the row that is still lit up confirming the tap. Recents are
+ * committed separately, once the panel has gone.
+ */
+export function selectTuning(id: string): void {
+  sessionStore.set({ tuningId: id });
+}
+
 export function markTuningUsed(id: string): void {
   sessionStore.set((s) => ({
     tuningId: id,

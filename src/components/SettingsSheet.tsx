@@ -25,7 +25,8 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
-  const plain = s.theme === 'plain';
+  /* Both colourless themes leave the hue pickers with nothing to set. */
+  const colourless = s.theme === 'plain' || s.theme === 'simple';
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
@@ -207,6 +208,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           <Segmented
             value={s.theme}
             options={[
+              { value: 'simple' as ThemeMode, label: 'Simple' },
               { value: 'plain' as ThemeMode, label: 'Plain' },
               { value: 'dark' as ThemeMode, label: 'Dark' },
               { value: 'light' as ThemeMode, label: 'Light' },
@@ -220,7 +222,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             value={s.appHue}
             onChange={(v) => set('appHue', v)}
             label="App colour"
-            disabled={plain}
+            disabled={colourless}
           />
         </Row>
         <Row name="Display colour" desc="Tints the tuner screen and its grid.">
@@ -228,10 +230,10 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             value={s.fieldHue}
             onChange={(v) => set('fieldHue', v)}
             label="Display colour"
-            disabled={plain}
+            disabled={colourless}
           />
         </Row>
-        {!plain && (s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE) && (
+        {!colourless && (s.appHue !== DEFAULT_HUE || s.fieldHue !== DEFAULT_HUE) && (
           <button
             className="btn btn--block"
             style={{ marginTop: 6 }}
@@ -251,12 +253,11 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Show frequencies"
           />
         </Row>
-                <Row name="Title" desc="The wordmark across the very top. Nothing else moves.">
-          <Switch
-            on={s.showWordmark}
-            onChange={(v) => set('showWordmark', v)}
-            label="Title"
-          />
+        <Row name="Title" desc="The wordmark across the very top. Nothing else moves.">
+          <Switch on={s.showWordmark} onChange={(v) => set('showWordmark', v)} label="Title" />
+        </Row>
+        <Row name="Detail bar" desc="The A440, in-tune window and capo strip. Nothing else moves.">
+          <Switch on={s.showStatus} onChange={(v) => set('showStatus', v)} label="Detail bar" />
         </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />
