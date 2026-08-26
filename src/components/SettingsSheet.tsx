@@ -267,6 +267,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         </Row>
         <button
           className="btn btn--block"
+          style={{ marginTop: 14 }}
           onClick={() => {
             if (confirm('Reset every setting to its default?')) settingsStore.reset();
           }}

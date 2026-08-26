@@ -2843,16 +2843,26 @@ button {
   --rule: rgba(255, 255, 255, 0.09);
 }
 
+/*
+ * Not quite black.
+ *
+ * True black gave the theme nothing to sit on: the screen and the panels had
+ * to be lighter than the ground to be seen at all, which put the *display*
+ * above the chassis in the one place it should be below it. A few per cent of
+ * light here buys a floor to recess things into.
+ */
 :root[data-simple='true'] .app,
 :root[data-simple='true'] body,
 :root[data-simple='true'] .purchase {
-  background: #000000;
+  background: hsl(0 0% 4.3%);
 }
 
-/* The fade under the close glyph has to be the same black it is fading from. */
+/* The fade under the close glyph has to be the same ground it fades from. */
 :root[data-simple='true'] .purchase::before {
-  background: linear-gradient(180deg, #000000 34%, transparent);
+  background: linear-gradient(180deg, hsl(0 0% 4.3%) 34%, transparent);
 }
+
+
 
 /* --- flat faces ---------------------------------------------------------- */
 
@@ -2861,21 +2871,34 @@ button {
  * tokens, which is exactly what makes it read as moulded. They collapse to the
  * color at the top of their own ramp.
  */
+/* Sitting on the chassis, so lighter than the ground behind them. */
 :root[data-simple='true'] .icon-btn,
 :root[data-simple='true'] .string,
 :root[data-simple='true'] .string[data-tuned='true'],
 :root[data-simple='true'] .tuning-btn,
 :root[data-simple='true'] .toggle,
-:root[data-simple='true'] .chip:not([data-on='true']),
-:root[data-simple='true'] .row,
-:root[data-simple='true'] .setting,
-:root[data-simple='true'] .purchase__item,
-:root[data-simple='true'] .gallery__shot,
 :root[data-simple='true'] .segmented button[data-on='true'],
 :root[data-simple='true'] .btn,
-:root[data-simple='true'] .editor__string,
 :root[data-simple='true'] .powergate__btn {
   background: var(--surface-raised-a);
+}
+
+/*
+ * Sitting on a panel, so darker than it — the other way round from the list
+ * above, and the reason this cannot be one value.
+ *
+ * These were within two per cent of the sheet behind them and the rows ran
+ * together into one grey field. Everywhere else in the app a row is separated
+ * from its panel by a lit top edge and a border; with both of those gone,
+ * tone is all there is left to do it with.
+ */
+:root[data-simple='true'] .row,
+:root[data-simple='true'] .setting,
+:root[data-simple='true'] .chip:not([data-on='true']),
+:root[data-simple='true'] .editor__string,
+:root[data-simple='true'] .purchase__item,
+:root[data-simple='true'] .gallery__shot {
+  background: hsl(0 0% 2.6%);
 }
 
 /*
@@ -2919,8 +2942,14 @@ button {
  * into the chassis. Here it is simply a darker rectangle with a hairline —
  * enough that the display is still a display, with none of the depth.
  */
+/*
+ * The darkest thing on the chassis, which is what a screen set into a case
+ * actually looks like. Everywhere else that recess is drawn with an inner
+ * shadow; there is no shadow to draw with here, so the hole has to be a hole
+ * by being darker than the ground around it.
+ */
 :root[data-simple='true'] .field {
-  background: var(--field-bg);
+  background: hsl(0 0% 1.6%);
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: none;
 }
