@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CloseIcon } from './Icons';
+import { CheckIcon, CloseIcon } from './Icons';
 import { useEscape } from '../hooks';
 import { PRICE, TIER_ASSURANCES, TIER_FEATURES, TIER_NAME } from '../state/unlock';
 
@@ -118,7 +118,12 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
             <ul className="purchase__list purchase__list--nots">
               {TIER_ASSURANCES.map((a) => (
                 <li className="purchase__item" key={a.title}>
-                  <div className="purchase__item-name">{a.title}</div>
+                  <div className="purchase__item-name">
+                    {/* A tick, because every one of these is a thing you are
+                        being spared rather than a thing you are missing. */}
+                    <CheckIcon size={13} />
+                    {a.title}
+                  </div>
                   <div className="purchase__item-desc">{a.detail}</div>
                 </li>
               ))}
@@ -138,11 +143,12 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
 /**
  * Placeholders, at the proportions of the screen they will eventually show.
  *
- * The track holds the set twice and slides exactly half its width, so the
- * second copy is under the cursor at the moment the first would have run out
- * and the loop has no seam. Driven by a CSS animation on a transform rather
- * than by script: it runs on the compositor and costs nothing while the rest
- * of the app is analysing audio behind it.
+ * The track holds the set twice and slides by one set plus the gap after it,
+ * so the second copy lands exactly where the first began and the loop has no
+ * seam — see the keyframes, where that distance is not half the track and the
+ * difference matters. Driven by a CSS animation on a transform rather than by
+ * script: it runs on the compositor and costs nothing while the rest of the
+ * app is analysing audio behind it.
  */
 function Gallery() {
   const shots = ['Simple', 'Plain', 'Dark', 'Light', 'Strobe', 'Needle'];

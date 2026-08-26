@@ -122,6 +122,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         <Row
           name="Sensitivity"
           desc="Lower for noisy rooms and quiet instruments, higher to reject stray sound."
+          stack
         >
           {/* Labelled with the actual noise floor it sets, in dBFS. */}
           <SliderField value={`${Math.round(sensitivityToDb(s.sensitivity))} dB`}>
@@ -130,7 +131,10 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
               type="range"
               min={0}
               max={1}
-              step={0.05}
+              /* Twenty positions felt like a ratchet across the full width.
+                 A hundred is smooth under a thumb and still lands on a stable
+                 number in the readout. */
+              step={0.01}
               value={s.sensitivity}
               onChange={(e) => set('sensitivity', Number(e.target.value))}
               aria-label="Sensitivity"
@@ -301,13 +305,22 @@ function Row({
   name,
   desc,
   children,
+  stack,
 }: {
   name: string;
   desc?: string;
   children: ReactNode;
+  /**
+   * Puts the control on its own line under the label rather than beside it.
+   *
+   * For a slider this is the difference between a hundred pixels of travel and
+   * the whole width of the panel — the same range spread over three times the
+   * distance, which is three times the precision under a thumb.
+   */
+  stack?: boolean;
 }) {
   return (
-    <div className="setting">
+    <div className={stack ? 'setting setting--stack' : 'setting'}>
       <div className="setting__main">
         <div className="setting__name">{name}</div>
         {desc && <div className="setting__desc">{desc}</div>}
@@ -336,7 +349,7 @@ function HueField({
   disabled?: boolean;
 }) {
   return (
-    <div className="slider-field" data-disabled={disabled}>
+    <div className="slider-field slider-field--grow" data-disabled={disabled}>
       <span
         className="hue-swatch"
         style={{ background: disabled ? 'hsl(0 0% 50%)' : `hsl(${value} 45% 50%)` }}

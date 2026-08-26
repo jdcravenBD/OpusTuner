@@ -1732,6 +1732,22 @@ button {
   box-shadow: var(--hi);
 }
 
+/* Control on its own line, full width — see Row's `stack`. */
+.setting--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.setting--stack .slider-field {
+  flex: 1 1 auto;
+}
+
+.setting--stack .slider-field .slider {
+  width: auto;
+  flex: 1 1 auto;
+}
+
 .setting + .setting {
   margin-top: 5px;
 }
@@ -1872,7 +1888,9 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 0 0 auto;
+  /* Shrinks to its contents by default; the hue picker inside it opts into
+     taking the slack. */
+  flex: 0 1 auto;
 }
 
 .slider-field__value {
@@ -1890,9 +1908,14 @@ button {
   width: 104px;
 }
 
-/* Hue picker: full spectrum in the track, chosen hue in the swatch. */
+/*
+ * Hue picker: full spectrum in the track, chosen hue in the swatch.
+ *
+ * Takes whatever the row has left rather than a fixed 92px, with a floor so it
+ * never collapses and a ceiling so it does not stretch to something absurd on
+ * a wide window.
+ */
 .slider--hue {
-  width: 92px;
   background: linear-gradient(
     90deg,
     hsl(0 60% 50%),
@@ -1905,8 +1928,30 @@ button {
   );
 }
 
-.slider-field .slider--hue {
-  width: 92px;
+/*
+ * Takes the width the row is not using, rather than a fixed 92px.
+ *
+ * Both halves are needed: the field has to be allowed to grow against the
+ * label beside it, and the track inside it has to be allowed to grow against
+ * the swatch and the value. The `.slider-field .slider` width above is more
+ * specific than `.slider--hue` on its own, which is why this is written the
+ * long way round.
+ */
+.slider-field--grow {
+  flex: 1 1 auto;
+}
+
+.slider-field--grow .slider--hue {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 92px;
+  /* Within reason: past this it is a lot of travel for 360 degrees. */
+  max-width: 220px;
+}
+
+/* The label keeps what it needs and gives up the rest. */
+.setting:has(.slider-field--grow) .setting__main {
+  flex: 0 1 auto;
 }
 
 /* Nothing to set while the palette has no color in it. */
@@ -2491,7 +2536,7 @@ button {
    * -50% and the loop lands short by exactly that much. The fade at each end
    * gives the strip its breathing room instead.
    */
-  animation: gallery-slide 42s linear infinite;
+  animation: gallery-slide 24s linear infinite;
 }
 
 /*
@@ -2645,10 +2690,24 @@ button {
   color: var(--text);
 }
 
-/* The refusals are the reassuring half, so they carry the colour that means
-   "this is fine" everywhere else in the app. */
+/* The refusals are the reassuring half, so they carry the color that means
+   "this is fine" everywhere else in the app — and the tick that goes with it. */
 .purchase__list--nots .purchase__item-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   color: var(--green);
+}
+
+.purchase__list--nots .purchase__item-name svg {
+  flex: 0 0 auto;
+  stroke-width: 3;
+}
+
+/* Indented to sit under the words rather than under the tick, so the two lines
+   read as one block. */
+.purchase__list--nots .purchase__item-desc {
+  padding-left: 20px;
 }
 
 .purchase__item-desc {
