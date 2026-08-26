@@ -757,9 +757,10 @@ button {
  * *height* the moment --screen-w was fed into --tall-h.
  */
 .field-deck {
+  --square-cost: 264px;
   --screen-w: min(
     100cqw - (var(--nav-w) + var(--nav-gap) + 6px + var(--gutter)) * 2,
-    80cqh - 264px,
+    80cqh - var(--square-cost),
     400px
   );
   /*
@@ -786,10 +787,24 @@ button {
   touch-action: none;
 }
 
-/* A wrapped key row costs the column another row of keys and its gap, and the
-   screen is where that comes from. Measured, like the figure above. */
+/*
+ * A wrapped key row costs the column another row of keys and its gap, and the
+ * screen is where that comes from.
+ *
+ * *Both* budgets have to give, which is not obvious and cost a wrong fix on
+ * the way here. The deck's height is `max(--screen-w, --tall-h)` — the square
+ * screen and the tall one — so on a short viewport, where the square is the
+ * larger of the two, shrinking --tall-h alone changes the needle and moves the
+ * deck not at all.
+ *
+ * Measured at 661, which is a Safari tab on an iPhone 12: a hundred and eighty
+ * points shorter than the handset, because the browser's own bars live inside
+ * it. There the gaps came out at 18px and the frequency bar, which is 22, sat
+ * across the bottom edge of the screen.
+ */
 .app[data-wide-row='true'] .field-deck {
-  --column-cost: 426px;
+  --square-cost: 320px;
+  --column-cost: 450px;
 }
 
 .visual-nav {
