@@ -153,7 +153,15 @@ export default function App() {
   void version;
 
   return (
-    <div className="app" id="app" ref={appRef} data-intune="false">
+    <div
+      className="app"
+      id="app"
+      ref={appRef}
+      data-intune="false"
+      /* A twelve-string wraps its key row onto two lines, and the tuner screen
+         has to give back the height that costs — see .field-deck. */
+      data-wide-row={targets.length > 8}
+    >
       {debugRequested() && <DebugHud />}
       <header className="topbar">
         {/* Always rendered. Hiding it takes it out of sight but not out of the

@@ -763,13 +763,19 @@ button {
     400px
   );
   /*
-   * The 392 is a measured budget, not a guess, and it has to be re-measured
-   * whenever anything above or below this row changes height: it is everything
-   * the column spends before it gets here (topbar, carousel, verdict, string
-   * row, bottom bar) plus the clearance the readout needs in the gap below.
-   * Check it against the list in the .field-zone comment after any such change.
+   * --column-cost is a measured budget, not a guess, and it has to be
+   * re-measured whenever anything above or below this row changes height: it
+   * is everything the column spends before it gets here (topbar, carousel,
+   * verdict, key row, bottom bar) plus the clearance the readout needs in the
+   * gap below. Check it against the list in the .field-zone comment after any
+   * such change.
+   *
+   * A twelve-string wraps the key row onto a second line, which is one more
+   * line for the column to pay for — hence the override further down rather
+   * than a single number here.
    */
-  --tall-h: min(var(--screen-w) * 4 / 3, 100cqh - 372px, 520px);
+  --column-cost: 372px;
+  --tall-h: min(var(--screen-w) * 4 / 3, 100cqh - var(--column-cost), 520px);
 
   position: relative;
   flex: 0 0 auto;
@@ -778,6 +784,12 @@ button {
   min-width: 128px;
   /* Horizontal drags are the pager's; nothing here scrolls. */
   touch-action: none;
+}
+
+/* A wrapped key row costs the column another row of keys and its gap, and the
+   screen is where that comes from. Measured, like the figure above. */
+.app[data-wide-row='true'] .field-deck {
+  --column-cost: 426px;
 }
 
 .visual-nav {
@@ -1034,8 +1046,16 @@ button {
   padding: 2px calc(10px + var(--gutter)) 4px;
 }
 
+/*
+ * Wraps, which only ever happens on a twelve-string: twelve keys at their
+ * minimum size want more than five hundred pixels and a handset has three
+ * hundred and fifty. Shrinking them instead would have taken each one to
+ * about twenty-two pixels, which is half a fingertip. Two rows of six is how
+ * the instrument is strung anyway.
+ */
 .strings__inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: clamp(6px, 2cqw, 14px);
@@ -2381,17 +2401,32 @@ button {
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
     linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
-  animation: purchase-in 260ms var(--ease-out);
+  /*
+   * Two animations, because they want different curves. --ease-out is severe —
+   * it is nine tenths of the way there in the first quarter of its duration,
+   * which is right for something sliding into place and wrong for a fade: the
+   * screen was at full opacity inside seventy milliseconds and read as a flash
+   * rather than as an arrival. The opacity gets a gentle curve and its own
+   * time; the movement keeps the snap.
+   */
+  animation:
+    purchase-fade 300ms cubic-bezier(0.4, 0, 0.4, 1),
+    purchase-rise 320ms var(--ease-out);
 }
 
 .purchase[data-closing='true'] {
   animation: purchase-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
-@keyframes purchase-in {
+@keyframes purchase-fade {
   from {
-    transform: translateY(2.5%);
     opacity: 0;
+  }
+}
+
+@keyframes purchase-rise {
+  from {
+    transform: translateY(2.2%);
   }
 }
 
@@ -2692,6 +2727,8 @@ button {
 
 /* The refusals are the reassuring half, so they carry the color that means
    "this is fine" everywhere else in the app — and the tick that goes with it. */
+/* The tick follows the words rather than leading them: it reads as a thing
+   being confirmed, not as a bullet. */
 .purchase__list--nots .purchase__item-name {
   display: flex;
   align-items: center;
@@ -2702,12 +2739,6 @@ button {
 .purchase__list--nots .purchase__item-name svg {
   flex: 0 0 auto;
   stroke-width: 3;
-}
-
-/* Indented to sit under the words rather than under the tick, so the two lines
-   read as one block. */
-.purchase__list--nots .purchase__item-desc {
-  padding-left: 20px;
 }
 
 .purchase__item-desc {

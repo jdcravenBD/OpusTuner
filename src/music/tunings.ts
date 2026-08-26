@@ -80,6 +80,10 @@ const RAW: RawTuning[] = [
   { id: 'guitar-nst', name: 'New Standard (NST)', instrument: 'guitar', notes: 'C2 G2 D3 A3 E4 G4' },
   { id: 'guitar-nashville', name: 'Nashville (High Strung)', instrument: 'guitar', notes: 'E3 A3 D4 G4 B3 E4' },
   { id: 'guitar-baritone', name: 'Baritone (B Standard)', instrument: 'guitar', notes: 'B1 E2 A2 D3 F#3 B3' },
+  // A twelve-string is six courses, not twelve notes: the bottom four are
+  // octave pairs and the top two are unisons, which is why E4 and B3 appear
+  // twice over. Listed as twelve because that is how many you actually turn.
+  { id: 'guitar-12-standard', name: '12-String Standard', instrument: 'guitar', notes: 'E2 E3 A2 A3 D3 D4 G3 G4 B3 B3 E4 E4', popular: true },
   { id: 'guitar-7-standard', name: '7-String Standard', instrument: 'guitar', notes: 'B1 E2 A2 D3 G3 B3 E4', popular: true },
   { id: 'guitar-7-drop-a', name: '7-String Drop A', instrument: 'guitar', notes: 'A1 E2 A2 D3 G3 B3 E4' },
   { id: 'guitar-8-standard', name: '8-String Standard', instrument: 'guitar', notes: 'F#1 B1 E2 A2 D3 G3 B3 E4' },
@@ -163,6 +167,7 @@ export const FREE_TUNING_IDS: ReadonlySet<string> = new Set([
   // guitar, and the guitars that are their own instrument
   'guitar-standard',
   'guitar-baritone',
+  'guitar-12-standard',
   'guitar-7-standard',
   'guitar-8-standard',
   // bass, by string count

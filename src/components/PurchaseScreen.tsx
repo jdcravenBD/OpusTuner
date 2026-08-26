@@ -119,10 +119,10 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
               {TIER_ASSURANCES.map((a) => (
                 <li className="purchase__item" key={a.title}>
                   <div className="purchase__item-name">
+                    {a.title}
                     {/* A tick, because every one of these is a thing you are
                         being spared rather than a thing you are missing. */}
                     <CheckIcon size={13} />
-                    {a.title}
                   </div>
                   <div className="purchase__item-desc">{a.detail}</div>
                 </li>

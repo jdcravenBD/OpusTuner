@@ -34,10 +34,34 @@ export function DebugHud() {
       `hear  ${frame.hasSignal ? 'yes' : 'no'}   clarity ${frame.clarity.toFixed(2)}`,
       `hz    ${frame.frequency.toFixed(2)}   ${frame.cents >= 0 ? '+' : ''}${frame.cents.toFixed(1)}c`,
       `rate  ${engine.sampleRate || '-'}`,
+      geometry(),
     ].join('\n');
   });
 
   return <div className="debug-hud" ref={ref} aria-hidden />;
+}
+
+/**
+ * Where the app's box actually sits, which is not answerable from a screenshot.
+ *
+ * A strip of something showing under the app means one of these numbers
+ * disagrees with the others, and which one it is decides the fix. `under` is
+ * the whole question in a single figure: anything but zero and the app is not
+ * filling the element it lives in.
+ */
+function geometry(): string {
+  const app = document.getElementById('app');
+  const root = document.getElementById('root');
+  if (!app || !root) return '';
+  const a = app.getBoundingClientRect();
+  const r = root.getBoundingClientRect();
+  const css = getComputedStyle(document.documentElement);
+  const px = (v: string) => Math.round(parseFloat(v) || 0);
+  return [
+    `vh    ${Math.round(window.innerHeight)}  root ${Math.round(r.height)}  app ${Math.round(a.height)}`,
+    `under ${Math.round(r.bottom - a.bottom)}  past-root ${Math.round(window.innerHeight - r.bottom)}`,
+    `inset t${px(css.getPropertyValue('--safe-t'))} b${px(css.getPropertyValue('--safe-b'))}`,
+  ].join('\n');
 }
 
 /** True when the page was opened with `?debug`. */
