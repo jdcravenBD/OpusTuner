@@ -89,6 +89,10 @@ export default function App() {
     setMicError(null);
     setMicState('starting');
     // Same gesture unlocks the playback context on iOS.
+    // Wired once, here, rather than at each place a tone is played: the
+    // detector has to be told about every sound the app makes, and a call site
+    // that forgets would leave the tuner reading its own reference note.
+    toneEngine.onSound = (ms) => tuner.engine.deafenFor(ms);
     toneEngine.unlock();
     try {
       await tuner.startMic(settingsStore.get().inputDeviceId);

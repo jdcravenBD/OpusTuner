@@ -33,6 +33,15 @@ export class ToneEngine {
 
   volume = 0.55;
 
+  /**
+   * Called with the length of anything about to come out of the speaker.
+   *
+   * Wired to the detector so it can stop listening — see AudioEngine.deafenFor.
+   * A callback rather than a direct call because this is the lower of the two
+   * modules and has no business knowing the tuner exists.
+   */
+  onSound: ((durationMs: number) => void) | null = null;
+
   private ensure(): AudioContext | null {
     if (this.ctx) {
       if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -118,6 +127,7 @@ export class ToneEngine {
   play(freq: number, durationMs = 2200): void {
     const ctx = this.ensure();
     if (!ctx || !this.master || !isFinite(freq) || freq <= 0) return;
+    this.onSound?.(durationMs);
 
     const now = ctx.currentTime;
     this.reap(now);
@@ -168,6 +178,8 @@ export class ToneEngine {
   chime(): void {
     const ctx = this.ensure();
     if (!ctx || !this.master) return;
+    // Two notes, the second offset by 85ms, each ringing about half a second.
+    this.onSound?.(700);
     const now = ctx.currentTime;
 
     [

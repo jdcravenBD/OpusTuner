@@ -201,6 +201,8 @@ export class AudioEngine {
   private noteOn = false;
   private pastAttack = true;
   private onsetFlag = false;
+  /** Wall clock past which input is trusted again — see deafenFor(). */
+  private deafUntil = 0;
 
   constructor(opts: AudioEngineOptions = {}) {
     this.windowSize = opts.windowSize ?? 4096;
@@ -413,6 +415,34 @@ export class AudioEngine {
   }
 
   /**
+   * Stop listening for a while.
+   *
+   * The tuner and the reference tone share a room: tap a string to hear the
+   * note and the microphone hears it too, so the needle obligingly reports
+   * that the app is perfectly in tune with itself. Echo cancellation would
+   * deal with it and is exactly what cannot be used here — it is switched off
+   * on purpose, along with the noise suppression and the gain control, because
+   * all three wreck a tuner.
+   *
+   * So the engine is told to look away instead. Not muted: the ring buffer
+   * goes on filling, the reading on screen stays where it was, and no onset is
+   * declared for a sound the app made itself.
+   *
+   * @param ms how long the sound lasts. A window's worth is added on top,
+   *   because its tail is still inside the analysis window after the speaker
+   *   has stopped.
+   */
+  deafenFor(ms: number): void {
+    const tail = ((this.windowSize + ATTACK_TAIL_SAMPLES) / (this.sampleRate || 48000)) * 1000;
+    this.deafUntil = Math.max(this.deafUntil, performance.now() + ms + tail);
+  }
+
+  /** True while the engine is ignoring a sound of the app's own making. */
+  get deaf(): boolean {
+    return performance.now() < this.deafUntil;
+  }
+
+  /**
    * Runs one detection pass over the most recent window. Safe to call at
    * display rate; returns the previous reading unchanged if not enough new
    * audio has arrived yet.
@@ -436,6 +466,9 @@ export class AudioEngine {
     const detector = this.detector;
     if (!detector || this.state !== 'running') return this.last;
     if (this.written < this.windowSize) return this.last;
+    // Something the app is playing is in the room. Hold everything, the
+    // envelope included: a tone's attack would otherwise register as a pluck.
+    if (performance.now() < this.deafUntil) return this.last;
 
     /* --- envelope, onset and note-off ---------------------------------- */
     const env = this.shortRms(ENVELOPE_SAMPLES);
