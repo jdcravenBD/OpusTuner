@@ -2,6 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Sheet } from './Sheet';
 import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
+import { UnlockSheet } from './UnlockSheet';
+import { LockIcon } from './Icons';
+import { TIER_NAME, isThemeLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
   DEFAULT_SETTINGS,
@@ -27,6 +30,8 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
   const s = useSettings();
   /* Both colorless themes leave the hue pickers with nothing to set. */
   const colorless = s.theme === 'plain' || s.theme === 'simple';
+  /** Names what the reader reached for, and opens the showcase. */
+  const [wanted, setWanted] = useState<string | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
@@ -185,10 +190,14 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             options={[
               { value: 'simple' as ThemeMode, label: 'Simple' },
               { value: 'plain' as ThemeMode, label: 'Plain' },
-              { value: 'dark' as ThemeMode, label: 'Dark' },
-              { value: 'light' as ThemeMode, label: 'Light' },
+              { value: 'dark' as ThemeMode, label: 'Dark', locked: isThemeLocked('dark', s.owned) },
+              {
+                value: 'light' as ThemeMode,
+                label: 'Light',
+                locked: isThemeLocked('light', s.owned),
+              },
             ]}
-            onChange={(v) => set('theme', v)}
+            onChange={(v) => (isThemeLocked(v, s.owned) ? setWanted('Color themes') : set('theme', v))}
           />
         </Row>
         <Row name="Display color">
@@ -213,7 +222,12 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
       {/* ---------------------------------------------------------- display */}
       <Section label="Display">
         <Row name="Title">
-          <Switch on={s.showWordmark} onChange={(v) => set('showWordmark', v)} label="Title" />
+          <Switch
+            on={s.showWordmark}
+            onChange={(v) => (s.owned ? set('showWordmark', v) : setWanted('Hide the branding'))}
+            label="Title"
+            locked={!s.owned}
+          />
         </Row>
         <Row name="Detail bar">
           <Switch on={s.showStatus} onChange={(v) => set('showStatus', v)} label="Detail bar" />
@@ -238,6 +252,15 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
       </Section>
 
       <Section label="About">
+        {/*
+          * Temporary, and on by default. There is no store to buy the full set
+          * from yet, so without this the app's author would be locked out of
+          * their own app. Both this row and the flag behind it come out before
+          * this ships anywhere with a price on it.
+          */}
+        <Row name={`${TIER_NAME} (developer)`} desc="Unlocks everything. Goes before release.">
+          <Switch on={s.owned} onChange={(v) => set('owned', v)} label={`${TIER_NAME}`} />
+        </Row>
         <button
           className="btn btn--block"
           onClick={() => {
@@ -258,6 +281,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           License.
         </div>
       </Section>
+      <UnlockSheet open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </Sheet>
   );
 }
@@ -348,20 +372,27 @@ function Switch({
   on,
   onChange,
   label,
+  locked,
 }: {
   on: boolean;
   onChange: (value: boolean) => void;
   label: string;
+  /** Still pressable — the press is what opens the showcase. */
+  locked?: boolean;
 }) {
   return (
-    <button
-      className="switch"
-      data-on={on}
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={() => onChange(!on)}
-    />
+    <span className="switch-wrap">
+      {locked && <LockIcon size={13} />}
+      <button
+        className="switch"
+        data-on={on}
+        data-locked={locked}
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        onClick={() => onChange(!on)}
+      />
+    </span>
   );
 }
 
@@ -371,7 +402,7 @@ function Segmented<T extends string | number>({
   onChange,
 }: {
   value: T;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; locked?: boolean }[];
   onChange: (value: T) => void;
 }) {
   return (
@@ -380,9 +411,11 @@ function Segmented<T extends string | number>({
         <button
           key={String(o.value)}
           data-on={o.value === value}
+          data-locked={o.locked}
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
         >
+          {o.locked && <LockIcon size={11} />}
           {o.label}
         </button>
       ))}

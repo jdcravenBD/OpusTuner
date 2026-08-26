@@ -35,6 +35,8 @@ export interface Tuning {
   chromatic?: boolean;
   /** User-authored tunings are editable & deletable. */
   custom?: boolean;
+  /** In the free set — see FREE_TUNING_IDS. */
+  free?: boolean;
 }
 
 export const INSTRUMENTS: Instrument[] = [
@@ -136,6 +138,68 @@ const RAW: RawTuning[] = [
   { id: 'harp-celtic', name: 'Autoharp / Zither', instrument: 'other', notes: 'C3 G3 C4 E4 G4 C5' },
 ];
 
+/**
+ * The tunings that are free.
+ *
+ * One rule, and it is worth stating plainly because every borderline case
+ * follows from it: **an instrument's own standard tuning is never paid.** A
+ * seven-string guitar, a five-string bass, a baritone ukulele and a plectrum
+ * banjo are instruments, not alternate tunings, and someone who owns one and
+ * finds it locked has no use for the app at all. What is paid is the
+ * alternates — the drops, the opens, the steps down, the modal and cross
+ * tunings — which is where the value is for anyone already tuning happily.
+ *
+ * The calls worth knowing about, since a name alone does not settle them:
+ *   - Baritone guitar and the 7- and 8-string are separate instruments, so
+ *     their standards are free; 7-String Drop A and 8-String Drop E are not.
+ *   - Open G on a resonator and C6 on a lap steel *are* those instruments'
+ *     standard tunings, however they read.
+ *   - 5-String Tenor bass is a five-string strung differently, not a different
+ *     instrument, so it is paid.
+ *   - Nashville is a way of stringing an ordinary guitar. Paid.
+ */
+export const FREE_TUNING_IDS: ReadonlySet<string> = new Set([
+  'chromatic',
+  // guitar, and the guitars that are their own instrument
+  'guitar-standard',
+  'guitar-baritone',
+  'guitar-7-standard',
+  'guitar-8-standard',
+  // bass, by string count
+  'bass-standard',
+  'bass-5-standard',
+  'bass-6-standard',
+  // ukulele, by size
+  'uke-standard',
+  'uke-baritone',
+  'uke-bass',
+  // banjo, by type
+  'banjo-open-g',
+  'banjo-tenor',
+  'banjo-plectrum',
+  // the orchestral family — each of these is a different instrument
+  'violin',
+  'viola',
+  'cello',
+  'double-bass',
+  'violin-5',
+  'harp-guitar',
+  // everything under "Other" is an instrument in its own right
+  'mandolin',
+  'mandola',
+  'mandocello',
+  'bouzouki-irish',
+  'bouzouki-greek',
+  'cavaquinho',
+  'balalaika',
+  'charango',
+  'dobro-g',
+  'lap-steel-c6',
+  'oud-arabic',
+  'sitar',
+  'harp-celtic',
+]);
+
 export const CHROMATIC_TUNING: Tuning = {
   id: 'chromatic',
   name: 'Chromatic',
@@ -143,6 +207,7 @@ export const CHROMATIC_TUNING: Tuning = {
   strings: [],
   chromatic: true,
   popular: true,
+  free: true,
 };
 
 export const BUILTIN_TUNINGS: Tuning[] = [
@@ -154,6 +219,7 @@ export const BUILTIN_TUNINGS: Tuning[] = [
       instrument: r.instrument,
       strings: r.notes.split(/\s+/).map(parseNote),
       popular: r.popular,
+      free: FREE_TUNING_IDS.has(r.id),
     }),
   ),
 ];

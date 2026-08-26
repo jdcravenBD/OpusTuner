@@ -2258,6 +2258,126 @@ button {
   pointer-events: none;
 }
 
+/* One step up, so it dims the sheet it was opened from rather than sliding in
+   underneath its scrim. */
+.scrim--stacked {
+  z-index: 60;
+}
+
+.sheet--stacked {
+  z-index: 70;
+}
+
+/* ------------------------------------------------------------------ locked -- */
+
+/*
+ * A feature that costs money still shows what it is.
+ *
+ * Faded rather than hidden, and still pressable: the press is what opens the
+ * showcase, so a locked row is a question waiting to be asked rather than a
+ * dead end. Nothing here changes a layout — only paint — so the list does not
+ * reflow when the tier is bought.
+ */
+.row[data-locked='true'] {
+  opacity: 0.45;
+}
+
+.row[data-locked='true']:hover {
+  opacity: 0.62;
+}
+
+.row__lock {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+.segmented button[data-locked='true'] {
+  gap: 4px;
+  opacity: 0.45;
+}
+
+.segmented button[data-locked='true'] svg {
+  margin-right: -1px;
+}
+
+.switch-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  color: var(--text-3);
+}
+
+.switch[data-locked='true'] {
+  opacity: 0.45;
+}
+
+.btn[data-locked='true'] {
+  opacity: 0.55;
+}
+
+/* ---------------------------------------------------------------- unlock -- */
+
+.unlock__lede {
+  padding: 2px 2px 4px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.unlock__lede b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.unlock__list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unlock__item {
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+}
+
+.unlock__item-name {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.unlock__item-desc {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+/* No price and no button — see UnlockSheet. Saying so beats a control that
+   does nothing. */
+.unlock__soon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 11px;
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+  color: var(--text-3);
+  font-size: 12px;
+  text-align: center;
+}
+
 /* ---------------------------------------------------------------- simple -- */
 
 /*
@@ -2349,6 +2469,8 @@ button {
 :root[data-simple='true'] .chip:not([data-on='true']),
 :root[data-simple='true'] .row,
 :root[data-simple='true'] .setting,
+:root[data-simple='true'] .unlock__item,
+:root[data-simple='true'] .unlock__soon,
 :root[data-simple='true'] .segmented button[data-on='true'],
 :root[data-simple='true'] .btn,
 :root[data-simple='true'] .editor__string,

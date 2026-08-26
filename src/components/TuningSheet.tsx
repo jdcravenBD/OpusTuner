@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Sheet, SHEET_EXIT_MS } from './Sheet';
 import { CustomTuningEditor } from './CustomTuningEditor';
-import { ClockIcon, CloseIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
+import { ClockIcon, CloseIcon, LockIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
+import { UnlockSheet } from './UnlockSheet';
+import { customTuningLimitReached, isTuningLocked } from '../state/unlock';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 import { INSTRUMENTS, type InstrumentId, type Tuning } from '../music/tunings';
 import {
@@ -11,6 +13,7 @@ import {
   sessionStore,
   toggleFavorite,
   useSession,
+  useSettings,
 } from '../state/store';
 import { useAllTunings } from '../hooks';
 
@@ -35,12 +38,15 @@ const CONFIRM_MS = 190;
 
 export function TuningSheet({ open, onClose, naming }: Props) {
   const session = useSession();
+  const { owned } = useSettings();
   const all = useAllTunings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [editing, setEditing] = useState<Tuning | 'new' | null>(null);
   /** The row that has just been tapped, held green while the sheet leaves. */
   const [picked, setPicked] = useState<string | null>(null);
+  /** Names what the reader reached for, and opens the showcase. */
+  const [wanted, setWanted] = useState<string | null>(null);
   const pickTimer = useRef<number | null>(null);
   const recentTimer = useRef<number | null>(null);
   /** Chosen, but not yet sorted into Recent — see `pick`. */
@@ -74,8 +80,20 @@ export function TuningSheet({ open, onClose, naming }: Props) {
    * sheet simply vanished, and whether the press had landed on the row you
    * meant was anyone's guess.
    */
+  const customLocked = customTuningLimitReached(owned, session.customTunings.length);
+
+  /* Reaching the limit is not a dead end — the button says why. */
+  const newCustom = () => {
+    if (customLocked) setWanted('Unlimited custom tunings');
+    else setEditing('new');
+  };
+
   const pick = (t: Tuning) => {
     if (picked) return;
+    if (isTuningLocked(t, owned)) {
+      setWanted(t.name);
+      return;
+    }
     selectTuning(t.id);
     setPicked(t.id);
     // Recents are re-sorted only once the panel has gone — see the effect
@@ -129,6 +147,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
       naming={naming}
       selected={t.id === session.tuningId}
       picked={picked === t.id}
+      locked={isTuningLocked(t, owned)}
       favorite={session.favoriteTuningIds.includes(t.id)}
       onPick={() => pick(t)}
       onToggleFavorite={() => toggleFavorite(t.id)}
@@ -235,14 +254,16 @@ export function TuningSheet({ open, onClose, naming }: Props) {
             <CustomSection
               tunings={session.customTunings}
               render={renderRow}
-              onNew={() => setEditing('new')}
+              onNew={newCustom}
+              locked={customLocked}
             />
           </>
         ) : filter === 'custom' ? (
           <CustomSection
             tunings={session.customTunings}
             render={renderRow}
-            onNew={() => setEditing('new')}
+            onNew={newCustom}
+            locked={customLocked}
           />
         ) : (
           <Section label={INSTRUMENTS.find((i) => i.id === filter)?.name ?? ''}>
@@ -279,6 +300,8 @@ export function TuningSheet({ open, onClose, naming }: Props) {
           }}
         />
       )}
+
+      <UnlockSheet open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </>
   );
 }
@@ -309,10 +332,13 @@ function CustomSection({
   tunings,
   render,
   onNew,
+  locked,
 }: {
   tunings: Tuning[];
   render: (t: Tuning) => ReactNode;
   onNew: () => void;
+  /** At the free limit — the button still presses, and explains itself. */
+  locked: boolean;
 }) {
   return (
     <div className="sheet__section">
@@ -323,8 +349,13 @@ function CustomSection({
         </div>
       )}
       {tunings.map(render)}
-      <button className="btn btn--block" onClick={onNew} style={{ marginTop: 8 }}>
-        <PlusIcon />
+      <button
+        className="btn btn--block"
+        onClick={onNew}
+        style={{ marginTop: 8 }}
+        data-locked={locked}
+      >
+        {locked ? <LockIcon /> : <PlusIcon />}
         New custom tuning
       </button>
     </div>
@@ -336,6 +367,7 @@ function TuningRow({
   naming,
   selected,
   picked,
+  locked,
   favorite,
   onPick,
   onToggleFavorite,
@@ -345,6 +377,7 @@ function TuningRow({
   naming: NoteNaming;
   selected: boolean;
   picked: boolean;
+  locked: boolean;
   favorite: boolean;
   onPick: () => void;
   onToggleFavorite: () => void;
@@ -355,7 +388,7 @@ function TuningRow({
     : tuning.strings.map((m) => pitchClassName(m, naming) + noteOctave(m)).join('  ');
 
   return (
-    <div className="row" data-selected={selected} data-picked={picked}>
+    <div className="row" data-selected={selected} data-picked={picked} data-locked={locked}>
       <button
         className="row__main"
         onClick={onPick}
@@ -369,15 +402,23 @@ function TuningRow({
           Edit
         </button>
       )}
-      <button
-        className="row__star"
-        data-on={favorite}
-        onClick={onToggleFavorite}
-        aria-label={favorite ? 'Remove from favourites' : 'Add to favourites'}
-        aria-pressed={favorite}
-      >
-        <StarIcon filled={favorite} />
-      </button>
+      {/* Favouriting something you cannot select is a control with nothing
+          behind it, so the lock takes the slot rather than sitting beside it. */}
+      {locked ? (
+        <span className="row__lock" aria-label="Locked">
+          <LockIcon />
+        </span>
+      ) : (
+        <button
+          className="row__star"
+          data-on={favorite}
+          onClick={onToggleFavorite}
+          aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+          aria-pressed={favorite}
+        >
+          <StarIcon filled={favorite} />
+        </button>
+      )}
     </div>
   );
 }

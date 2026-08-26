@@ -74,6 +74,15 @@ export interface Settings {
   showStatus: boolean;
   /** Which tuner screen is on show — see components/visuals. */
   visual: VisualId;
+  /**
+   * Whether the paid tier is owned — see state/unlock.
+   *
+   * Defaults to *on*, and that is deliberate and temporary: there is no store
+   * to buy it from yet, so leaving it off would lock the app's author out of
+   * the app. The switch for it lives at the bottom of Settings and both go
+   * before this ships anywhere real.
+   */
+  owned: boolean;
 }
 
 export interface Session {
@@ -105,6 +114,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showWordmark: true,
   showStatus: true,
   visual: DEFAULT_VISUAL,
+  owned: true,
 };
 
 export const DEFAULT_SESSION: Session = {

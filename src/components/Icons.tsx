@@ -128,6 +128,13 @@ export const ArrowDownIcon = ({ size = 14 }: IconProps) => (
 );
 
 /** App mark: a tuning fork. Matches the launcher icon in scripts/generate-icons.mjs. */
+export const LockIcon = ({ size = 15 }: IconProps) => (
+  <svg {...base(size)} strokeWidth={2}>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2.2" />
+    <path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9" />
+  </svg>
+);
+
 export const LogoMark = ({ size = 92 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 96 96" fill="none" aria-hidden>
     <g
