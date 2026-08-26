@@ -25,8 +25,8 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
-  /* Both colourless themes leave the hue pickers with nothing to set. */
-  const colourless = s.theme === 'plain' || s.theme === 'simple';
+  /* Both colorless themes leave the hue pickers with nothing to set. */
+  const colorless = s.theme === 'plain' || s.theme === 'simple';
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
@@ -162,48 +162,23 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Reference tones"
           />
         </Row>
-        <Row name="Tone volume">
-          <SliderField value={`${Math.round(s.toneVolume * 100)}%`}>
-            <input
-              className="slider"
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={s.toneVolume}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                set('toneVolume', v);
-                toneEngine.volume = v;
-              }}
-              onPointerUp={() => {
-                toneEngine.volume = settingsStore.get().toneVolume;
-                toneEngine.play(440, 700);
-              }}
-              aria-label="Tone volume"
-            />
-          </SliderField>
-        </Row>
         <Row name="Chime when in tune" desc="A short confirmation when a string lands.">
           <Switch
             on={s.chimeOnTuned}
             onChange={(v) => {
               set('chimeOnTuned', v);
-              if (v) {
-                toneEngine.volume = settingsStore.get().toneVolume;
-                toneEngine.chime();
-              }
+              if (v) toneEngine.chime();
             }}
             label="Chime when in tune"
           />
         </Row>
-        <Row name="Vibration" desc="Buzz when a string reaches pitch. Android and most desktops.">
+        <Row name="Vibration" desc="Buzz when a string reaches pitch.">
           <Switch on={s.haptics} onChange={(v) => set('haptics', v)} label="Vibration" />
         </Row>
       </Section>
 
-      {/* ----------------------------------------------------------- colour */}
-      <Section label="Colour">
+      {/* ----------------------------------------------------------- color */}
+      <Section label="Color">
         <Row name="Theme">
           <Segmented
             value={s.theme}
@@ -216,15 +191,15 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             onChange={(v) => set('theme', v)}
           />
         </Row>
-        <Row name="Display color" desc="Tints the chassis, the panels and the tuner screen.">
+        <Row name="Display color">
           <HueField
             value={s.hue}
             onChange={(v) => set('hue', v)}
             label="Display color"
-            disabled={colourless}
+            disabled={colorless}
           />
         </Row>
-        {!colourless && s.hue !== DEFAULT_HUE && (
+        {!colorless && s.hue !== DEFAULT_HUE && (
           <button
             className="btn btn--block"
             style={{ marginTop: 6 }}
@@ -237,18 +212,18 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- display */}
       <Section label="Display">
-        <Row name="Show frequencies" desc="Detected and target pitch in hertz.">
+        <Row name="Title">
+          <Switch on={s.showWordmark} onChange={(v) => set('showWordmark', v)} label="Title" />
+        </Row>
+        <Row name="Detail bar">
+          <Switch on={s.showStatus} onChange={(v) => set('showStatus', v)} label="Detail bar" />
+        </Row>
+        <Row name="Frequency bar">
           <Switch
             on={s.showFrequency}
             onChange={(v) => set('showFrequency', v)}
-            label="Show frequencies"
+            label="Frequency bar"
           />
-        </Row>
-        <Row name="Title" desc="The wordmark across the very top. Nothing else moves.">
-          <Switch on={s.showWordmark} onChange={(v) => set('showWordmark', v)} label="Title" />
-        </Row>
-        <Row name="Detail bar" desc="The A440, in-tune window and capo strip. Nothing else moves.">
-          <Switch on={s.showStatus} onChange={(v) => set('showStatus', v)} label="Detail bar" />
         </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />

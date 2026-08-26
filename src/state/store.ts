@@ -15,12 +15,12 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /* ----------------------------------------------------------------- types -- */
 
 /**
- * Two colourless themes, differing in how far they go.
+ * Two colorless themes, differing in how far they go.
  *
  * `plain` is dark with every hue drained out of it and nothing else changed —
  * same lightness values, same moulding. `simple` takes that further: a pure
  * black chassis and no gradients anywhere, so every surface is flat. The
- * signal colours survive both; they mean something.
+ * signal colors survive both; they mean something.
  */
 export type ThemeMode = 'simple' | 'plain' | 'dark' | 'light';
 
@@ -48,7 +48,6 @@ export interface Settings {
   referenceTones: boolean;
   /** Play a confirmation chime when a string lands in tune. */
   chimeOnTuned: boolean;
-  toneVolume: number;
   haptics: boolean;
   keepAwake: boolean;
   theme: ThemeMode;
@@ -57,7 +56,7 @@ export interface Settings {
    * screen alike.
    *
    * They used to be two, and nobody wants a tuner whose screen is a different
-   * colour from the case around it — the pair mostly gave you the chance to
+   * color from the case around it — the pair mostly gave you the chance to
    * make it look wrong.
    */
   hue: number;
@@ -94,7 +93,6 @@ export const DEFAULT_SETTINGS: Settings = {
   autoAdvance: false,
   referenceTones: true,
   chimeOnTuned: false,
-  toneVolume: 0.5,
   haptics: false,
   keepAwake: true,
   theme: 'plain',

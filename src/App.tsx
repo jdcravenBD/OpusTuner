@@ -72,7 +72,6 @@ export default function App() {
     if (event.type === 'tuned') {
       if (settingsStore.get().haptics) haptic([14, 40, 14]);
       if (settingsStore.get().chimeOnTuned) {
-        toneEngine.volume = settingsStore.get().toneVolume;
         toneEngine.chime();
       }
     } else if (event.type === 'all-tuned') {
@@ -129,7 +128,6 @@ export default function App() {
       tuner.selectString(index);
       const midi = targets[index];
       if (settingsStore.get().referenceTones && midi != null) {
-        toneEngine.volume = settingsStore.get().toneVolume;
         toneEngine.play(midiToFreq(midi, settingsStore.get().a4));
       }
     },
@@ -246,17 +244,25 @@ export default function App() {
           <ChevronUpIcon />
         </button>
 
-        <button
-          className="toggle"
-          data-on={settings.auto}
-          onClick={() => settingsStore.set({ auto: !settings.auto })}
-          aria-pressed={settings.auto}
-        >
-          Auto
-          <span className="toggle__track">
-            <span className="toggle__knob" />
-          </span>
-        </button>
+        {/*
+          * Auto picks which *string* you are playing, and chromatic has none —
+          * it reports whatever note it hears, from any instrument. The switch
+          * has nothing to decide there, so it goes, and the tuning button
+          * takes the width back rather than leaving a hole where it was.
+          */}
+        {!tuning.chromatic && (
+          <button
+            className="toggle"
+            data-on={settings.auto}
+            onClick={() => settingsStore.set({ auto: !settings.auto })}
+            aria-pressed={settings.auto}
+          >
+            Auto
+            <span className="toggle__track">
+              <span className="toggle__knob" />
+            </span>
+          </button>
+        )}
       </footer>
 
       {/* The tuner stays on screen behind this, dimmed. Nothing starts without

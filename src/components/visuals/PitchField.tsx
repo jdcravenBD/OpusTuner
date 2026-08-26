@@ -4,7 +4,7 @@ import type { NoteNaming } from '../../music/notes';
 import type { TunerFrame } from '../../tuner/TunerController';
 import {
   clamp,
-  colourFor,
+  colorFor,
   useVisualCanvas,
   visualFont,
   type Palette,
@@ -211,7 +211,7 @@ function draw(
 
   const markerY = h * MARKER_Y;
   const inTune = frame.hasSignal && Math.abs(frame.cents) <= s.tolerance;
-  const hot = colourFor(p, frame.hasSignal ? frame.cents : 9999, s.tolerance);
+  const hot = colorFor(p, frame.hasSignal ? frame.cents : 9999, s.tolerance);
   const alpha = 0.32 + s.fade * 0.68;
 
   /** Fades everything out toward the bottom of the field. */
@@ -372,7 +372,7 @@ function drawTrail(
     if (!t.live[a] || !t.live[b]) continue; // gap where nothing was sounding
     if (t.y[a] > h) continue;
     const depth = clamp(1 - (t.y[a] - markerY) / Math.max(1, h - markerY), 0, 1);
-    bctx.strokeStyle = colourFor(p, t.cents[a], s.tolerance);
+    bctx.strokeStyle = colorFor(p, t.cents[a], s.tolerance);
     bctx.lineWidth = 1 + depth * 2;
     bctx.beginPath();
     bctx.moveTo(t.x[a], t.y[a]);

@@ -6,7 +6,7 @@
  * and would leave the mark visibly off-centre. This way the two end letters sit
  * flush with the edges and every gap between them is identical.
  *
- * One letter is dimmed: the second S of "ass". Everything else is one colour.
+ * One letter is dimmed: the second S of "ass". Everything else is one color.
  *
  * Exposed as a single labelled image, so assistive tech gets the readable name
  * rather than thirteen separate letters.

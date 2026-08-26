@@ -54,7 +54,7 @@ export function segmentFontReady(): boolean {
 }
 
 export interface SegmentStyle {
-  colour: string;
+  color: string;
   /** Alpha for lit segments. */
   alpha: number;
   /** Alpha for the unlit ones showing through behind. */
@@ -95,8 +95,8 @@ export function drawSegmentText(
   ctx.lineWidth = size * DRAWN_STROKE;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.fillStyle = style.colour;
-  ctx.strokeStyle = style.colour;
+  ctx.fillStyle = style.color;
+  ctx.strokeStyle = style.color;
 
   const widths = [...text].map((ch) => cellWidth(ctx, ch, size));
   const total = widths.reduce((a, b) => a + b, 0);

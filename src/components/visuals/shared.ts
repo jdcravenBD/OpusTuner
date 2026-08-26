@@ -31,13 +31,13 @@ export interface Palette {
 }
 
 /**
- * Hidden element used to turn a custom property into a real colour.
+ * Hidden element used to turn a custom property into a real color.
  *
  * Reading a custom property back gives the *token stream* it was declared
- * with, not a colour — and since the palette drains its saturation with
+ * with, not a color — and since the palette drains its saturation with
  * `calc(N% * var(--s))`, that stream contains a calc(). Chromium's canvas
  * happens to parse that; relying on every engine to is asking for the screens
- * to silently keep whatever colour they had last, which is exactly the kind of
+ * to silently keep whatever color they had last, which is exactly the kind of
  * failure nobody notices until the tuner looks subtly wrong on one phone.
  *
  * Setting it as a real `color` and reading it back makes the engine do the
@@ -45,7 +45,7 @@ export interface Palette {
  */
 let probe: HTMLElement | null = null;
 
-function resolveColour(name: string, fallback: string): string {
+function resolveColor(name: string, fallback: string): string {
   if (!probe) {
     probe = document.createElement('span');
     probe.setAttribute('aria-hidden', 'true');
@@ -60,11 +60,11 @@ export function readPalette(): Palette {
   return {
     // Gridlines and labels have their own tokens so the screen can be tuned
     // independently of the surrounding chassis.
-    tick: resolveColour('--field-grid', 'var(--tick, rgba(255,255,255,0.17))'),
-    tickHot: resolveColour('--tick-hot', '#e9eef4'),
-    green: resolveColour('--green', '#34e08a'),
-    amber: resolveColour('--amber', '#ffb02e'),
-    text3: resolveColour('--field-label', 'var(--text-3, #5b6573)'),
+    tick: resolveColor('--field-grid', 'var(--tick, rgba(255,255,255,0.17))'),
+    tickHot: resolveColor('--tick-hot', '#e9eef4'),
+    green: resolveColor('--green', '#34e08a'),
+    amber: resolveColor('--amber', '#ffb02e'),
+    text3: resolveColor('--field-label', 'var(--text-3, #5b6573)'),
   };
 }
 
@@ -72,7 +72,7 @@ export function readPalette(): Palette {
 export const FAR_CENTS = 50;
 
 /** Green when in tune, neutral when close, amber once another note is nearer. */
-export function colourFor(p: Palette, cents: number, tolerance: number): string {
+export function colorFor(p: Palette, cents: number, tolerance: number): string {
   const a = Math.abs(cents);
   if (a <= tolerance) return p.green;
   if (a > FAR_CENTS) return p.amber;
@@ -121,7 +121,7 @@ interface Options {
  * is a child of the component that writes --h / --fh onto <html>, and child
  * effects run *before* parent effects — so reading on a themeKey effect would
  * sample the previous hue and leave the canvas a step behind every time the
- * screen colour changes.
+ * screen color changes.
  */
 export function useVisualCanvas(opts: Options): RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement>(null);

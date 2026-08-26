@@ -68,7 +68,7 @@ export function useCurrentTuning(): Tuning {
  *
  * The two hues are written as inline custom properties, which beats the
  * stylesheet's defaults for both light and dark without needing a copy per
- * theme. The browser chrome colour is then read back off the resolved body
+ * theme. The browser chrome color is then read back off the resolved body
  * background rather than hard-coded, so it tracks any hue automatically.
  */
 export function useAppearance(mode: ThemeMode, hue: number): void {
@@ -83,7 +83,7 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
   useEffect(() => {
     const root = document.documentElement;
     /*
-     * Both colourless themes ride on dark's tokens and drain the hue out of
+     * Both colorless themes ride on dark's tokens and drain the hue out of
      * them in CSS, so they resolve to `dark` here and carry flags of their own.
      * Doing either as a palette of its own would mean maintaining another copy
      * of every lightness value.
@@ -91,15 +91,15 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
      * `plain` is the drain and nothing else. `simple` is the drain plus a black
      * chassis and no gradients, so it sets both flags.
      */
-    const colourless = mode === 'plain' || mode === 'simple';
-    root.dataset.theme = colourless ? 'dark' : mode;
-    if (colourless) root.dataset.plain = 'true';
+    const colorless = mode === 'plain' || mode === 'simple';
+    root.dataset.theme = colorless ? 'dark' : mode;
+    if (colorless) root.dataset.plain = 'true';
     else delete root.dataset.plain;
     if (mode === 'simple') root.dataset.simple = 'true';
     else delete root.dataset.simple;
 
     // Tints the browser's own chrome to match, so the app does not sit in a
-    // band of someone else's colour on a phone.
+    // band of someone else's color on a phone.
     const chrome = getComputedStyle(document.body).backgroundColor;
     if (chrome) {
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);

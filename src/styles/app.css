@@ -107,16 +107,16 @@
   --fh: 215;
   /*
    * Saturation scale. Every token built from a hue multiplies its own
-   * saturation by this, so one number drains the colour out of the whole
+   * saturation by this, so one number drains the color out of the whole
    * palette without touching a single lightness value — which is the point:
-   * `plain` is meant to be this theme with the colour off, not a new set of
-   * greys that happen to look similar. Signal colours are literals and are
+   * `plain` is meant to be this theme with the color off, not a new set of
+   * greys that happen to look similar. Signal colors are literals and are
    * unaffected, so green still means in tune.
    */
   --s: 1;
 }
 
-/* ---------------------------------------------------- colourless themes -- */
+/* ---------------------------------------------------- colorless themes -- */
 
 /*
  * Set alongside data-theme="dark" by useAppearance. `plain` drains the hue and
@@ -157,7 +157,7 @@
   --text-3: hsl(var(--h) calc(12% * var(--s)) 40%);
   --text-4: hsl(var(--h) calc(14% * var(--s)) 27%);
 
-  /* Signal colours are semantic, not decorative — they never follow the hue. */
+  /* Signal colors are semantic, not decorative — they never follow the hue. */
   --green: #34e08a;
   --green-soft: rgba(52, 224, 138, 0.13);
   --green-line: rgba(52, 224, 138, 0.36);
@@ -437,7 +437,7 @@ button {
   font-weight: 700;
   line-height: 1;
   color: var(--text-3);
-  /* Dimmed as a whole rather than by moving the colour token, so the ghost
+  /* Dimmed as a whole rather than by moving the color token, so the ghost
      letter keeps its ratio against the rest of the mark. */
   opacity: 0.55;
   user-select: none;
@@ -1909,7 +1909,7 @@ button {
   width: 92px;
 }
 
-/* Nothing to set while the palette has no colour in it. */
+/* Nothing to set while the palette has no color in it. */
 .slider-field[data-disabled='true'] {
   opacity: 0.38;
   pointer-events: none;
@@ -2269,7 +2269,7 @@ button {
  * The rest of the app is drawn as a machined instrument: every face moulded
  * with a lit top edge and a shadow beneath it, the screen recessed into the
  * chassis like a well, an outline around every control. That is what stops the
- * black from reading as simple — not the colour, which had already gone, but a
+ * black from reading as simple — not the color, which had already gone, but a
  * dozen small grey objects sitting on top of it.
  *
  * So simple keeps the layout to the pixel and takes the moulding off. A
@@ -2339,7 +2339,7 @@ button {
 /*
  * Every raised face is a two-stop vertical gradient between adjacent surface
  * tokens, which is exactly what makes it read as moulded. They collapse to the
- * colour at the top of their own ramp.
+ * color at the top of their own ramp.
  */
 :root[data-simple='true'] .icon-btn,
 :root[data-simple='true'] .string,
@@ -2441,9 +2441,9 @@ button {
 }
 
 /*
- * The one colour the drain could not reach. An off switch's knob is a literal
+ * The one color the drain could not reach. An off switch's knob is a literal
  * blue-grey rather than a token, so --s never touched it, and it sat there
- * being faintly blue in a theme with no colour in it at all.
+ * being faintly blue in a theme with no color in it at all.
  */
 :root[data-simple='true'] .switch:not([data-on='true'])::after {
   background: hsl(0 0% 46%);

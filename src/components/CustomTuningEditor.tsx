@@ -46,7 +46,6 @@ export function CustomTuningEditor({
   };
 
   const preview = (midi: number) => {
-    toneEngine.volume = settings.toneVolume;
     toneEngine.play(midiToFreq(midi, settings.a4), 1400);
   };
 
@@ -151,8 +150,7 @@ export function CustomTuningEditor({
           className="btn btn--block"
           style={{ marginTop: 8 }}
           onClick={() => {
-            toneEngine.volume = settings.toneVolume;
-            strings.forEach((m, i) =>
+                    strings.forEach((m, i) =>
               setTimeout(() => toneEngine.play(midiToFreq(m, settings.a4), 900), i * 420),
             );
           }}

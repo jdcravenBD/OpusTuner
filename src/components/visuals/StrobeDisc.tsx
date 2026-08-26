@@ -135,9 +135,9 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
 
       const fade = signalFade.current;
       const alpha = 0.3 + fade * 0.7;
-      // One colour throughout. A strobe answers by moving or not moving, and a
-      // dial that also changes colour is answering the same question twice —
-      // worse, it invites you to read the colour instead of the motion, which
+      // One color throughout. A strobe answers by moving or not moving, and a
+      // dial that also changes color is answering the same question twice —
+      // worse, it invites you to read the color instead of the motion, which
       // is the less precise of the two by a wide margin.
       const hot = p.amber;
 
@@ -221,7 +221,7 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
           : `${rounded > 0 ? '+' : '-'}${Math.abs(rounded)}`;
 
       if (segmentFontReady()) {
-        const style = { colour: hot, alpha, ghost: 0.045 + fade * 0.025 };
+        const style = { color: hot, alpha, ghost: 0.045 + fade * 0.025 };
 
         // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
         const fit = (text: string, size: number) => {

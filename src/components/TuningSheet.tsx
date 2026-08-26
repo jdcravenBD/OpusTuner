@@ -319,7 +319,7 @@ function CustomSection({
       <div className="sheet__label">My tunings</div>
       {tunings.length === 0 && (
         <div className="empty" style={{ padding: '10px 16px 14px' }}>
-          Build any tuning you like &mdash; set the note for each string and save it here.
+          Build any tuning you&rsquo;d like and save it here.
         </div>
       )}
       {tunings.map(render)}
