@@ -61,7 +61,7 @@ export const TIER_FEATURES: { title: string; detail: string }[] = [
   {
     title: 'Every tuning',
     detail:
-      'Drop, open, modal and cross tunings for guitar, bass, ukulele and banjo — thirty-five beyond the standards.',
+      'Drop, open, modal and cross tunings for guitar, bass, ukulele and banjo. Thirty-five beyond the standards.',
   },
   {
     title: 'Unlimited custom tunings',
