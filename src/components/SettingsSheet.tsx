@@ -225,6 +225,10 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Frequency bar"
           />
         </Row>
+      </Section>
+
+      {/* ------------------------------------------------------------- misc */}
+      <Section label="Misc">
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />
         </Row>
