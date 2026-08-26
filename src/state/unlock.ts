@@ -22,11 +22,39 @@ import type { Tuning } from '../music/tunings';
  */
 export const TIER_NAME = 'Full Set';
 
+/**
+ * What it costs, once.
+ *
+ * Written out rather than computed from a store, because there is no store
+ * yet. When one arrives this becomes the localised price it hands back, and
+ * every place that prints it already reads from here.
+ */
+export const PRICE = '$1.99';
+
 /** Custom tunings you can keep without the full set. */
 export const FREE_CUSTOM_TUNINGS = 1;
 
 /** Themes outside the free two. The colorless pair stay free. */
 export const PAID_THEMES = ['dark', 'light'] as const;
+
+/**
+ * The things this is *not*, which for a paid app is half of what anyone wants
+ * to know before they will read the rest.
+ *
+ * Stated as what it is rather than as a complaint about anyone else. Naming a
+ * competitor in your own app reads as insecure, and it dates badly; saying
+ * plainly that nothing here renews makes the same point and is the part a
+ * reader can actually check.
+ */
+export const TIER_ASSURANCES: { title: string; detail: string }[] = [
+  {
+    title: 'No subscription',
+    detail: 'It never renews, because there is nothing to renew.',
+  },
+  { title: 'No ads', detail: 'There have never been any, and there will not be.' },
+  { title: 'No account', detail: 'Nothing to sign up for. Nothing leaves your phone.' },
+  { title: 'Nothing expires', detail: 'Buy it once and it stays bought, on every device you own.' },
+];
 
 /** Everything the tier covers, in the order the showcase lists it. */
 export const TIER_FEATURES: { title: string; detail: string }[] = [

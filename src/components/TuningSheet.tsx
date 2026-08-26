@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Sheet, SHEET_EXIT_MS } from './Sheet';
 import { CustomTuningEditor } from './CustomTuningEditor';
 import { ClockIcon, CloseIcon, LockIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
-import { UnlockSheet } from './UnlockSheet';
+import { PurchaseScreen } from './PurchaseScreen';
 import { customTuningLimitReached, isTuningLocked } from '../state/unlock';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 import { INSTRUMENTS, type InstrumentId, type Tuning } from '../music/tunings';
@@ -301,7 +301,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
         />
       )}
 
-      <UnlockSheet open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
+      <PurchaseScreen open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </>
   );
 }

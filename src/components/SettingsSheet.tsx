@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Sheet } from './Sheet';
 import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
-import { UnlockSheet } from './UnlockSheet';
+import { PurchaseScreen } from './PurchaseScreen';
 import { LockIcon } from './Icons';
 import { TIER_NAME, isThemeLocked } from '../state/unlock';
 import {
@@ -281,7 +281,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           License.
         </div>
       </Section>
-      <UnlockSheet open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
+      <PurchaseScreen open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </Sheet>
   );
 }

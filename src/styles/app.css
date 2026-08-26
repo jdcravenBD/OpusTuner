@@ -2258,16 +2258,6 @@ button {
   pointer-events: none;
 }
 
-/* One step up, so it dims the sheet it was opened from rather than sliding in
-   underneath its scrim. */
-.scrim--stacked {
-  z-index: 60;
-}
-
-.sheet--stacked {
-  z-index: 70;
-}
-
 /* ------------------------------------------------------------------ locked -- */
 
 /*
@@ -2320,62 +2310,336 @@ button {
   opacity: 0.55;
 }
 
-/* ---------------------------------------------------------------- unlock -- */
+/* -------------------------------------------------------------- purchase -- */
 
-.unlock__lede {
-  padding: 2px 2px 4px;
+/*
+ * The one screen that asks for money, and the only one that covers everything.
+ *
+ * A panel would have left a strip of the app showing above it, which reads as
+ * an interruption to be got past. This is the whole surface, it scrolls, and
+ * it closes with a single glyph in the corner that has no button drawn around
+ * it — there is nothing else here to press by accident.
+ */
+.purchase {
+  position: absolute;
+  inset: 0;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-0);
+  animation: purchase-in 260ms var(--ease-out);
+}
+
+.purchase[data-closing='true'] {
+  animation: purchase-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes purchase-in {
+  from {
+    transform: translateY(2.5%);
+    opacity: 0;
+  }
+}
+
+@keyframes purchase-out {
+  to {
+    transform: translateY(1.5%);
+    opacity: 0;
+  }
+}
+
+/*
+ * The glyph has no bounds and the content scrolls under it, so the content has
+ * to get out of its way. A short fade to the screen's own background does that
+ * without drawing anything: at the top there is nothing to fade and it is
+ * invisible, and further down the type dissolves before it reaches the corner
+ * rather than colliding with it.
+ */
+.purchase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 58px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--bg-0) 34%, transparent);
+}
+
+/* No bounds, as asked: a glyph and its hit area, nothing drawn. Sits above the
+   fade so it stays put while the screen moves under it. */
+.purchase__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: var(--text-3);
+  transition: color var(--dur) var(--ease);
+}
+
+.purchase__close:hover {
+  color: var(--text);
+}
+
+.purchase__close:active {
+  transform: scale(0.9);
+}
+
+.purchase__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.purchase__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.purchase__inner {
+  padding: 52px 22px calc(28px + var(--safe-b));
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* --- the top ------------------------------------------------------------- */
+
+.purchase__head {
+  text-align: center;
+}
+
+.purchase__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.purchase__title {
+  margin: 8px 0 0;
+  font-size: 34px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.purchase__lede {
+  margin: 9px auto 0;
+  max-width: 32ch;
   font-size: 14.5px;
   line-height: 1.5;
   color: var(--text-2);
 }
 
-.unlock__lede b {
+.purchase__lede b {
   color: var(--text);
   font-weight: 700;
 }
 
-.unlock__list {
+/* --- gallery ------------------------------------------------------------- */
+
+/*
+ * Full-bleed: the strip runs past both edges of the padded column so it reads
+ * as continuing rather than as a row of cards that happens to move.
+ */
+.gallery {
+  margin: 22px -22px;
+  overflow: hidden;
+  /* Fades the strip out at both ends instead of cutting it, so nothing pops
+     into or out of existence at the edge. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+
+.gallery__track {
+  --gallery-gap: 12px;
+
+  display: flex;
+  gap: var(--gallery-gap);
+  width: max-content;
+  /*
+   * No padding here, and that is load-bearing: a percentage translate resolves
+   * against the *border* box, so any padding on the track is counted into the
+   * -50% and the loop lands short by exactly that much. The fade at each end
+   * gives the strip its breathing room instead.
+   */
+  animation: gallery-slide 42s linear infinite;
+}
+
+/*
+ * The set is rendered twice, and the track slides by exactly one set *plus the
+ * gap after it* — which is not the same as half the track.
+ *
+ * Twelve shots have eleven gaps between them, so half the width is six shots
+ * and five and a half gaps: half a gap short of where the second copy starts.
+ * Left at -50% the strip jumps six pixels every time round. The correction is
+ * that missing half-gap.
+ */
+@keyframes gallery-slide {
+  to {
+    transform: translateX(calc(-50% - var(--gallery-gap) / 2));
+  }
+}
+
+/*
+ * An iPhone 12 screen is 390x844. Real screenshots drop straight in at this
+ * ratio without the strip changing height.
+ */
+.gallery__shot {
+  flex: 0 0 auto;
+  width: 104px;
+  aspect-ratio: 390 / 844;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  box-shadow: var(--hi);
+}
+
+.gallery__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+/* --- price and the button ------------------------------------------------ */
+
+/*
+ * "once" is set as large as the number. The price is not the surprising part
+ * of this screen; that it is the only one is.
+ */
+.purchase__price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+.purchase__amount {
+  /*
+   * The interface font, not the mono one every readout uses. In a monospace
+   * face the decimal point gets a whole character cell to itself and the price
+   * reads "$1 . 99" — which looks like a typesetting fault rather than a
+   * number. This is a price, not a meter.
+   */
+  font-family: var(--font-ui);
+  font-size: 42px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.purchase__once {
+  font-size: 20px;
+  font-weight: 650;
+  color: var(--green);
+}
+
+.purchase__buy {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 52px;
+  margin-top: 16px;
+  border-radius: var(--r-md);
+  background: var(--green);
+  color: #04220f;
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0 30px -10px var(--green-glow);
+  transition: transform 110ms var(--ease);
+}
+
+.purchase__buy:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+.purchase__status {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+  transition: color var(--dur) var(--ease);
+}
+
+.purchase__status[data-shown='true'] {
+  color: var(--amber);
+}
+
+/* --- the two lists ------------------------------------------------------- */
+
+.purchase__block {
+  margin-top: 30px;
+}
+
+.purchase__h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.purchase__list {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
-.unlock__item {
-  padding: 11px 13px;
+.purchase__item {
+  padding: 12px 14px;
   border-radius: var(--r-md);
   background: var(--surface-sunk);
 }
 
-.unlock__item-name {
+.purchase__item-name {
   font-size: 14.5px;
   font-weight: 650;
   color: var(--text);
 }
 
-.unlock__item-desc {
+/* The refusals are the reassuring half, so they carry the colour that means
+   "this is fine" everywhere else in the app. */
+.purchase__list--nots .purchase__item-name {
+  color: var(--green);
+}
+
+.purchase__item-desc {
   margin-top: 3px;
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--text-3);
 }
 
-/* No price and no button — see UnlockSheet. Saying so beats a control that
-   does nothing. */
-.unlock__soon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 16px;
-  padding: 11px;
-  border-radius: var(--r-md);
-  background: var(--surface-sunk);
-  color: var(--text-3);
-  font-size: 12px;
+.purchase__coda {
+  margin: 26px 0 0;
   text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--text-3);
 }
 
 /* ---------------------------------------------------------------- simple -- */
@@ -2450,8 +2714,14 @@ button {
 }
 
 :root[data-simple='true'] .app,
-:root[data-simple='true'] body {
+:root[data-simple='true'] body,
+:root[data-simple='true'] .purchase {
   background: #000000;
+}
+
+/* The fade under the close glyph has to be the same black it is fading from. */
+:root[data-simple='true'] .purchase::before {
+  background: linear-gradient(180deg, #000000 34%, transparent);
 }
 
 /* --- flat faces ---------------------------------------------------------- */
@@ -2469,8 +2739,8 @@ button {
 :root[data-simple='true'] .chip:not([data-on='true']),
 :root[data-simple='true'] .row,
 :root[data-simple='true'] .setting,
-:root[data-simple='true'] .unlock__item,
-:root[data-simple='true'] .unlock__soon,
+:root[data-simple='true'] .purchase__item,
+:root[data-simple='true'] .gallery__shot,
 :root[data-simple='true'] .segmented button[data-on='true'],
 :root[data-simple='true'] .btn,
 :root[data-simple='true'] .editor__string,

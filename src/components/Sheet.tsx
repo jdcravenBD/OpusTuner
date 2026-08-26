@@ -18,21 +18,13 @@ interface Props {
    * changes length between tabs doesn't resize the panel under the user.
    */
   tall?: boolean;
-  /**
-   * Shown over another sheet rather than over the app.
-   *
-   * Without this its scrim sits *below* the panel it was opened from, which
-   * stays at full brightness behind it — the new sheet reads as pasted on top
-   * rather than as the thing being looked at.
-   */
-  stacked?: boolean;
 }
 
 /** How long the panel takes to leave. Matches the sheet-out keyframes. */
 export const SHEET_EXIT_MS = 210;
 
 /** Bottom sheet on phones, centred dialog on wide screens. */
-export function Sheet({ open, title, onClose, children, left, right, tall, stacked }: Props) {
+export function Sheet({ open, title, onClose, children, left, right, tall }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -124,15 +116,9 @@ export function Sheet({ open, title, onClose, children, left, right, tall, stack
 
   return createPortal(
     <>
+      <div className="scrim" data-closing={closing} onClick={onClose} />
       <div
-        className={stacked ? 'scrim scrim--stacked' : 'scrim'}
-        data-closing={closing}
-        onClick={onClose}
-      />
-      <div
-        className={[ 'sheet', tall && 'sheet--tall', stacked && 'sheet--stacked' ]
-          .filter(Boolean)
-          .join(' ')}
+        className={tall ? 'sheet sheet--tall' : 'sheet'}
         data-closing={closing}
         role="dialog"
         aria-modal="true"
