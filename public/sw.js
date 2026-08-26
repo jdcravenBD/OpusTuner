@@ -7,10 +7,14 @@
  *   - everything else -> cache first (Vite emits content-hashed filenames, so a
  *                     cached asset is never stale for its URL)
  *
- * Bump CACHE_VERSION on release to evict the previous build.
+ * CACHE_VERSION is rewritten at build time by the precache-sw plugin, with a
+ * hash of what the build produced. It must not be edited by hand: the value
+ * here is only what the dev server sees, and the point of stamping it is that
+ * the activate handler below — which deletes every cache that is not the
+ * current one — has something to actually delete.
  */
 
-const CACHE_VERSION = 'opustuner-v1';
+const CACHE_VERSION = 'opustuner-dev';
 const SHELL = './index.html';
 
 /**

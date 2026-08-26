@@ -44,8 +44,6 @@ export interface Settings {
   auto: boolean;
   /** Jump to the next untuned string once one lands. */
   autoAdvance: boolean;
-  /** Play a reference tone when a string button is tapped. */
-  referenceTones: boolean;
   /** Play a confirmation chime when a string lands in tune. */
   chimeOnTuned: boolean;
   haptics: boolean;
@@ -100,7 +98,6 @@ export const DEFAULT_SETTINGS: Settings = {
   tolerance: 10,
   auto: true,
   autoAdvance: false,
-  referenceTones: true,
   chimeOnTuned: false,
   haptics: false,
   keepAwake: true,

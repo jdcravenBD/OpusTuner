@@ -164,13 +164,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ------------------------------------------------------------ sound */}
       <Section label="Sound & feedback">
-        <Row name="Reference tones" desc="Tap a string to hear the note you're aiming for.">
-          <Switch
-            on={s.referenceTones}
-            onChange={(v) => set('referenceTones', v)}
-            label="Reference tones"
-          />
-        </Row>
         <Row name="Chime when in tune" desc="A short confirmation when a string lands.">
           <Switch
             on={s.chimeOnTuned}
@@ -275,7 +268,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           Reset settings
         </button>
         <div className="about">
-          Easy as Tuning {appVersion}
+          Easy as Tuning {appVersion} &middot; built {__BUILD_ID__}
           <br />
           Pitch detection by the McLeod Pitch Method — accurate to well under a cent
           on a clean signal.

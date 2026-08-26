@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { tuner } from './tuner/TunerController';
 import { haptic, toneEngine } from './audio/tone';
-import { midiToFreq } from './music/notes';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
 import {
@@ -127,16 +126,9 @@ export default function App() {
 
   /* ------------------------------------------------------------ render --- */
 
-  const selectString = useCallback(
-    (index: number) => {
-      tuner.selectString(index);
-      const midi = targets[index];
-      if (settingsStore.get().referenceTones && midi != null) {
-        toneEngine.play(midiToFreq(midi, settingsStore.get().a4));
-      }
-    },
-    [targets],
-  );
+  const selectString = useCallback((index: number) => {
+    tuner.selectString(index);
+  }, []);
 
   const instrumentName =
     INSTRUMENTS.find((i) => i.id === tuning.instrument)?.name ?? 'Tuning';

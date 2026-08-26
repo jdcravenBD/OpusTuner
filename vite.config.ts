@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, posix, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
@@ -42,10 +43,24 @@ function precacheServiceWorker(): Plugin {
           return; // no dist to annotate
         }
 
+        /*
+         * The cache name carries the build, and that is not cosmetic.
+         *
+         * It was a hard-coded 'opustuner-v1' with a comment asking whoever
+         * shipped to bump it, and nobody ever did — which made the worker's
+         * activate step, the one that deletes every cache that is not the
+         * current version, a permanent no-op. Files from old builds sat in
+         * there for good. Hashing the asset list means the name changes
+         * exactly when the output does: a rebuild that changed nothing re-uses
+         * the cache, and one that changed anything throws the old one away.
+         */
+        const stamp = createHash('sha1').update(assets.join('|')).digest('hex').slice(0, 10);
         const list = assets.map((f) => `  './${f}',`).join('\n');
-        const sw = readFileSync(swPath, 'utf8');
-        writeFileSync(swPath, sw.replace('  /* BUILD_ASSETS */', list), 'utf8');
-        this.info(`precached ${assets.length} assets into sw.js`);
+        const sw = readFileSync(swPath, 'utf8')
+          .replace('  /* BUILD_ASSETS */', list)
+          .replace(/const CACHE_VERSION = '[^']*';/, `const CACHE_VERSION = 'opustuner-${stamp}';`);
+        writeFileSync(swPath, sw, 'utf8');
+        this.info(`precached ${assets.length} assets into sw.js (${stamp})`);
       },
     },
   };
@@ -99,6 +114,18 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 4440,
     strictPort: true,
+  },
+
+  /*
+   * Stamped into the About panel, so "which build is this handset actually
+   * running" is answerable by looking rather than by guessing. It is the
+   * question that comes up every time something works on the dev server and
+   * not on the phone.
+   */
+  define: {
+    __BUILD_ID__: JSON.stringify(
+      new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC',
+    ),
   },
 
   build: {
