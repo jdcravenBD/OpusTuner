@@ -116,12 +116,11 @@
   --s: 1;
 }
 
-/* ---------------------------------------------------- colorless themes -- */
+/* ---------------------------------------------------- colorless theme  -- */
 
 /*
  * Set alongside data-theme="dark" by useAppearance. `plain` drains the hue and
- * changes nothing else. `simple` carries this too, and adds data-simple, which
- * takes the chassis to black and the gradients off — see the foot of the file.
+ * changes nothing else: same lightness values, same moulding, same gradients.
  */
 :root[data-plain='true'] {
   --s: 0;
@@ -2102,6 +2101,17 @@ button {
   width: 100%;
 }
 
+/*
+ * Reset stands well clear of the row above it.
+ *
+ * A block button hard against a setting reads as part of that setting, and
+ * this one throws away every choice on the sheet. It should have to be
+ * reached for deliberately, not brushed on the way past the last switch.
+ */
+.sheet__reset {
+  margin-top: 26px;
+}
+
 .about {
   padding: 16px 6px 4px;
   text-align: center;
@@ -2407,11 +2417,10 @@ button {
   display: flex;
   flex-direction: column;
   /*
-   * The chassis, not a flat card. This was built flat, which is the *simple*
-   * theme's language rather than the app's — every other surface here is
-   * moulded, and a screen that is not looks like it belongs to a different
-   * program. Same gradient stack as .app, so it reads as the app opening out.
-   * Simple flattens it again at the foot of this file, where it should.
+   * The chassis, not a flat card. It was built flat once and looked like it
+   * belonged to a different program — every other surface in the app is
+   * moulded, and a screen that is not reads as foreign. Same gradient stack
+   * as .app, so it opens out of the app rather than covering it.
    */
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
@@ -2770,266 +2779,6 @@ button {
   font-style: italic;
   line-height: 1.55;
   color: var(--text-3);
-}
-
-/* ---------------------------------------------------------------- simple -- */
-
-/*
- * Everything the simple theme paints differently, in one place.
- *
- * The hue is already gone by here — it went with data-plain, which simple
- * carries too and which is all the plain theme does. What is left is *shape*.
- *
- * The rest of the app is drawn as a machined instrument: every face moulded
- * with a lit top edge and a shadow beneath it, the screen recessed into the
- * chassis like a well, an outline around every control. That is what stops the
- * black from reading as simple — not the color, which had already gone, but a
- * dozen small grey objects sitting on top of it.
- *
- * So simple keeps the layout to the pixel and takes the moulding off. A
- * control at rest is a soft dark region and nothing else: no outline, no lift,
- * no shadow underneath. The only things still allowed an edge are the ones
- * with something to say — the string you are on, a string that has landed, the
- * tuning you just chose — and they get a crisp ring rather than a halo.
- *
- * Nothing is hidden here that the other themes show. Same app, same furniture,
- * same positions; the moulding is simply gone.
- */
-
-:root[data-simple='true'] {
-  /*
-   * Barely off the ground. At nine per cent these read as grey cards floating
-   * on the black. Down here they are regions instead — still findable with a
-   * thumb on an OLED, no longer objects with an underneath.
-   */
-  --surface: hsl(0 0% 5.5%);
-  --surface-hi: hsl(0 0% 9.4%);
-  --surface-press: hsl(0 0% 3.2%);
-  --surface-raised-a: hsl(0 0% 6.6%);
-  --surface-raised-b: hsl(0 0% 6.6%);
-  --surface-sunk: hsl(0 0% 4.2%);
-
-  /*
-   * The resting outline goes. Transparent rather than removed, so every box
-   * keeps the pixel it already occupies and nothing shifts by a hair — this is
-   * a cosmetic theme and it may not move anything.
-   *
-   * --border-strong is left alone: it is a fill, not an edge (the sheet's grab
-   * handle is painted with it), and it would vanish.
-   */
-  --border: transparent;
-  --border-hi: transparent;
-
-  /*
-   * No moulding anywhere — no lit top edge, no shadow beneath, no press.
-   *
-   * Transparent rather than `none`, and the difference matters: these are
-   * composed into shadow *lists* all over the stylesheet, and
-   * `box-shadow: none, 0 0 0 2px green` is not valid CSS. The whole
-   * declaration would be dropped, taking the state ring with it.
-   */
-  --hi: 0 0 transparent;
-  --hi-strong: 0 0 transparent;
-  --sunk: 0 0 transparent;
-  --elev-1: 0 0 transparent;
-  --elev-2: 0 0 transparent;
-  --elev-3: 0 0 transparent;
-  --shadow: 0 0 transparent;
-
-  /*
-   * The one hairline the theme keeps, for the two places a line is structure
-   * rather than decoration — see the rule further down.
-   */
-  --rule: rgba(255, 255, 255, 0.09);
-}
-
-/*
- * Not quite black.
- *
- * True black gave the theme nothing to sit on: the screen and the panels had
- * to be lighter than the ground to be seen at all, which put the *display*
- * above the chassis in the one place it should be below it. A few per cent of
- * light here buys a floor to recess things into.
- */
-:root[data-simple='true'] .app,
-:root[data-simple='true'] body,
-:root[data-simple='true'] .purchase {
-  background: hsl(0 0% 4.3%);
-}
-
-/* The fade under the close glyph has to be the same ground it fades from. */
-:root[data-simple='true'] .purchase::before {
-  background: linear-gradient(180deg, hsl(0 0% 4.3%) 34%, transparent);
-}
-
-
-
-/* --- flat faces ---------------------------------------------------------- */
-
-/*
- * Every raised face is a two-stop vertical gradient between adjacent surface
- * tokens, which is exactly what makes it read as moulded. They collapse to the
- * color at the top of their own ramp.
- */
-/* Sitting on the chassis, so lighter than the ground behind them. */
-:root[data-simple='true'] .icon-btn,
-:root[data-simple='true'] .string,
-:root[data-simple='true'] .string[data-tuned='true'],
-:root[data-simple='true'] .tuning-btn,
-:root[data-simple='true'] .toggle,
-:root[data-simple='true'] .segmented button[data-on='true'],
-:root[data-simple='true'] .btn,
-:root[data-simple='true'] .powergate__btn {
-  background: var(--surface-raised-a);
-}
-
-/*
- * Sitting on a panel, so darker than it — the other way round from the list
- * above, and the reason this cannot be one value.
- *
- * These were within two per cent of the sheet behind them and the rows ran
- * together into one grey field. Everywhere else in the app a row is separated
- * from its panel by a lit top edge and a border; with both of those gone,
- * tone is all there is left to do it with.
- */
-:root[data-simple='true'] .row,
-:root[data-simple='true'] .setting,
-:root[data-simple='true'] .chip:not([data-on='true']),
-:root[data-simple='true'] .editor__string,
-:root[data-simple='true'] .purchase__item,
-:root[data-simple='true'] .gallery__shot {
-  background: hsl(0 0% 2.6%);
-}
-
-/*
- * The selected instrument filter stays a white chip with dark type. Flattening
- * it too would have been a nice, quiet mistake: the fill would have gone and
- * `color: var(--bg-0)` would have stayed, leaving dark text on a dark chip and
- * the current filter unreadable. It is a state, and states keep themselves.
- */
-:root[data-simple='true'] .chip[data-on='true'] {
-  box-shadow: none;
-}
-
-/* The lifted states sit one step up the same ramp, so they stay separable. */
-:root[data-simple='true'] .string[data-active='true'],
-:root[data-simple='true'] .string[data-tuned='true'][data-active='true'] {
-  background: var(--surface-hi);
-}
-
-:root[data-simple='true'] .sheet {
-  background: var(--bg-1);
-}
-
-/* Disabled in this theme anyway — a spectrum there would be advertising a
-   choice that does nothing. */
-:root[data-simple='true'] .slider--hue {
-  background: var(--surface-sunk);
-}
-
-:root[data-simple='true'] .btn--primary,
-:root[data-simple='true'] .purchase__buy {
-  background: var(--green);
-}
-
-/* --- the screen ---------------------------------------------------------- */
-
-/*
- * A shade apart from the page, an edge, and nothing else.
- *
- * Elsewhere this is a well: a near-black border, an inner shadow raking in
- * from the top, and a lit ring outside it, so the opening reads as machined
- * into the chassis. Here it is simply a darker rectangle with a hairline —
- * enough that the display is still a display, with none of the depth.
- */
-/*
- * The darkest thing on the chassis, which is what a screen set into a case
- * actually looks like. Everywhere else that recess is drawn with an inner
- * shadow; there is no shadow to draw with here, so the hole has to be a hole
- * by being darker than the ground around it.
- */
-:root[data-simple='true'] .field {
-  background: hsl(0 0% 1.6%);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: none;
-}
-
-/* --- lines that are structure -------------------------------------------- */
-
-/*
- * The two places a rule survives. Both sit *inside* a filled strip and
- * separate fields that would otherwise run together into one string of
- * numbers: A440 / ±10¢ / NO CAPO across the top, and IN / TGT / Δ under the
- * screen. Everything else that was a line has gone.
- */
-:root[data-simple='true'] .status__seg + .status__seg,
-:root[data-simple='true'] .readout__cell + .readout__cell {
-  border-left-color: var(--rule);
-}
-
-/* --- states keep their edge ---------------------------------------------- */
-
-/*
- * With the resting outline gone, a ring means something again: it is the only
- * edge on the screen, so it can only be the live string, a string that has
- * landed, or the tuning under your finger. The diffuse glow that used to sit
- * behind each ring was the same moulding as everything else, so it goes and
- * the ring stays crisp.
- */
-:root[data-simple='true'] .string[data-active='true'] {
-  box-shadow: 0 0 0 2px var(--select-ring);
-}
-
-:root[data-simple='true'] .string[data-tuned='true'][data-active='true'] {
-  box-shadow: 0 0 0 2px var(--green);
-}
-
-:root[data-simple='true'] .row[data-selected='true'] {
-  box-shadow: 0 0 0 1px var(--green-line);
-}
-
-:root[data-simple='true'] .row[data-picked='true'] {
-  box-shadow: 0 0 0 1px var(--green);
-}
-
-/*
- * The one color the drain could not reach. An off switch's knob is a literal
- * blue-grey rather than a token, so --s never touched it, and it sat there
- * being faintly blue in a theme with no color in it at all.
- */
-:root[data-simple='true'] .switch:not([data-on='true'])::after {
-  background: hsl(0 0% 46%);
-}
-
-/* Punched out of the page rather than stuck on top of it. */
-:root[data-simple='true'] .string__check {
-  box-shadow: 0 0 0 2.5px #000000;
-}
-
-/* --- the last of the moulding -------------------------------------------- */
-
-/* Written out in full rather than through a token, so the tokens above cannot
-   reach them. */
-:root[data-simple='true'] .sheet,
-:root[data-simple='true'] .toggle__track,
-:root[data-simple='true'] .toggle__knob,
-:root[data-simple='true'] .switch[data-on='true'],
-:root[data-simple='true'] .switch::after,
-:root[data-simple='true'] .btn--primary,
-:root[data-simple='true'] .purchase__buy {
-  box-shadow: none;
-}
-
-:root[data-simple='true'] .slider::-webkit-slider-thumb {
-  background: #ffffff;
-  border-color: transparent;
-  box-shadow: none;
-}
-
-:root[data-simple='true'] .slider::-moz-range-thumb {
-  background: #ffffff;
-  border-color: transparent;
-  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

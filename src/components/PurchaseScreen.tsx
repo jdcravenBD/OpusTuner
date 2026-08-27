@@ -151,7 +151,7 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
  * app is analysing audio behind it.
  */
 function Gallery() {
-  const shots = ['Simple', 'Plain', 'Dark', 'Light', 'Strobe', 'Needle'];
+  const shots = ['Plain', 'Dark', 'Light', 'Needle', 'Strobe', 'Tunings'];
   return (
     <div className="gallery" aria-hidden>
       <div className="gallery__track">

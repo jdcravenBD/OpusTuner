@@ -15,17 +15,16 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /* ----------------------------------------------------------------- types -- */
 
 /**
- * Two colorless themes, differing in how far they go.
+ * Three themes, one of which is not a palette of its own.
  *
  * `plain` is dark with every hue drained out of it and nothing else changed —
- * same lightness values, same moulding. `simple` takes that further: a pure
- * black chassis and no gradients anywhere, so every surface is flat. The
- * signal colors survive both; they mean something.
+ * same lightness values, same moulding. The signal colors survive it; they
+ * mean something.
  */
-export type ThemeMode = 'simple' | 'plain' | 'dark' | 'light';
+export type ThemeMode = 'plain' | 'dark' | 'light';
 
 /** Every theme on offer, in the order the picker shows them. */
-export const THEMES: ThemeMode[] = ['simple', 'plain', 'dark', 'light'];
+export const THEMES: ThemeMode[] = ['plain', 'dark', 'light'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /** Every in-tune window on offer, in the order the picker shows them. */
@@ -210,8 +209,9 @@ export const settingsStore = createStore<Settings>(
     // ±3¢ was dropped from the choices; anyone holding it would otherwise see
     // an in-tune window the settings panel shows no button for.
     tolerance: TOLERANCES.includes(s.tolerance) ? s.tolerance : DEFAULT_SETTINGS.tolerance,
-    // 'system' was dropped from the picker; anyone holding it would otherwise
-    // sit on a theme with no button, exactly as with the tolerance above.
+    // 'system', and later 'simple', were dropped from the picker; anyone still
+    // holding one would otherwise sit on a theme with no button, exactly as
+    // with the tolerance above.
     theme: THEMES.includes(s.theme) ? s.theme : DEFAULT_SETTINGS.theme,
   }),
 );

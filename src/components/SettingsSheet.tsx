@@ -28,8 +28,8 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
-  /* Both colorless themes leave the hue pickers with nothing to set. */
-  const colorless = s.theme === 'plain' || s.theme === 'simple';
+  /* The colorless theme leaves the hue pickers with nothing to set. */
+  const colorless = s.theme === 'plain';
   /** Names what the reader reached for, and opens the showcase. */
   const [wanted, setWanted] = useState<string | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -185,7 +185,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           <Segmented
             value={s.theme}
             options={[
-              { value: 'simple' as ThemeMode, label: 'Simple' },
               { value: 'plain' as ThemeMode, label: 'Plain' },
               { value: 'dark' as ThemeMode, label: 'Dark', locked: isThemeLocked('dark', s.owned) },
               {
@@ -259,8 +258,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           <Switch on={s.owned} onChange={(v) => set('owned', v)} label={`${TIER_NAME}`} />
         </Row>
         <button
-          className="btn btn--block"
-          style={{ marginTop: 14 }}
+          className="btn btn--block sheet__reset"
           onClick={() => {
             if (confirm('Reset every setting to its default?')) settingsStore.reset();
           }}

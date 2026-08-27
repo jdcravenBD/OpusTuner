@@ -83,20 +83,15 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
   useEffect(() => {
     const root = document.documentElement;
     /*
-     * Both colorless themes ride on dark's tokens and drain the hue out of
-     * them in CSS, so they resolve to `dark` here and carry flags of their own.
-     * Doing either as a palette of its own would mean maintaining another copy
-     * of every lightness value.
-     *
-     * `plain` is the drain and nothing else. `simple` is the drain plus a black
-     * chassis and no gradients, so it sets both flags.
+     * `plain` rides on dark's tokens and drains the hue out of them in CSS, so
+     * it resolves to `dark` here and carries a flag of its own. Doing it as a
+     * palette of its own would mean maintaining a second copy of every
+     * lightness value to no end: the numbers are the same, the color is not.
      */
-    const colorless = mode === 'plain' || mode === 'simple';
-    root.dataset.theme = colorless ? 'dark' : mode;
-    if (colorless) root.dataset.plain = 'true';
+    const plain = mode === 'plain';
+    root.dataset.theme = plain ? 'dark' : mode;
+    if (plain) root.dataset.plain = 'true';
     else delete root.dataset.plain;
-    if (mode === 'simple') root.dataset.simple = 'true';
-    else delete root.dataset.simple;
 
     // Tints the browser's own chrome to match, so the app does not sit in a
     // band of someone else's color on a phone.
