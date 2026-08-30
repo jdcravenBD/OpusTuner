@@ -17,10 +17,17 @@ const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'i
 
 /* ------------------------------------------------------------------ paint -- */
 
-/** Matches the app chassis: graphite body, signal-green mark. */
+/**
+ * Signal green on black.
+ *
+ * The chassis gradient the icon used to carry has gone flat: on an OLED a
+ * true black icon has no edges of its own, so the letters sit on the home
+ * screen rather than on a tile placed there. The green is the app's, the
+ * same one that means in tune.
+ */
 const GREEN = [0x34, 0xe0, 0x8a];
-const BG_TOP = [0x1b, 0x20, 0x27];
-const BG_BOTTOM = [0x08, 0x09, 0x0b];
+const BG_TOP = [0x00, 0x00, 0x00];
+const BG_BOTTOM = [0x00, 0x00, 0x00];
 
 /** Squared distance from (px,py) to the segment (ax,ay)-(bx,by). */
 function distToSegment(px, py, ax, ay, bx, by) {
@@ -43,39 +50,67 @@ function insideRoundedRect(x, y, r) {
   return Math.hypot(x - cx, y - cy) <= r;
 }
 
-function onArc(x, y, cx, cy, radius, width, a0, a1) {
-  const dx = x - cx;
-  const dy = y - cy;
-  const d = Math.hypot(dx, dy);
-  const half = width / 2;
-  if (Math.abs(d - radius) > half) {
-    // round caps
-    return (
-      Math.hypot(x - (cx + Math.cos(a0) * radius), y - (cy + Math.sin(a0) * radius)) <= half ||
-      Math.hypot(x - (cx + Math.cos(a1) * radius), y - (cy + Math.sin(a1) * radius)) <= half
-    );
-  }
-  const a = Math.atan2(dy, dx);
-  return a >= a0 && a <= a1;
-}
+/** Stroke weight, as a fraction of the content box. */
+const STROKE_W = 0.085;
 
 /**
- * The mark, in a normalised 0..1 content box. Mirrors <LogoMark> in the app so
- * the launcher icon and the in-app splash are the same drawing.
+ * EAT, as stroke segments in a normalised 0..1 content box.
+ *
+ * Drawn rather than set in a typeface, and the three letters are why it is
+ * possible: E, A and T are the whole alphabet's easiest, every one of them
+ * straight lines. So this file still has no font to load and no rasteriser to
+ * depend on — it is arithmetic and zlib, and it runs on a clean checkout of
+ * any platform.
+ *
+ * The segments are the single source for both the rasteriser below and the
+ * SVG further down, so the favicon cannot drift away from the app icon.
  */
+const STROKES = (() => {
+  const W = STROKE_W;
+  const LW = 0.28; // letter width
+  const GAP = 0.08; // between letters; 3 * LW + 2 * GAP is exactly 1
+
+  // Ends inset by half the stroke: distToSegment draws a capsule, so a
+  // segment run edge to edge would round out past the box it is measured in.
+  const top = 0.24 + W / 2;
+  const bot = 0.76 - W / 2;
+  const mid = (top + bot) / 2;
+
+  const e = 0;
+  const a = LW + GAP;
+  const tee = 2 * (LW + GAP);
+  const apex = a + LW / 2;
+
+  // Where the A's crossbar meets its legs.
+  //
+  // Low. At two thirds the counter above it was a sliver -- the strokes are
+  // nearly a third of a letter's width, so a bar set where a text face would
+  // put it leaves a hole that closes up entirely by 29 px and turns the A into
+  // a solid triangle.
+  const f = 0.74;
+  const inset = (LW / 2 - W / 2) * f;
+  const barY = top + (bot - top) * f;
+
+  return [
+    /* E */
+    [e + W / 2, top, e + W / 2, bot],
+    [e + W / 2, top, e + LW - W / 2, top],
+    [e + W / 2, mid, e + LW - W * 0.9, mid],
+    [e + W / 2, bot, e + LW - W / 2, bot],
+    /* A */
+    [a + W / 2, bot, apex, top],
+    [a + LW - W / 2, bot, apex, top],
+    [apex - inset, barY, apex + inset, barY],
+    /* T */
+    [tee + W / 2, top, tee + LW - W / 2, top],
+    [tee + LW / 2, top, tee + LW / 2, bot],
+  ];
+})();
+
 function markAlpha(x, y) {
-  const W = 0.11; // stroke width — heavy enough to stay legible at 16 px
-
-  // tines
-  if (distToSegment(x, y, 0.32, 0.12, 0.32, 0.44) <= W / 2) return 1;
-  if (distToSegment(x, y, 0.68, 0.12, 0.68, 0.44) <= W / 2) return 1;
-  // bowl joining them
-  if (onArc(x, y, 0.5, 0.44, 0.18, W, 0, Math.PI)) return 1;
-  // handle
-  if (distToSegment(x, y, 0.5, 0.62, 0.5, 0.78) <= W / 2) return 1;
-  // tip
-  if (Math.hypot(x - 0.5, y - 0.845) <= 0.085) return 1;
-
+  for (const [ax, ay, bx, by] of STROKES) {
+    if (distToSegment(x, y, ax, ay, bx, by) <= STROKE_W / 2) return 1;
+  }
   return 0;
 }
 
@@ -221,19 +256,24 @@ function encodePng(rgba, size, opaque = false) {
 
 /* ------------------------------------------------------------------ build -- */
 
+/*
+ * The favicon, written from the very same segments so it cannot drift.
+ *
+ * 0.78 matches the scale the 512 icon is drawn at, and 96 is the viewBox, so
+ * a stroke here is the same fraction of the square that it is in the PNGs.
+ */
+const SVG_SCALE = 0.78;
+const svgPos = (v) => (48 + (v - 0.5) * 96 * SVG_SCALE).toFixed(2);
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1B2027"/>
-      <stop offset="1" stop-color="#08090B"/>
-    </linearGradient>
-  </defs>
-  <rect width="96" height="96" rx="21" fill="url(#bg)"/>
-  <g stroke="#34E08A" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="10.5">
-    <path d="M31 12v30a17 17 0 0 0 34 0V12"/>
-    <path d="M48 59v16"/>
+  <rect width="96" height="96" rx="21" fill="#000000"/>
+  <g stroke="#34E08A" fill="none" stroke-linecap="round" stroke-width="${(
+    STROKE_W * 96 * SVG_SCALE
+  ).toFixed(2)}">
+${STROKES.map(
+  ([ax, ay, bx, by]) =>
+    `    <path d="M${svgPos(ax)} ${svgPos(ay)}L${svgPos(bx)} ${svgPos(by)}"/>`,
+).join('\n')}
   </g>
-  <circle cx="48" cy="81" r="8.2" fill="#34E08A"/>
 </svg>
 `;
 
