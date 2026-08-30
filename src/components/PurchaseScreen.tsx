@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckIcon, CloseIcon } from './Icons';
 import { useEscape } from '../hooks';
+import { buyFullSet, restoreFullSet, getStore, type Outcome } from '../state/purchases';
 import { PRICE, TIER_ASSURANCES, TIER_FEATURES, TIER_NAME } from '../state/unlock';
 
 interface Props {
@@ -28,8 +29,17 @@ const EXIT_MS = 200;
  */
 export function PurchaseScreen({ open, onClose, wanted }: Props) {
   const [closing, setClosing] = useState(false);
-  /** Which button was pressed, so the line underneath can answer it. */
-  const [tapped, setTapped] = useState<'buy' | 'restore' | null>(null);
+  /** What is happening, so the line under the button can say it. */
+  const [busy, setBusy] = useState<'buy' | 'restore' | null>(null);
+  const [result, setResult] = useState<{ outcome: Outcome; from: 'buy' | 'restore' } | null>(
+    null,
+  );
+  /*
+   * The store's own price, which is the localised one and the only one that
+   * is true in every country. PRICE is the fallback for a store that cannot
+   * be reached — a number on the screen beats a gap where one should be.
+   */
+  const [storePrice, setStorePrice] = useState<string | null>(null);
 
   /* Same shape as Sheet: adjusted during render so the screen is mounted on
      the commit `open` turns true, and starts its exit without a frame of
@@ -39,7 +49,8 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
     setPrevOpen(open);
     if (open) {
       setClosing(false);
-      setTapped(null);
+      setBusy(null);
+      setResult(null);
     } else {
       setClosing(true);
     }
@@ -50,6 +61,30 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
     const timer = setTimeout(() => setClosing(false), EXIT_MS);
     return () => clearTimeout(timer);
   }, [closing]);
+
+  /* Asked once each time the screen opens, and ignored if it closes first. */
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void getStore()
+      .price()
+      .then((p) => live && setStorePrice(p))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [open]);
+
+  const run = async (from: 'buy' | 'restore') => {
+    if (busy) return;
+    setBusy(from);
+    setResult(null);
+    const outcome = from === 'buy' ? await buyFullSet() : await restoreFullSet();
+    setBusy(null);
+    setResult({ outcome, from });
+    // Nothing more to sell. Let them see it land, then get out of the way.
+    if (outcome === 'owned') setTimeout(onClose, 900);
+  };
 
   useEscape(open, onClose);
 
@@ -106,20 +141,25 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
             * is.
             */}
           <div className="purchase__price">
-            <span className="purchase__amount">{PRICE}</span>
+            <span className="purchase__amount">{storePrice ?? PRICE}</span>
             <span className="purchase__once">once</span>
           </div>
 
-          <button className="purchase__buy" onClick={() => setTapped('buy')}>
-            Unlock {TIER_NAME}
+          <button
+            className="purchase__buy"
+            onClick={() => void run('buy')}
+            disabled={busy !== null}
+          >
+            {busy === 'buy' ? 'Contacting the App Store' + ELLIPSIS : `Unlock ${TIER_NAME}`}
           </button>
 
-          <div className="purchase__status" data-shown={tapped !== null}>
-            {tapped === 'buy'
-              ? 'Not on sale yet — the store is not wired up.'
-              : tapped === 'restore'
-                ? 'Nothing to restore yet — the store is not wired up.'
-                : 'One payment. It never becomes a subscription.'}
+          <div
+            className="purchase__status"
+            data-shown={result !== null}
+            data-good={result?.outcome === 'owned'}
+            role="status"
+          >
+            {statusLine(result)}
           </div>
 
           {/*
@@ -128,8 +168,12 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
             * non-consumable purchase and rejects without it (review guideline
             * 3.1.1), and it has to be reachable without paying a second time.
             */}
-          <button className="purchase__restore" onClick={() => setTapped('restore')}>
-            Already bought it? Restore
+          <button
+            className="purchase__restore"
+            onClick={() => void run('restore')}
+            disabled={busy !== null}
+          >
+            {busy === 'restore' ? 'Checking' + ELLIPSIS : 'Already bought it? Restore'}
           </button>
 
           {/*
@@ -161,4 +205,30 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
     </div>,
     host,
   );
+}
+
+/** Written as a character rather than typed, so the source stays ASCII. */
+const ELLIPSIS = '\u2026';
+
+/**
+ * What the line under the button says.
+ *
+ * A cancelled purchase is not a failure and must not be dressed as one — the
+ * reader chose that, and telling them something went wrong when they simply
+ * changed their mind reads as a nag. It says nothing at all instead.
+ */
+function statusLine(result: { outcome: Outcome; from: 'buy' | 'restore' } | null): string {
+  if (!result) return 'One payment. It never becomes a subscription.';
+  switch (result.outcome) {
+    case 'owned':
+      return result.from === 'buy' ? 'Bought. Everything is open.' : 'Found it. Everything is open.';
+    case 'cancelled':
+      return 'One payment. It never becomes a subscription.';
+    case 'nothing-to-restore':
+      return 'Nothing on this Apple ID to restore.';
+    case 'unavailable':
+      return 'The App Store is not available here yet.';
+    default:
+      return 'That did not go through. Nothing has been charged.';
+  }
 }

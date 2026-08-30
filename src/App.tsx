@@ -3,6 +3,7 @@ import { tuner } from './tuner/TunerController';
 import { toneEngine } from './audio/tone';
 import { haptic } from './haptics';
 import { isNative } from './platform';
+import { reconcileEntitlement } from './state/purchases';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
 import {
@@ -160,6 +161,18 @@ export default function App() {
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  /*
+   * What this Apple ID already owns, asked once on the way in.
+   *
+   * This is what makes a reinstall, a new handset or a restored backup come
+   * back with the full set already open, without anyone having to know there
+   * is a Restore button. It only ever turns the flag on — see
+   * reconcileEntitlement.
+   */
+  useEffect(() => {
+    void reconcileEntitlement();
   }, []);
 
   useEffect(() => () => tuner.dispose(), []);

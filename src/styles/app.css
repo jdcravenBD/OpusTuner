@@ -2630,6 +2630,22 @@ button {
   color: var(--amber);
 }
 
+/* It worked, so it is not a warning. */
+.purchase__status[data-good='true'] {
+  color: var(--green);
+}
+
+/* Both buttons go quiet while either one is working, so a second press
+   cannot start a second transaction on top of the first. */
+.purchase__buy:disabled,
+.purchase__restore:disabled {
+  opacity: 0.55;
+}
+
+.purchase__buy:disabled {
+  transform: none;
+}
+
 /*
  * Set as plain underlined text rather than as a second button.
  *
