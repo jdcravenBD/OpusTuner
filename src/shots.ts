@@ -13,16 +13,22 @@
  * spectrum. Everything downstream of the microphone is the real code doing real
  * work: the same pitch detection, the same smoothing, the same needle.
  *
- * It also unlocks the full set, since a screenshot of a locked feature is not
- * what anyone wants on a store page. **That sticks.** `owned` is a stored
- * setting like any other, so it survives leaving this URL, and the app then
- * looks paid-for on plain `/` until the settings are reset. That has already
- * caused one round of "why is everything unlocked", so the console line below
- * says so on the way in.
+ * It also decides the entitlement, because both answers need photographing
+ * and neither is reachable from the other. `?shots` unlocks the full set, for
+ * the tuner, the settings and the tuning lists. `?shots=locked` does the
+ * opposite, which is the only way to reach the purchase screen at all: it
+ * opens when a locked feature is pressed, so with everything unlocked there
+ * is nothing to press.
+ *
+ * **Either way it sticks.** `owned` is a stored setting like any other and
+ * survives leaving this URL, so plain `/` keeps whichever answer was set
+ * last. That has already caused one round of "why is everything unlocked",
+ * so the console line below says so on the way in.
  *
  * ## Using it
  *
  *   npm run dev, then open http://localhost:5440/?shots
+ *                or http://localhost:5440/?shots=locked
  *
  * Tap the power button once, because starting audio still needs a real gesture
  * and faking that would be faking the wrong thing. Then from the console:
@@ -77,7 +83,14 @@ function retune(frequency: number): void {
 }
 
 export function installScreenshotRig(): void {
-  settingsStore.set({ owned: true });
+  const locked = (() => {
+    try {
+      return new URLSearchParams(location.search).get('shots') === 'locked';
+    } catch {
+      return false;
+    }
+  })();
+  settingsStore.set({ owned: !locked });
 
   navigator.mediaDevices.getUserMedia = async () => {
     const Ctor: typeof AudioContext =
@@ -131,9 +144,15 @@ export function installScreenshotRig(): void {
       '  __shots.cents(7)     seven cents sharp of the selected string',
       '  __shots.hz(146.83)   a specific note',
       '',
-      'The full set is now unlocked, and that is a saved setting: it stays',
-      'unlocked on plain / too. Settings > Reset settings puts it back, or',
-      'run localStorage.clear() here.',
+      locked
+        ? 'The full set is LOCKED, for photographing the paywall. Open Settings'
+        : 'The full set is UNLOCKED, for photographing everything else.',
+      locked
+        ? 'and tap Dark under Theme to bring up the purchase screen.'
+        : 'Use ?shots=locked for the purchase screen.',
+      '',
+      'Either way that is a saved setting and stays put on plain / too.',
+      'Settings > Reset settings undoes it, or localStorage.clear() here.',
     ].join(String.fromCharCode(10)),
   );
 }
