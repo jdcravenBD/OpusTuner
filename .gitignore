@@ -23,3 +23,8 @@ Thumbs.db
 # The generated parts inside them are ignored by ios/.gitignore, which
 # Capacitor writes and maintains.
 /android
+
+# Somewhere to drop Chrome's captures before `npm run shots:fit` squares them
+# up. Store screenshots are a megabyte each and belong in App Store Connect,
+# not in the history.
+/shots
