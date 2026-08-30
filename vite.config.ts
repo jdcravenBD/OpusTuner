@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, posix, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import pkg from './package.json' with { type: 'json' };
 import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 
@@ -126,6 +127,15 @@ export default defineConfig(({ mode }) => ({
     __BUILD_ID__: JSON.stringify(
       new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC',
     ),
+    /*
+     * One version number, read from package.json.
+     *
+     * It was written out three times — here in the app, in package.json, and
+     * as MARKETING_VERSION in the Xcode project — and three copies of a number
+     * nobody updates together is three numbers. The CI script sets the Xcode
+     * one from this same field, so `npm version` moves all of them.
+     */
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
 
   build: {

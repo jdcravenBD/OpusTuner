@@ -25,7 +25,7 @@ import { DebugHud, debugRequested } from './components/DebugHud';
 import { ChevronUpIcon, GearIcon, ResetIcon } from './components/Icons';
 import type { EngineError } from './audio/AudioEngine';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = __APP_VERSION__;
 
 export default function App() {
   const settings = useSettings();

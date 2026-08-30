@@ -1,0 +1,126 @@
+# Easy as Tuning — iOS build and TestFlight upload.
+#
+# This exists because there is no Mac. Xcode only runs on macOS and only Xcode
+# can sign an iOS app, so the build happens on a hosted Mac and the signing
+# certificates are fetched through an App Store Connect API key rather than
+# created in a Keychain by hand. That key is the whole trick: it is generated
+# on the web, and it is what makes a Windows-only setup possible at all.
+#
+# ---------------------------------------------------------------------------
+# BEFORE THE FIRST RUN — three things must exist, and none of them can be done
+# until the Apple Developer enrolment has been approved:
+#
+#   1. The app record in App Store Connect, bundle ID com.easyastuning.app.
+#   2. An App Store Connect API key (Users and Access -> Integrations -> Keys),
+#      added to Codemagic under Teams -> Integrations -> App Store Connect.
+#      Put the name you give it in `integrations.app_store_connect` below.
+#   3. APP_STORE_APPLE_ID below, set to the numeric Apple ID of the app record
+#      (App Store Connect -> your app -> App Information -> General -> Apple ID).
+#      It is a number, not the bundle ID.
+#
+# Everything marked CHANGE ME is one of those three.
+# ---------------------------------------------------------------------------
+
+workflows:
+  ios-testflight:
+    name: iOS / TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+
+    integrations:
+      # CHANGE ME — the name of the App Store Connect key as saved in Codemagic.
+      app_store_connect: easy-as-tuning-key
+
+    environment:
+      # Automatic signing. Codemagic creates and renews the certificate and the
+      # provisioning profile through the API key above, which is the step that
+      # used to need a Mac to generate a certificate signing request.
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.easyastuning.app
+      vars:
+        XCODE_PROJECT: 'ios/App/App.xcodeproj'
+        XCODE_SCHEME: 'App'
+        # CHANGE ME — the numeric Apple ID of the app record.
+        APP_STORE_APPLE_ID: 0000000000
+      node: 22
+      xcode: latest
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Typecheck and run the pitch harness
+        # Cheap, and it runs before anything expensive. A type error or a
+        # broken detector should cost twenty seconds of a Mac, not ten minutes.
+        script: |
+          npm run typecheck
+          npm test
+
+      - name: Build the web app and copy it into the iOS project
+        script: |
+          npm run build
+          npx cap sync ios
+
+      - name: Stamp the version and the build number
+        # Written into the project file with sed rather than through agvtool.
+        #
+        # Info.plist holds $(MARKETING_VERSION) and $(CURRENT_PROJECT_VERSION),
+        # so the values that matter are build settings and not plist entries,
+        # and agvtool would want the project switched to apple-generic
+        # versioning first. These two lines edit exactly the strings that are
+        # in the file today.
+        #
+        # The build number has to rise on every upload. App Store Connect
+        # rejects a duplicate outright, and it does it after the upload has
+        # finished, so getting this wrong costs a whole build.
+        script: |
+          set -e
+          VERSION=$(node -p "require('./package.json').version")
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          BUILD=$(( ${LATEST:-0} + 1 ))
+          echo "version $VERSION, build $BUILD (latest on TestFlight: ${LATEST:-none})"
+          sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $VERSION;/g" "$XCODE_PROJECT/project.pbxproj"
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = $BUILD;/g" "$XCODE_PROJECT/project.pbxproj"
+
+      - name: Apply the provisioning profiles
+        script: xcode-project use-profiles
+
+      - name: Build the ipa
+        # --project, not --workspace: Capacitor 8 resolves its native
+        # dependencies through Swift Package Manager, so there is no CocoaPods
+        # workspace and no pod install anywhere in this file.
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # TestFlight only. Nothing here submits to the App Store — that stays a
+        # deliberate act performed in App Store Connect, because it starts a
+        # review that takes a day or two and cannot be recalled casually.
+        submit_to_testflight: true
+        submit_to_app_store: false
+
+      email:
+        # CHANGE ME, or delete this block.
+        recipients:
+          - your@email.address
+        notify:
+          success: true
+          failure: true
