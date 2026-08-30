@@ -2897,3 +2897,34 @@ button {
     margin-inline: auto;
   }
 }
+
+/*
+ * And no taller than one either.
+ *
+ * The width was capped here and the height was not, so on a tall window the
+ * column stretched to the full viewport while the tuner screen stayed at its
+ * own ceiling. The flex column then had hundreds of pixels of slack to hand
+ * out, and it put all of it into the two gaps around the deck: measured at
+ * 1024x1366, seventy-five pixels of breathing room became two hundred and
+ * ninety-four, and the app read as three pieces floating apart rather than as
+ * one instrument.
+ *
+ * 956px is the tallest an iPhone gets, so no handset ever meets this cap and
+ * the phone layout is untouched. Above it the box simply stops growing and
+ * sits in the middle of the window.
+ *
+ * The cap belongs on .app rather than on #root because .app sets its own
+ * height in dvh, and it is also the query container: shortening the box has
+ * to shorten what 100cqh means inside it, or the deck would go on budgeting
+ * for a screen it no longer has.
+ */
+@media (min-height: 980px) {
+  #root {
+    display: grid;
+    align-content: center;
+  }
+
+  .app {
+    height: min(100dvh, 956px);
+  }
+}
