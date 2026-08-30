@@ -59,6 +59,11 @@ export const TIER_ASSURANCES: { title: string; detail: string }[] = [
 /** Everything the tier covers, in the order the purchase screen lists it. */
 export const TIER_FEATURES: { title: string; detail: string }[] = [
   {
+    title: 'The chromatic tuner',
+    detail:
+      'Tune anything at all, one note at a time, with no instrument chosen and\n      nothing assumed about what you are holding.',
+  },
+  {
     title: 'Every tuning',
     detail:
       'Drop, open, modal and cross tunings for guitar, bass, ukulele and banjo. Thirty-five beyond the standards.',

@@ -163,7 +163,6 @@ const RAW: RawTuning[] = [
  *   - Nashville is a way of stringing an ordinary guitar. Paid.
  */
 export const FREE_TUNING_IDS: ReadonlySet<string> = new Set([
-  'chromatic',
   // guitar, and the guitars that are their own instrument
   'guitar-standard',
   'guitar-baritone',
@@ -212,7 +211,15 @@ export const CHROMATIC_TUNING: Tuning = {
   strings: [],
   chromatic: true,
   popular: true,
-  free: true,
+  /*
+   * Read from the same set as every other tuning, not written out here.
+   *
+   * This was a hard-coded `true`, and it made FREE_TUNING_IDS a liar: taking
+   * 'chromatic' out of the set to put the chromatic tuner behind the paywall
+   * changed nothing at all, silently, because the only entry that did not go
+   * through the mapping below was this one.
+   */
+  free: FREE_TUNING_IDS.has('chromatic'),
 };
 
 export const BUILTIN_TUNINGS: Tuning[] = [

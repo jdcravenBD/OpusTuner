@@ -3,9 +3,11 @@ import { tuner, type TunerEvent, type TunerFrame } from '../tuner/TunerControlle
 import {
   BUILTIN_TUNINGS,
   CHROMATIC_TUNING,
+  DEFAULT_TUNING_ID,
   getBuiltinTuning,
   type Tuning,
 } from '../music/tunings';
+import { isTuningLocked } from '../state/unlock';
 import {
   sensitivityToClarity,
   sensitivityToRmsGate,
@@ -50,15 +52,30 @@ export function useAllTunings(): Tuning[] {
 }
 
 /** The currently selected tuning, falling back to chromatic if it vanished. */
+/**
+ * Where an unresolvable or unaffordable tuning lands.
+ *
+ * This used to be the chromatic tuner, which was a sensible answer while the
+ * chromatic tuner was free and is a hole now that it is not: a custom tuning
+ * deleted from under the stored id would have handed it over for nothing.
+ */
+const FALLBACK_TUNING = getBuiltinTuning(DEFAULT_TUNING_ID) ?? CHROMATIC_TUNING;
+
 export function useCurrentTuning(): Tuning {
   const { tuningId, customTunings } = useSession();
-  return useMemo(
-    () =>
-      getBuiltinTuning(tuningId) ??
-      customTunings.find((t) => t.id === tuningId) ??
-      CHROMATIC_TUNING,
-    [tuningId, customTunings],
-  );
+  const { owned } = useSettings();
+  return useMemo(() => {
+    const found =
+      getBuiltinTuning(tuningId) ?? customTunings.find((t) => t.id === tuningId) ?? null;
+    /*
+     * Checked here rather than only on the list row that selects it. The row
+     * is how a tuning is normally reached, but it is not the only way one can
+     * end up stored: a session saved while the tier was owned, or from a build
+     * where the tuning was free, would otherwise keep working forever.
+     */
+    if (!found || isTuningLocked(found, owned)) return FALLBACK_TUNING;
+    return found;
+  }, [tuningId, customTunings, owned]);
 }
 
 /* ----------------------------------------------------------------- theme -- */
