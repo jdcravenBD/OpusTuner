@@ -1,7 +1,7 @@
 /**
  * Generates the PWA icon set.
  *
- * Rasterises the OpusTuner mark by hand and encodes PNGs with nothing but
+ * Rasterises the Easy as Tuning mark by hand and encodes PNGs with nothing but
  * Node's built-in zlib — no native canvas, no image dependency, so `npm run
  * icons` works on a clean checkout on any platform.
  *

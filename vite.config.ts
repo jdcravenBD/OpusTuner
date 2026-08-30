@@ -47,7 +47,7 @@ function precacheServiceWorker(): Plugin {
         /*
          * The cache name carries the build, and that is not cosmetic.
          *
-         * It was a hard-coded 'opustuner-v1' with a comment asking whoever
+         * It was a hard-coded constant with a comment asking whoever
          * shipped to bump it, and nobody ever did — which made the worker's
          * activate step, the one that deletes every cache that is not the
          * current version, a permanent no-op. Files from old builds sat in
@@ -59,7 +59,7 @@ function precacheServiceWorker(): Plugin {
         const list = assets.map((f) => `  './${f}',`).join('\n');
         const sw = readFileSync(swPath, 'utf8')
           .replace('  /* BUILD_ASSETS */', list)
-          .replace(/const CACHE_VERSION = '[^']*';/, `const CACHE_VERSION = 'opustuner-${stamp}';`);
+          .replace(/const CACHE_VERSION = '[^']*';/, `const CACHE_VERSION = 'easyastuning-${stamp}';`);
         writeFileSync(swPath, sw, 'utf8');
         this.info(`precached ${assets.length} assets into sw.js (${stamp})`);
       },

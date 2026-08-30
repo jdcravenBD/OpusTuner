@@ -55,6 +55,8 @@ const HARMONICS: [number, number][] = [
 ];
 
 interface Rig {
+  /** The synthetic instrument's own context, for when it stops singing. */
+  readonly context: AudioContext | null;
   /** Play this exact frequency. */
   hz(frequency: number): void;
   /** Play this many cents away from the string currently being tuned to. */
@@ -64,6 +66,7 @@ interface Rig {
 }
 
 let oscillators: OscillatorNode[] = [];
+let fakeContext: AudioContext | null = null;
 let current = DEFAULT_HZ;
 
 function retune(frequency: number): void {
@@ -81,6 +84,7 @@ export function installScreenshotRig(): void {
       window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext })
         .webkitAudioContext;
     const ctx = new Ctor();
+    fakeContext = ctx;
     const destination = ctx.createMediaStreamDestination();
 
     const master = ctx.createGain();
@@ -103,6 +107,9 @@ export function installScreenshotRig(): void {
   };
 
   const rig: Rig = {
+    get context() {
+      return fakeContext;
+    },
     hz: retune,
     cents(offset) {
       // Against the string the app is aiming at, so the needle lands where the

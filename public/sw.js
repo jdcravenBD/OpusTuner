@@ -1,5 +1,5 @@
 /**
- * OpusTuner service worker.
+ * Easy as Tuning service worker.
  *
  * Strategy:
  *   - navigations  -> network first, falling back to the cached shell so the
@@ -14,7 +14,7 @@
  * current one — has something to actually delete.
  */
 
-const CACHE_VERSION = 'opustuner-dev';
+const CACHE_VERSION = 'easyastuning-dev';
 const SHELL = './index.html';
 
 /**

@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "opustuner",
+      "name": "easyastuning",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -11,7 +11,7 @@
       "port": 5440
     },
     {
-      "name": "opustuner-built",
+      "name": "easyastuning-built",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "vite",

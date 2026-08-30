@@ -10,10 +10,14 @@
  * quanta into larger chunks and ships them to the main thread, so nothing
  * heavy ever runs on the realtime audio thread.
  */
-export const CAPTURE_PROCESSOR_NAME = 'opus-tuner-capture';
+/*
+ * One constant, used to register the processor here and to construct the node
+ * in AudioEngine. The two must agree exactly, so it is never written twice.
+ */
+export const CAPTURE_PROCESSOR_NAME = 'easy-as-tuning-capture';
 
 export const workletSource = /* js */ `
-class OpusTunerCapture extends AudioWorkletProcessor {
+class EasyAsTuningCapture extends AudioWorkletProcessor {
   constructor(options) {
     super();
     const opts = (options && options.processorOptions) || {};
@@ -48,5 +52,5 @@ class OpusTunerCapture extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor(${JSON.stringify(CAPTURE_PROCESSOR_NAME)}, OpusTunerCapture);
+registerProcessor(${JSON.stringify(CAPTURE_PROCESSOR_NAME)}, EasyAsTuningCapture);
 `;

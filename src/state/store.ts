@@ -181,9 +181,31 @@ function createStore<T extends object>(
  * Merges stored values over the defaults so a new setting added in a later
  * version doesn't come back `undefined` for existing users.
  */
+/**
+ * Settings written before the app had its name.
+ *
+ * The keys were `opustuner.*`. Renaming them without this would silently empty
+ * the settings of anyone already running the web app, custom tunings included,
+ * and would look exactly like a bug. Read the old key once, write it forward,
+ * and take the old one away.
+ */
+function adoptLegacy(key: string): string | null {
+  const legacy = key.replace('easyastuning.', 'opustuner.');
+  if (legacy === key) return null;
+  try {
+    const raw = localStorage.getItem(legacy);
+    if (raw === null) return null;
+    localStorage.setItem(key, raw);
+    localStorage.removeItem(legacy);
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
 function hydrate<T extends object>(key: string, initial: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(key) ?? adoptLegacy(key);
     if (!raw) return { ...initial };
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return { ...initial };
@@ -198,7 +220,7 @@ function hydrate<T extends object>(key: string, initial: T): T {
 }
 
 export const settingsStore = createStore<Settings>(
-  'opustuner.settings.v1',
+  'easyastuning.settings.v1',
   DEFAULT_SETTINGS,
   (s) => ({
     ...s,
@@ -215,7 +237,7 @@ export const settingsStore = createStore<Settings>(
     theme: THEMES.includes(s.theme) ? s.theme : DEFAULT_SETTINGS.theme,
   }),
 );
-export const sessionStore = createStore<Session>('opustuner.session.v1', DEFAULT_SESSION);
+export const sessionStore = createStore<Session>('easyastuning.session.v1', DEFAULT_SESSION);
 
 /* ----------------------------------------------------------------- hooks -- */
 
