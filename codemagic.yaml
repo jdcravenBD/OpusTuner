@@ -6,19 +6,10 @@
 # created in a Keychain by hand. That key is the whole trick: it is generated
 # on the web, and it is what makes a Windows-only setup possible at all.
 #
-# ---------------------------------------------------------------------------
-# BEFORE THE FIRST RUN — three things must exist, and none of them can be done
-# until the Apple Developer enrolment has been approved:
-#
-#   1. The app record in App Store Connect, bundle ID com.easyastuning.app.
-#   2. An App Store Connect API key (Users and Access -> Integrations -> Keys),
-#      added to Codemagic under Teams -> Integrations -> App Store Connect.
-#      Put the name you give it in `integrations.app_store_connect` below.
-#   3. APP_STORE_APPLE_ID below, set to the numeric Apple ID of the app record
-#      (App Store Connect -> your app -> App Information -> General -> Apple ID).
-#      It is a number, not the bundle ID.
-#
-# Everything marked CHANGE ME is one of those three.
+# The three values that had to come from App Store Connect are filled in:
+# the API key's name as saved in Codemagic, the app record's numeric Apple
+# ID, and where to send the result. The bundle ID and the product ID are
+# permanent and match what is registered.
 # ---------------------------------------------------------------------------
 
 workflows:
@@ -28,8 +19,7 @@ workflows:
     max_build_duration: 45
 
     integrations:
-      # CHANGE ME — the name of the App Store Connect key as saved in Codemagic.
-      app_store_connect: easy-as-tuning-key
+      app_store_connect: 'Easy as Tuning'
 
     environment:
       # Automatic signing. Codemagic creates and renews the certificate and the
@@ -41,8 +31,7 @@ workflows:
       vars:
         XCODE_PROJECT: 'ios/App/App.xcodeproj'
         XCODE_SCHEME: 'App'
-        # CHANGE ME — the numeric Apple ID of the app record.
-        APP_STORE_APPLE_ID: 0000000000
+        APP_STORE_APPLE_ID: 6806842475
       node: 22
       xcode: latest
 
@@ -129,9 +118,8 @@ workflows:
         submit_to_app_store: false
 
       email:
-        # CHANGE ME, or delete this block.
         recipients:
-          - your@email.address
+          - jdcraven87@gmail.com
         notify:
           success: true
           failure: true
