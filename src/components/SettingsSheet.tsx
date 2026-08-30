@@ -3,8 +3,9 @@ import { Sheet } from './Sheet';
 import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
-import { LockIcon } from './Icons';
-import { isThemeLocked } from '../state/unlock';
+import { CheckIcon, LockIcon } from './Icons';
+import { restoreFullSet, type Outcome } from '../state/purchases';
+import { TIER_NAME, isThemeLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
   DEFAULT_SETTINGS,
@@ -32,6 +33,8 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
   const colorless = s.theme === 'plain';
   /** Names what the reader reached for, and opens the showcase. */
   const [wanted, setWanted] = useState<string | null>(null);
+  /** 'idle' before anyone asks, 'busy' while Apple is being asked. */
+  const [restoring, setRestoring] = useState<'idle' | 'busy' | Outcome>('idle');
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
@@ -248,6 +251,36 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
       </Section>
 
       <Section label="About">
+        {/*
+          * Restore lives here as well as on the purchase screen, and it has to.
+          *
+          * The purchase screen only opens when a locked feature is pressed, so
+          * the one person guaranteed never to reach it is the person who has
+          * already paid and whose entitlement did not come back. Settings is
+          * also simply where everyone looks for it.
+          *
+          * When it is owned the row stops being a button and becomes a receipt.
+          * Offering to restore something you already have invites a press that
+          * can only fail.
+          */}
+        {s.owned ? (
+          <Row name={TIER_NAME} desc="Purchased. Every feature is unlocked on this device.">
+            <CheckIcon size={16} />
+          </Row>
+        ) : (
+          <Row name={`Restore ${TIER_NAME}`} desc={restoreHint(restoring)}>
+            <button
+              className="btn"
+              disabled={restoring === 'busy'}
+              onClick={() => {
+                setRestoring('busy');
+                void restoreFullSet().then(setRestoring);
+              }}
+            >
+              {restoring === 'busy' ? 'Checking' + ELLIPSIS : 'Restore'}
+            </button>
+          </Row>
+        )}
         <button
           className="btn btn--block sheet__reset"
           onClick={() => {
@@ -271,6 +304,33 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
       <PurchaseScreen open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </Sheet>
   );
+}
+
+/** Written as a character rather than typed, so the source stays ASCII. */
+const ELLIPSIS = '\u2026';
+
+/**
+ * What the Restore row says underneath its name.
+ *
+ * Before anyone presses it, what the button is for. Afterwards, what came of
+ * it. 'owned' never appears here because the row is replaced by the receipt
+ * the moment the setting flips.
+ */
+function restoreHint(state: 'idle' | 'busy' | Outcome): string {
+  switch (state) {
+    case 'busy':
+      return 'Asking the App Store.';
+    case 'nothing-to-restore':
+      return 'Nothing on this Apple ID to restore.';
+    case 'pending':
+      return 'Waiting on approval. It will unlock by itself once it comes.';
+    case 'unavailable':
+      return 'The App Store is not available here.';
+    case 'failed':
+      return 'That did not go through. Nothing has been charged.';
+    default:
+      return 'Already bought it on another device? Bring it back.';
+  }
 }
 
 /* ------------------------------------------------------------- primitives -- */
