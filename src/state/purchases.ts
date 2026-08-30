@@ -19,10 +19,10 @@
  * was installed, read and removed: its `restorePurchases()` returns void and
  * it exposes no way to query current entitlements at all, so a reinstall could
  * never get its purchase back. StoreKit 2's `Transaction.currentEntitlements`
- * answers this on-device with no server and no third party, which is both the
- * right engineering answer for a single non-consumable and the only one
- * consistent with what docs/privacy.html promises. See `nativeStore` for the
- * shape the adapter has to fill.
+ * answers it on-device with no server and no third party, which is both the
+ * right answer for a single non-consumable and the only one consistent with
+ * what docs/privacy.html promises — so the bridge is ours:
+ * ios/App/App/FullSetStorePlugin.swift, about a hundred lines of Swift.
  *
  * ## Enforcement
  *
@@ -32,6 +32,8 @@
  * *honest* path works: people who pay get their thing, on every device, for
  * good.
  */
+
+import { registerPlugin } from '@capacitor/core';
 
 import { isNative } from '../platform';
 import { settingsStore } from './store';
@@ -50,6 +52,9 @@ export type Outcome =
   | 'cancelled'
   /* Asked to restore, and there was nothing on the account to restore. */
   | 'nothing-to-restore'
+  /* Ask to Buy: a child asked, and a parent has not answered yet. Neither
+     bought nor refused, and it arrives later on its own. */
+  | 'pending'
   /* No store here at all — a browser, or the packaged app before the
      native adapter exists. */
   | 'unavailable'
@@ -67,38 +72,58 @@ export interface Store {
   restore(): Promise<Outcome>;
 }
 
+/** The Swift half, in ios/App/App/FullSetStorePlugin.swift. */
+interface FullSetStorePlugin {
+  entitled(options: { productId: string }): Promise<{ entitled: boolean }>;
+  /** `price` is absent, not null, when the store could not be asked. */
+  price(options: { productId: string }): Promise<{ price?: string }>;
+  buy(options: { productId: string }): Promise<{ outcome: Outcome }>;
+  restore(options: { productId: string }): Promise<{ outcome: Outcome }>;
+}
+
+/*
+ * Safe to call at module scope in a browser: with no native bridge behind it
+ * this is a proxy that rejects when a method is called, and nothing calls one
+ * unless isNative() said so.
+ */
+const FullSetStore = registerPlugin<FullSetStorePlugin>('FullSetStore');
+
 /**
- * The packaged app's store.
+ * The packaged app's store: StoreKit 2, straight through.
  *
- * Not built yet, and deliberately not faked: an adapter that pretends to
- * succeed would unlock the paid tier for everyone the moment it shipped. Until
- * a StoreKit 2 bridge exists this reports honestly that there is no store, and
- * the purchase screen says so rather than spinning.
- *
- * Whatever fills this in needs four things from StoreKit 2, all of them
- * on-device:
- *
- *   entitled()  Transaction.currentEntitlements, looking for PRODUCT_ID with a
- *               verified signature. This is what makes a reinstall work.
- *   price()     Product.products(for:) -> displayPrice, which is localised and
- *               correct for the store the user is actually in. PRICE in
- *               unlock.ts is only a fallback for when it cannot be reached.
- *   buy()       product.purchase(), then finish() the transaction. A
- *               .userCancelled result is `cancelled`, not `failed`.
- *   restore()   AppStore.sync(), then entitled() again.
+ * Every method swallows its own failures, because every one of them has an
+ * `Outcome` that says so and the screen has copy for each. The one that must
+ * never throw is `entitled()` — it runs on launch, and an exception there
+ * would take the app down before it drew anything.
  */
 const nativeStore: Store = {
   async entitled() {
-    return false;
+    try {
+      return (await FullSetStore.entitled({ productId: PRODUCT_ID })).entitled;
+    } catch {
+      return false;
+    }
   },
   async price() {
-    return null;
+    try {
+      return (await FullSetStore.price({ productId: PRODUCT_ID })).price ?? null;
+    } catch {
+      return null;
+    }
   },
   async buy() {
-    return 'unavailable';
+    try {
+      return (await FullSetStore.buy({ productId: PRODUCT_ID })).outcome;
+    } catch {
+      return 'failed';
+    }
   },
   async restore() {
-    return 'unavailable';
+    try {
+      return (await FullSetStore.restore({ productId: PRODUCT_ID })).outcome;
+    } catch {
+      return 'failed';
+    }
   },
 };
 

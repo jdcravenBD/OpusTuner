@@ -226,6 +226,8 @@ function statusLine(result: { outcome: Outcome; from: 'buy' | 'restore' } | null
       return 'One payment. It never becomes a subscription.';
     case 'nothing-to-restore':
       return 'Nothing on this Apple ID to restore.';
+    case 'pending':
+      return 'Waiting on approval. It will unlock by itself once it comes.';
     case 'unavailable':
       return 'The App Store is not available here yet.';
     default:
