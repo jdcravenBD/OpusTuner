@@ -57,9 +57,14 @@ workflows:
           npm test
 
       - name: Build the web app and copy it into the iOS project
+        # cap sync regenerates capacitor.config.json from the installed
+        # plugin packages, which does not include the one that lives in the
+        # app target. Without the third line the StoreKit bridge is built,
+        # signed and unreachable.
         script: |
           npm run build
           npx cap sync ios
+          node scripts/register-app-plugins.mjs
 
       - name: Stamp the version and the build number
         # Written into the project file with sed rather than through agvtool.

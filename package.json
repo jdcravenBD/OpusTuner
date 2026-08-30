@@ -14,9 +14,9 @@
     "phone": "npm run build && vite preview --host --mode https",
     "icons": "node scripts/generate-icons.mjs",
     "shots:fit": "node scripts/fit-screenshot.mjs",
-    "cap:sync": "npm run build && cap sync",
+    "cap:sync": "npm run build && cap sync && node scripts/register-app-plugins.mjs",
     "cap:android": "npm run build && cap sync android && cap open android",
-    "cap:ios": "npm run build && cap sync ios && cap open ios"
+    "cap:ios": "npm run build && cap sync ios && node scripts/register-app-plugins.mjs && cap open ios"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.0",
