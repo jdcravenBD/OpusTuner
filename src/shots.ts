@@ -14,7 +14,11 @@
  * work: the same pitch detection, the same smoothing, the same needle.
  *
  * It also unlocks the full set, since a screenshot of a locked feature is not
- * what anyone wants on a store page.
+ * what anyone wants on a store page. **That sticks.** `owned` is a stored
+ * setting like any other, so it survives leaving this URL, and the app then
+ * looks paid-for on plain `/` until the settings are reset. That has already
+ * caused one round of "why is everything unlocked", so the console line below
+ * says so on the way in.
  *
  * ## Using it
  *
@@ -115,6 +119,14 @@ export function installScreenshotRig(): void {
 
   // eslint-disable-next-line no-console
   console.info(
-    'Screenshot rig on. Tap the power button, then use __shots.cents(7) or __shots.hz(146.83).',
+    [
+      'Screenshot rig on. Tap the power button, then:',
+      '  __shots.cents(7)     seven cents sharp of the selected string',
+      '  __shots.hz(146.83)   a specific note',
+      '',
+      'The full set is now unlocked, and that is a saved setting: it stays',
+      'unlocked on plain / too. Settings > Reset settings puts it back, or',
+      'run localStorage.clear() here.',
+    ].join(String.fromCharCode(10)),
   );
 }
