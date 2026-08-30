@@ -1,0 +1,29 @@
+# This repo is checked out on Windows and built on a hosted Mac, and it has
+# mixed line endings from before anyone thought about it — git warns "LF will be
+# replaced by CRLF" on nearly every commit.
+#
+# The Xcode project files are the ones where that stops being cosmetic. A
+# .pbxproj is edited by a tool that rewrites the whole file, and the CI machine
+# reads it with a parser that has opinions; keeping them LF in the working tree
+# as well as in the object store means the two machines are looking at the same
+# bytes.
+*.pbxproj        text eol=lf
+*.plist          text eol=lf
+*.swift          text eol=lf
+*.storyboard     text eol=lf
+*.xcconfig       text eol=lf
+*.xcscheme       text eol=lf
+*.entitlements   text eol=lf
+*.xcprivacy      text eol=lf
+Package.swift    text eol=lf
+
+# Shell scripts and CI config are read by tools that treat a trailing CR as
+# part of the value.
+*.sh             text eol=lf
+*.yaml           text eol=lf
+*.yml            text eol=lf
+
+# Never touched, whatever they look like inside.
+*.png            binary
+*.ttf            binary
+*.ipa            binary

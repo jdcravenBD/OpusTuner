@@ -2630,6 +2630,32 @@ button {
   color: var(--amber);
 }
 
+/*
+ * Set as plain underlined text rather than as a second button.
+ *
+ * Almost nobody needs it, and the two must not look like a choice between
+ * equals — but it has to be *there*, and findable, or the app does not pass
+ * review. Underlined because with no bounds around it there is nothing else
+ * to say it can be pressed.
+ */
+.purchase__restore {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 6px 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--dur) var(--ease);
+}
+
+.purchase__restore:active {
+  color: var(--text);
+}
+
 /* --- the two lists ------------------------------------------------------- */
 
 /*

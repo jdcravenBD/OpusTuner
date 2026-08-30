@@ -28,7 +28,8 @@ const EXIT_MS = 200;
  */
 export function PurchaseScreen({ open, onClose, wanted }: Props) {
   const [closing, setClosing] = useState(false);
-  const [tapped, setTapped] = useState(false);
+  /** Which button was pressed, so the line underneath can answer it. */
+  const [tapped, setTapped] = useState<'buy' | 'restore' | null>(null);
 
   /* Same shape as Sheet: adjusted during render so the screen is mounted on
      the commit `open` turns true, and starts its exit without a frame of
@@ -38,7 +39,7 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
     setPrevOpen(open);
     if (open) {
       setClosing(false);
-      setTapped(false);
+      setTapped(null);
     } else {
       setClosing(true);
     }
@@ -109,15 +110,27 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
             <span className="purchase__once">once</span>
           </div>
 
-          <button className="purchase__buy" onClick={() => setTapped(true)}>
+          <button className="purchase__buy" onClick={() => setTapped('buy')}>
             Unlock {TIER_NAME}
           </button>
 
-          <div className="purchase__status" data-shown={tapped}>
-            {tapped
+          <div className="purchase__status" data-shown={tapped !== null}>
+            {tapped === 'buy'
               ? 'Not on sale yet — the store is not wired up.'
-              : 'One payment. It never becomes a subscription.'}
+              : tapped === 'restore'
+                ? 'Nothing to restore yet — the store is not wired up.'
+                : 'One payment. It never becomes a subscription.'}
           </div>
+
+          {/*
+            * The way back in for someone who has already paid: a new phone, a
+            * reinstall, a restored backup. Apple requires this for a
+            * non-consumable purchase and rejects without it (review guideline
+            * 3.1.1), and it has to be reachable without paying a second time.
+            */}
+          <button className="purchase__restore" onClick={() => setTapped('restore')}>
+            Already bought it? Restore
+          </button>
 
           {/*
             * And what the payment does not come with, directly under the

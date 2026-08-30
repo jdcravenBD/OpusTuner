@@ -11,6 +11,15 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
-# capacitor native projects (regenerate with `npx cap add android|ios`)
+# The Capacitor native projects are COMMITTED, and that is deliberate.
+#
+# They were ignored here with a note to regenerate them with `npx cap add`, and
+# that is only safe while nothing in them has been touched. Everything Apple
+# needs lives in there and nowhere else: the microphone usage string, the
+# portrait lock, the encryption declaration, the app icon, the bundle ID. A
+# build machine that regenerates the project gets Capacitor's defaults instead
+# and ships an app that crashes the moment it asks for the microphone.
+#
+# The generated parts inside them are ignored by ios/.gitignore, which
+# Capacitor writes and maintains.
 /android
-/ios

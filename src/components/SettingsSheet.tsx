@@ -4,7 +4,7 @@ import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
 import { LockIcon } from './Icons';
-import { TIER_NAME, isThemeLocked } from '../state/unlock';
+import { isThemeLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
   DEFAULT_SETTINGS,
@@ -248,15 +248,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
       </Section>
 
       <Section label="About">
-        {/*
-          * Temporary, and on by default. There is no store to buy the full set
-          * from yet, so without this the app's author would be locked out of
-          * their own app. Both this row and the flag behind it come out before
-          * this ships anywhere with a price on it.
-          */}
-        <Row name={`${TIER_NAME} (developer)`} desc="Unlocks everything. Goes before release.">
-          <Switch on={s.owned} onChange={(v) => set('owned', v)} label={`${TIER_NAME}`} />
-        </Row>
         <button
           className="btn btn--block sheet__reset"
           onClick={() => {

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { loadSegmentFont } from './components/visuals/segments';
+import { isNative } from './platform';
 import { tuner } from './tuner/TunerController';
 import './styles/app.css';
 
@@ -36,7 +37,18 @@ createRoot(root).render(
  */
 const onTestServer = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
 
-if ('serviceWorker' in navigator && import.meta.env.PROD && !onTestServer) {
+/*
+ * And a worker inside the packaged app is worse than useless.
+ *
+ * Its whole job is to keep a *web* app working with no signal. In the App
+ * Store build every file it would cache is already on the device, so it buys
+ * nothing — and it brings the one failure this project has now hit three
+ * times: a cached copy of the previous build served over the new one. In a
+ * browser the answer to that is to clear site data. In a shipped app there is
+ * no such instruction to give, and an update that visibly does not arrive is
+ * a one-star review.
+ */
+if ('serviceWorker' in navigator && import.meta.env.PROD && !onTestServer && !isNative()) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       // updateViaCache 'none' stops the browser answering the update check out

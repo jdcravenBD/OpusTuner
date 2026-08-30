@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { tuner } from './tuner/TunerController';
-import { haptic, toneEngine } from './audio/tone';
+import { toneEngine } from './audio/tone';
+import { haptic } from './haptics';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
 import {
@@ -69,14 +70,14 @@ export default function App() {
 
   useTunerEvent((event) => {
     if (event.type === 'tuned') {
-      if (settingsStore.get().haptics) haptic([14, 40, 14]);
+      if (settingsStore.get().haptics) haptic('light');
       if (settingsStore.get().chimeOnTuned) {
         toneEngine.chime();
       }
     } else if (event.type === 'all-tuned') {
       // Acknowledged in the hand only — the string row already shows the state,
       // and a panel over the tuner is in the way of the next thing you play.
-      if (settingsStore.get().haptics) haptic([18, 55, 18, 55, 32]);
+      if (settingsStore.get().haptics) haptic('medium');
     } else if (event.type === 'status') {
       setMicState(tuner.micState);
     }

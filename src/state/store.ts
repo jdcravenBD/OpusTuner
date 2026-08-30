@@ -110,7 +110,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showWordmark: true,
   showStatus: true,
   visual: DEFAULT_VISUAL,
-  owned: true,
+  owned: false,
 };
 
 export const DEFAULT_SESSION: Session = {

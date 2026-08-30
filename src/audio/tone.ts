@@ -382,12 +382,3 @@ function makeRandom(seed: number): () => number {
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
-
-/** Short vibration for tactile feedback, where the platform supports it. */
-export function haptic(pattern: number | number[] = 12): void {
-  try {
-    navigator.vibrate?.(pattern);
-  } catch {
-    /* unsupported */
-  }
-}
