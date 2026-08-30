@@ -315,16 +315,23 @@ button {
      on a phone is every time the address bar moves, and the loser overflows. */
   height: 100dvh;
   /*
-   * The bottom inset is only partly reserved. The home indicator is an overlay
-   * drawn over whatever is beneath it, not a region nothing may enter, so
-   * holding all 34px back left a band of dead space under the controls —
-   * plainly visible on an iPhone 12, with the tuning button and the auto switch
-   * floating a centimetre off the bottom. A third of it keeps them clear of the
-   * very edge without stranding them up the screen, and the floor gives them
-   * some room in a browser tab, where the inset is zero.
+   * A fixed floor, plus a share of the home indicator.
+   *
+   * The two are separate because they answer different questions. The floor is
+   * ordinary breathing room, wanted on every device including a browser where
+   * the inset is zero. The share is clearance for the indicator, which is an
+   * overlay drawn over whatever is beneath it rather than a region nothing may
+   * enter, so reserving all 34px of it once stranded the tuning button a
+   * centimetre up the screen.
+   *
+   * It was written as max(3px, inset * 0.15), and that overcorrected: 0.15 of
+   * 34px is five pixels, so the controls sat hard against the bottom edge on a
+   * handset and three pixels off it in a browser. Adding the two instead of
+   * taking the larger means the floor is always there and the indicator still
+   * gets cleared.
    */
-  padding: var(--safe-t) var(--safe-r) max(3px, calc(var(--safe-b) * var(--safe-b-share)))
-    var(--safe-l);
+  padding: var(--safe-t) var(--safe-r)
+    calc(22px + var(--safe-b) * var(--safe-b-share)) var(--safe-l);
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
     linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
