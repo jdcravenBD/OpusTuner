@@ -84,8 +84,19 @@ workflows:
         # finished, so getting this wrong costs a whole build.
         script: |
           set -e
+          # Fail here, loudly, rather than uploading build 1 forever. With the
+          # placeholder left in, the lookup below just fails and every build
+          # numbers itself 1 -- which works exactly once and is then rejected
+          # after every upload, with nothing on screen explaining why.
+          if [ "$APP_STORE_APPLE_ID" = "0000000000" ]; then
+            echo "APP_STORE_APPLE_ID is still the placeholder. Put the app record's"
+            echo "numeric Apple ID in codemagic.yaml (App Information > General)."
+            exit 1
+          fi
           VERSION=$(node -p "require('./package.json').version")
-          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          # Digits only. An empty or chatty answer must become 0, not garbage
+          # that $(( )) then refuses to add to.
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null | tr -cd '0-9')
           BUILD=$(( ${LATEST:-0} + 1 ))
           echo "version $VERSION, build $BUILD (latest on TestFlight: ${LATEST:-none})"
           sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $VERSION;/g" "$XCODE_PROJECT/project.pbxproj"
