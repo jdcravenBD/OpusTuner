@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Easy as Tuning Support</title>
+    <style>
+      :root {
+        --bg: #0b0d10;
+        --panel: #12151a;
+        --text: #f2f2f2;
+        --dim: #a3adba;
+        --green: #34e08a;
+        --rule: rgba(255, 255, 255, 0.09);
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f4f6f9;
+          --panel: #ffffff;
+          --text: #10141a;
+          --dim: #55606e;
+          --green: #0fa059;
+          --rule: rgba(16, 26, 42, 0.12);
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 48px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+      main { max-width: 40rem; margin: 0 auto; }
+      .eyebrow {
+        font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--green);
+      }
+      h1 { margin: 10px 0 6px; font-size: 30px; letter-spacing: -0.02em; }
+      .sub { margin: 0 0 30px; color: var(--dim); }
+      h2 { margin: 30px 0 6px; font-size: 17px; letter-spacing: -0.01em; }
+      p, li { color: var(--text); }
+      .lead {
+        padding: 16px 18px;
+        border-left: 2px solid var(--green);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+      }
+      ul { padding-left: 20px; }
+      li { margin: 6px 0; }
+      footer {
+        margin-top: 44px;
+        padding-top: 18px;
+        border-top: 1px solid var(--rule);
+        font-size: 14px;
+        color: var(--dim);
+      }
+      a { color: var(--green); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Easy as Tuning</div>
+      <h1>Support</h1>
+      <p class="sub">A chromatic tuner for guitar, bass, ukulele, banjo and orchestral strings.</p>
+
+      <p class="lead">
+        Something not working, or an instrument or tuning you want added? Email
+        <a href="mailto:jdcraven87@gmail.com">jdcraven87@gmail.com</a> and I will get
+        back to you. Say which device you are on and what happened, and I will have a
+        much better chance of fixing it.
+      </p>
+
+      <h2>The tuner is not picking up my instrument</h2>
+      <p>
+        Check that the microphone permission was allowed. On iOS that lives in
+        Settings, then Privacy and Security, then Microphone. If it is on and the
+        needle still sits still, open Settings inside the app and raise Sensitivity.
+        A quiet instrument, an unplugged electric guitar in particular, sits a long
+        way below an acoustic and needs the gate opened up.
+      </p>
+
+      <h2>The reading jumps around while a note fades</h2>
+      <p>
+        Damp the strings you are not tuning. Two strings ringing together are
+        genuinely periodic at a note neither of them is playing, and every tuner ever
+        made has to guess in that situation. Turning off Auto and picking the string
+        yourself also helps on a resonant instrument.
+      </p>
+
+      <h2>I paid, and it is asking me to pay again</h2>
+      <p>
+        Open the purchase screen and tap Restore underneath the price. That asks
+        Apple what your account already owns and unlocks it again. It works on any
+        device signed in to the same Apple ID, and it is free.
+      </p>
+      <p>
+        If nothing comes back, check you are signed in to the Apple ID you bought it
+        with. Purchases belong to the account, not the handset.
+      </p>
+
+      <h2>What is free, and what is not</h2>
+      <p>
+        Every instrument's own standard tuning is free, along with the chromatic
+        tuner, both displays, and one custom tuning of your own. If you own a
+        seven-string guitar or a five-string bass, the app works for you without
+        paying anything.
+      </p>
+      <p>
+        The Full Set is a single payment and adds the alternate tunings, drops,
+        opens, modal and cross tunings, unlimited custom tunings, the colour themes,
+        and a switch to hide the wordmark. It is not a subscription and it never
+        becomes one.
+      </p>
+
+      <h2>Does it need an internet connection?</h2>
+      <p>
+        No. It works completely offline. Nothing you do in it is sent anywhere. See
+        the <a href="./privacy.html">privacy policy</a> for the detail.
+      </p>
+
+      <footer>
+        <a href="./privacy.html">Privacy policy</a> &middot;
+        <a href="mailto:jdcraven87@gmail.com">jdcraven87@gmail.com</a>
+      </footer>
+    </main>
+  </body>
+</html>
