@@ -89,7 +89,10 @@ public class FullSetStorePlugin: CAPPlugin, CAPBridgedPlugin {
         }
         Task {
             guard let product = try? await Product.products(for: [productId]).first else {
-                call.resolve(["outcome": "unavailable"])
+                call.resolve([
+                    "outcome": "unavailable",
+                    "message": "the App Store returned no product for \(productId)"
+                ])
                 return
             }
             do {
@@ -102,11 +105,14 @@ public class FullSetStorePlugin: CAPPlugin, CAPBridgedPlugin {
                         // on every launch.
                         await transaction.finish()
                         call.resolve(["outcome": "owned"])
-                    case .unverified:
+                    case .unverified(_, let error):
                         // The signature did not check out. Someone is playing
                         // games, or something is very wrong; either way this
                         // is not a purchase.
-                        call.resolve(["outcome": "failed"])
+                        call.resolve([
+                            "outcome": "failed",
+                            "message": "unverified transaction: \(error)"
+                        ])
                     }
                 case .userCancelled:
                     call.resolve(["outcome": "cancelled"])
@@ -116,10 +122,16 @@ public class FullSetStorePlugin: CAPPlugin, CAPBridgedPlugin {
                     // the updates task above.
                     call.resolve(["outcome": "pending"])
                 @unknown default:
-                    call.resolve(["outcome": "failed"])
+                    call.resolve([
+                        "outcome": "failed",
+                        "message": "StoreKit returned a result this build does not know"
+                    ])
                 }
             } catch {
-                call.resolve(["outcome": "failed"])
+                // Reported rather than swallowed. There is no console on a
+                // handset running a TestFlight build, so an error kept to
+                // itself here is an error nobody can ever act on.
+                call.resolve(["outcome": "failed", "message": "\(error)"])
             }
         }
     }

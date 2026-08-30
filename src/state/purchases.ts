@@ -77,8 +77,9 @@ interface FullSetStorePlugin {
   entitled(options: { productId: string }): Promise<{ entitled: boolean }>;
   /** `price` is absent, not null, when the store could not be asked. */
   price(options: { productId: string }): Promise<{ price?: string }>;
-  buy(options: { productId: string }): Promise<{ outcome: Outcome }>;
-  restore(options: { productId: string }): Promise<{ outcome: Outcome }>;
+  /** `message` carries the reason whenever the outcome is not a plain yes. */
+  buy(options: { productId: string }): Promise<{ outcome: Outcome; message?: string }>;
+  restore(options: { productId: string }): Promise<{ outcome: Outcome; message?: string }>;
 }
 
 /*
@@ -96,6 +97,25 @@ const FullSetStore = registerPlugin<FullSetStorePlugin>('FullSetStore');
  * never throw is `entitled()` — it runs on launch, and an exception there
  * would take the app down before it drew anything.
  */
+/**
+ * Why the last purchase or restore did not work.
+ *
+ * Module state rather than part of the return, deliberately. Every caller
+ * wants the `Outcome` and only the screen wants this, and threading a second
+ * value through four signatures to reach one label is a worse shape than a
+ * variable that says what it is.
+ *
+ * It exists because a TestFlight build on a handset has no console. Without
+ * it, StoreKit refusing for one reason and the plugin failing to register at
+ * all are the same five words on screen, and there is no way to tell them
+ * apart from the outside.
+ */
+let lastFailure: string | null = null;
+
+export function lastPurchaseFailure(): string | null {
+  return lastFailure;
+}
+
 const nativeStore: Store = {
   async entitled() {
     try {
@@ -113,15 +133,24 @@ const nativeStore: Store = {
   },
   async buy() {
     try {
-      return (await FullSetStore.buy({ productId: PRODUCT_ID })).outcome;
-    } catch {
+      const { outcome, message } = await FullSetStore.buy({ productId: PRODUCT_ID });
+      lastFailure = outcome === 'owned' ? null : (message ?? null);
+      return outcome;
+    } catch (err) {
+      // A plugin that never registered rejects here rather than resolving,
+      // and its message says so. That is worth telling apart from StoreKit
+      // declining, which looks identical from the button.
+      lastFailure = String(err);
       return 'failed';
     }
   },
   async restore() {
     try {
-      return (await FullSetStore.restore({ productId: PRODUCT_ID })).outcome;
-    } catch {
+      const { outcome, message } = await FullSetStore.restore({ productId: PRODUCT_ID });
+      lastFailure = outcome === 'owned' ? null : (message ?? null);
+      return outcome;
+    } catch (err) {
+      lastFailure = String(err);
       return 'failed';
     }
   },

@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckIcon, CloseIcon } from './Icons';
 import { useEscape } from '../hooks';
-import { buyFullSet, restoreFullSet, getStore, type Outcome } from '../state/purchases';
+import {
+  buyFullSet,
+  getStore,
+  lastPurchaseFailure,
+  restoreFullSet,
+  type Outcome,
+} from '../state/purchases';
 import { PRICE, TIER_ASSURANCES, TIER_FEATURES, TIER_NAME } from '../state/unlock';
 
 interface Props {
@@ -217,6 +223,19 @@ const ELLIPSIS = '\u2026';
  * reader chose that, and telling them something went wrong when they simply
  * changed their mind reads as a nag. It says nothing at all instead.
  */
+/**
+ * Adds the store's own words when there are any.
+ *
+ * Blunt, and right for now: this is the only way to read a StoreKit error on
+ * a handset, and "it did not work" with no reason is useless to everybody,
+ * the person holding the phone included. Worth softening once the purchase
+ * has been seen to work on a device.
+ */
+function withReason(line: string): string {
+  const reason = lastPurchaseFailure();
+  return reason ? `${line} (${reason})` : line;
+}
+
 function statusLine(result: { outcome: Outcome; from: 'buy' | 'restore' } | null): string {
   if (!result) return 'One payment. It never becomes a subscription.';
   switch (result.outcome) {
@@ -229,8 +248,8 @@ function statusLine(result: { outcome: Outcome; from: 'buy' | 'restore' } | null
     case 'pending':
       return 'Waiting on approval. It will unlock by itself once it comes.';
     case 'unavailable':
-      return 'The App Store is not available here yet.';
+      return withReason('The App Store is not available here yet.');
     default:
-      return 'That did not go through. Nothing has been charged.';
+      return withReason('That did not go through. Nothing has been charged.');
   }
 }
