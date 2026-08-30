@@ -9,19 +9,11 @@
    ========================================================================== */
 
 /*
- * 7-Segment by Jan Bobrowski (torinak.com/font/7-segment), under the SIL Open
- * Font License. Bundled rather than linked: the app has to work with no network
- * at all, and a webfont that fails to arrive would take the strobe's readout
- * with it. Used only on canvas, so it is loaded explicitly at startup — a
- * @font-face nothing in the DOM renders is never fetched otherwise.
+ * The strobe's readout face, 7-Segment by Jan Bobrowski, is deliberately not
+ * declared here. It is built as a FontFace in components/visuals/segments.ts
+ * and added to document.fonts from script — see the note there for why a
+ * @font-face in this file could not be relied on to load in time.
  */
-@font-face {
-  font-family: 'SevenSegment';
-  src: url('../assets/7segment.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: block;
-}
 
 :root {
   /* --- type ------------------------------------------------------------ */

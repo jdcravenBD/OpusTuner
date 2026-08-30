@@ -1,11 +1,6 @@
 import { useRef } from 'react';
 import { noteOctave, pitchClassName } from '../../music/notes';
-import {
-  drawSegmentText,
-  loadSegmentFont,
-  segmentFontReady,
-  segmentWidth,
-} from './segments';
+import { drawSegmentText, loadSegmentFont, segmentWidth } from './segments';
 import { clamp, useVisualCanvas, type VisualProps } from './shared';
 
 const TAU = Math.PI * 2;
@@ -220,26 +215,28 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
           ? '0'
           : `${rounded > 0 ? '+' : '-'}${Math.abs(rounded)}`;
 
-      if (segmentFontReady()) {
-        const style = { color: hot, alpha, ghost: 0.045 + fade * 0.025 };
+      // Drawn unconditionally. This was gated on the segment face having
+      // loaded, so a load that fell over did not degrade the readout — it
+      // deleted it, note and cents together. segments.ts falls back to a
+      // monospace face instead, which is a display you can still read.
+      const style = { color: hot, alpha, ghost: 0.045 + fade * 0.025 };
 
-        // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
-        const fit = (text: string, size: number) => {
-          const max = S * 0.8;
-          const wanted = segmentWidth(ctx, text, size);
-          return wanted > max ? (size * max) / wanted : size;
-        };
+      // Long labels — "Sol♯" and an octave — would otherwise run off the sides.
+      const fit = (text: string, size: number) => {
+        const max = S * 0.8;
+        const wanted = segmentWidth(ctx, text, size);
+        return wanted > max ? (size * max) / wanted : size;
+      };
 
-        drawSegmentText(ctx, note, cx, cy - (1 - NOTE_Y) * S, fit(note, NOTE_SIZE * S), style);
-        drawSegmentText(
-          ctx,
-          centsLabel,
-          cx,
-          cy - (1 - CENTS_Y) * S,
-          fit(centsLabel, CENTS_SIZE * S),
-          style,
-        );
-      }
+      drawSegmentText(ctx, note, cx, cy - (1 - NOTE_Y) * S, fit(note, NOTE_SIZE * S), style);
+      drawSegmentText(
+        ctx,
+        centsLabel,
+        cx,
+        cy - (1 - CENTS_Y) * S,
+        fit(centsLabel, CENTS_SIZE * S),
+        style,
+      );
 
       ctx.restore();
     },

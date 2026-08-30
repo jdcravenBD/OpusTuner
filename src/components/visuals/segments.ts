@@ -1,8 +1,9 @@
 /**
  * The strobe's readout, in a real seven-segment face.
  *
- * The typeface is 7-Segment by Jan Bobrowski, bundled under the SIL OFL — see
- * the @font-face in styles/app.css. It carries the digits, the whole alphabet
+ * The typeface is 7-Segment by Jan Bobrowski, bundled under the SIL OFL and
+ * loaded by this module rather than declared in the stylesheet — see
+ * loadSegmentFont for why. It carries the digits, the whole alphabet
  * (so solfège spells properly) and a hyphen, but three characters this app
  * needs are not in it and could not be: a seven-segment cell cannot form a
  * plus, a sharp or a flat. Those are drawn as paths at a stroke weight matched
@@ -12,9 +13,17 @@
  * printing a dim `8` in every cell first, which lights all seven — the same
  * trick the hardware plays, and the detail that makes the thing read as a
  * display rather than as text.
+ *
+ * If the face cannot be had at all the readout still draws, in the monospace
+ * stack below and without the segment flourishes. It will not look like a
+ * display, which is much better than the alternative: the note vanishing.
  */
 
+import fontUrl from '../../assets/7segment.ttf';
+
 const FAMILY = 'SevenSegment';
+/** What the readout is set in until, or unless, the face arrives. */
+const FALLBACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 /** Characters drawn by hand because the face has no glyph for them. */
 const DRAWN = new Set(['+', '♯', '♭']);
 /** Width of a drawn cell, relative to the font size. */
@@ -26,31 +35,57 @@ let loading: Promise<void> | null = null;
 let ready = false;
 
 /**
- * Starts fetching the face, once.
+ * Fetches the face, without depending on the stylesheet to do it.
  *
- * A `@font-face` is only fetched when something in the DOM renders with it, and
- * nothing here does — the readout is painted on a canvas. Without this the
- * font would sit in the stylesheet unused and `ctx.font` would quietly fall
- * back to a system sans.
+ * This was `document.fonts.load()` against a `@font-face` in app.css, and there
+ * was a race in it that cost the strobe its entire readout. `load()` only
+ * fetches faces that are *already registered*: called before the stylesheet
+ * has been parsed into the CSSOM it matches nothing, resolves immediately
+ * having fetched nothing at all, and latches `loading` so it never asks again.
+ *
+ * That ordering was real rather than theoretical. In the built app Vite puts
+ * the module script *above* the stylesheet link, and this is called at the
+ * top of main.tsx; in dev the CSS is injected by the `import` a few lines
+ * above, so the bug could not be seen there at all. It showed as the note and
+ * the cents simply missing from the strobe, and coming back after clearing
+ * site data — a cold load loses the race the other way round.
+ *
+ * Building the FontFace here removes the question: the URL is a build-time
+ * import, hashed and precached like any other asset, and `load()` on a face
+ * you constructed yourself always actually fetches.
  */
 export function loadSegmentFont(): void {
-  if (loading || typeof document === 'undefined' || !document.fonts) return;
-  loading = document.fonts
-    .load(`16px "${FAMILY}"`)
-    .then(() => {
-      ready = document.fonts.check(`16px "${FAMILY}"`);
+  if (loading || ready || typeof document === 'undefined' || !document.fonts) return;
+  const face = new FontFace(FAMILY, `url(${JSON.stringify(fontUrl)}) format('truetype')`);
+  loading = face
+    .load()
+    .then((loaded) => {
+      document.fonts.add(loaded);
+      ready = true;
     })
     .catch(() => {
-      ready = false;
+      // Cleared rather than left set, so a later mount can try again. Nothing
+      // calls this per frame, so a retry cannot run away.
+      loading = null;
     });
 }
 
-/** True once the face is available to canvas. */
+/**
+ * True once the face is genuinely loaded.
+ *
+ * Our own flag rather than `document.fonts.check()`, which cannot answer this
+ * question: for a family with no registered face it reports *true* in Chrome
+ * (the fallback can render the text) and false in WebKit. Neither is the
+ * answer being asked for. The readout is no longer gated on this at all — it
+ * now only decides whether the segment flourishes are drawn.
+ */
 export function segmentFontReady(): boolean {
-  if (!ready && typeof document !== 'undefined' && document.fonts) {
-    ready = document.fonts.check(`16px "${FAMILY}"`);
-  }
   return ready;
+}
+
+/** What to set the readout in, whichever of the two we have. */
+function fontFor(size: number): string {
+  return `${size}px "${FAMILY}", ${FALLBACK}`;
 }
 
 export interface SegmentStyle {
@@ -61,8 +96,18 @@ export interface SegmentStyle {
   ghost: number;
 }
 
+/**
+ * Hand-drawn only while the segment face is the one in use. The widths and
+ * stroke weights below are matched to its digits, and against a fallback
+ * monospace they would sit at the wrong weight — and there is nothing to
+ * make up for there, since a normal face has all three characters.
+ */
+function drawn(ch: string): boolean {
+  return ready && DRAWN.has(ch);
+}
+
 function cellWidth(ctx: CanvasRenderingContext2D, ch: string, size: number): number {
-  return DRAWN.has(ch) ? size * DRAWN_WIDTH : ctx.measureText(ch).width;
+  return drawn(ch) ? size * DRAWN_WIDTH : ctx.measureText(ch).width;
 }
 
 /** Total width a string will occupy at a given font size. */
@@ -72,7 +117,7 @@ export function segmentWidth(
   size: number,
 ): number {
   ctx.save();
-  ctx.font = `${size}px "${FAMILY}"`;
+  ctx.font = fontFor(size);
   let w = 0;
   for (const ch of text) w += cellWidth(ctx, ch, size);
   ctx.restore();
@@ -89,7 +134,7 @@ export function drawSegmentText(
   style: SegmentStyle,
 ): number {
   ctx.save();
-  ctx.font = `${size}px "${FAMILY}"`;
+  ctx.font = fontFor(size);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = size * DRAWN_STROKE;
@@ -104,13 +149,14 @@ export function drawSegmentText(
 
   [...text].forEach((ch, i) => {
     const w = widths[i];
-    // The unlit cell behind. An 8 lights every segment there is.
-    if (style.ghost > 0) {
+    // The unlit cell behind. An 8 lights every segment there is — and means
+    // nothing whatever in a face that has no segments.
+    if (style.ghost > 0 && ready) {
       ctx.globalAlpha = style.ghost;
       ctx.fillText('8', x, cy);
     }
     ctx.globalAlpha = style.alpha;
-    if (DRAWN.has(ch)) drawGlyph(ctx, ch, x, cy, w, size);
+    if (drawn(ch)) drawGlyph(ctx, ch, x, cy, w, size);
     else ctx.fillText(ch, x, cy);
     x += w;
   });
