@@ -22,13 +22,15 @@ workflows:
       app_store_connect: 'Easy as Tuning'
 
     environment:
-      # Automatic signing. Codemagic creates and renews the certificate and the
-      # provisioning profile through the API key above, which is the step that
-      # used to need a Mac to generate a certificate signing request.
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.easyastuning.app
+      groups:
+        # Holds CERTIFICATE_PRIVATE_KEY, the RSA key the distribution
+        # certificate is built on. The App Store Connect integration above
+        # supplies the three API-key variables by itself but not this one,
+        # because it is not Apple's to give: it is the private half of the
+        # certificate, and whoever holds it is who can sign.
+        - signing
       vars:
+        BUNDLE_ID: 'com.easyastuning.app'
         XCODE_PROJECT: 'ios/App/App.xcodeproj'
         XCODE_SCHEME: 'App'
         APP_STORE_APPLE_ID: 6806842475
@@ -91,8 +93,27 @@ workflows:
           sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $VERSION;/g" "$XCODE_PROJECT/project.pbxproj"
           sed -i '' "s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = $BUILD;/g" "$XCODE_PROJECT/project.pbxproj"
 
-      - name: Apply the provisioning profiles
-        script: xcode-project use-profiles
+      - name: Fetch or create the certificate and profile
+        # The first build makes both, every later one finds them.
+        #
+        # This was `environment.ios_signing`, which reads better and cannot
+        # work here: that block only *fetches* signing files that already
+        # exist, and on a machine that has never run Xcode none ever has.
+        # The first build failed with "No matching profiles found" for exactly
+        # that reason. `--create` is the difference.
+        #
+        # Apple allows very few distribution certificates at once, so the key
+        # is kept in a variable rather than generated per build: a fresh key
+        # each time would mean a fresh certificate each time and the limit
+        # reached within a handful of builds.
+        script: |
+          set -e
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
 
       - name: Build the ipa
         # --project, not --workspace: Capacitor 8 resolves its native
