@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { tuner } from './tuner/TunerController';
 import { toneEngine } from './audio/tone';
 import { haptic } from './haptics';
+import { isNative } from './platform';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
 import {
@@ -31,6 +32,12 @@ export default function App() {
   const tuning = useCurrentTuning();
 
   const [micState, setMicState] = useState(tuner.micState);
+  /*
+   * True only while the packaged app's first automatic start is in flight,
+   * so the gate does not flash up for the frame before it begins. False from
+   * the outset in a browser, where nothing starts on its own.
+   */
+  const [autoStarting, setAutoStarting] = useState(isNative());
   const [micError, setMicError] = useState<EngineError | null>(null);
   const [tuningOpen, setTuningOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -108,6 +115,38 @@ export default function App() {
     if (tuner.micState !== 'running') return;
     tuner.stopMic();
     void startMic();
+  }, [startMic]);
+
+  /*
+   * The packaged app listens as soon as it opens. The browser still does not,
+   * and the difference is not cosmetic.
+   *
+   * On the web the press is load-bearing: an AudioContext built outside a
+   * user gesture comes up suspended on iOS Safari, and removing this once
+   * before is what broke the tuner badly enough to be reverted. Inside the
+   * app that policy is lifted — Capacitor sets
+   * mediaTypesRequiringUserActionForPlayback to nothing — and the permission
+   * dialog iOS raises on the first launch is itself the deliberate act the
+   * gate was standing in for. Asking twice is asking twice.
+   *
+   * Nothing here assumes it worked. The gate is still rendered whenever the
+   * tuner is not running, so a refusal, a failure, or a start that never
+   * happens at all lands back on exactly the screen it always did.
+   *
+   * It also runs on the way back from the background, because the visibility
+   * handler below drops the microphone when the app is hidden, and returning
+   * to a tuner that has stopped listening is the same fault by another road.
+   */
+  useEffect(() => {
+    if (!isNative()) return;
+    const wake = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (tuner.micState === 'running' || tuner.micState === 'starting') return;
+      void startMic().then(() => setAutoStarting(false));
+    };
+    wake();
+    document.addEventListener('visibilitychange', wake);
+    return () => document.removeEventListener('visibilitychange', wake);
   }, [startMic]);
 
   // Release the microphone while backgrounded; browsers otherwise keep the
@@ -270,9 +309,10 @@ export default function App() {
         )}
       </footer>
 
-      {/* The tuner stays on screen behind this, dimmed. Nothing starts without
-          a real press — see PowerGate. */}
-      {!running && (
+      {/* The tuner stays on screen behind this, dimmed. On the web nothing
+          starts without a real press; in the packaged app this is the fallback
+          for a start that was refused or failed — see the effect above. */}
+      {!running && !autoStarting && (
         <PowerGate
           starting={micState === 'starting'}
           error={micError}
