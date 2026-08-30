@@ -100,7 +100,7 @@ export function CustomTuningEditor({
 
       <div className="sheet__section">
         <div className="sheet__label">
-          Strings — {strings.length} · lowest first
+          {strings.length} strings · lowest first
         </div>
         <div className="editor__strings">
           {strings.map((midi, i) => (

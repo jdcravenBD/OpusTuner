@@ -94,7 +94,7 @@ export function PowerGate({ starting, error, onStart }: Props) {
               {error.message}
               {error.kind === 'permission-denied' && (
                 <span className="powergate__hint">
-                  Your browser remembers this per site — allow the microphone from the
+                  Your browser remembers this per site. Allow the microphone from the
                   padlock in the address bar, then reload.
                 </span>
               )}

@@ -230,7 +230,7 @@ export default function App() {
           <button
             className={settings.showStatus ? 'status' : 'status status--off'}
             onClick={() => setSettingsOpen(true)}
-            title="Reference pitch, in-tune window and capo — tap to change"
+            title="Reference pitch, in-tune window and capo. Tap to change."
           >
             <span className="status__seg">
               <b>A</b>

@@ -54,7 +54,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
       <Section label="Pitch">
         <Row
           name="Reference pitch"
-          desc="Concert A. Baroque ensembles often use 415, some orchestras 442–443."
+          desc="Concert A. Baroque ensembles often use 415, some orchestras 442 to 443."
         >
           <Stepper
             value={s.a4}
@@ -259,7 +259,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         <div className="about">
           Easy as Tuning {appVersion} &middot; built {__BUILD_ID__}
           <br />
-          Pitch detection by the McLeod Pitch Method — accurate to well under a cent
+          Pitch detection by the McLeod Pitch Method, accurate to well under a cent
           on a clean signal.
           <br />
           Defaults: A = {DEFAULT_SETTINGS.a4} Hz, ±{DEFAULT_SETTINGS.tolerance}¢ window.
