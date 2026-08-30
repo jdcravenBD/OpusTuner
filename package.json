@@ -13,6 +13,7 @@
     "preview": "vite preview --host",
     "phone": "npm run build && vite preview --host --mode https",
     "icons": "node scripts/generate-icons.mjs",
+    "shots:fit": "node scripts/fit-screenshot.mjs",
     "cap:sync": "npm run build && cap sync",
     "cap:android": "npm run build && cap sync android && cap open android",
     "cap:ios": "npm run build && cap sync ios && cap open ios"
