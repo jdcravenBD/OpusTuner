@@ -2568,77 +2568,6 @@ button {
   font-weight: 700;
 }
 
-/* --- gallery ------------------------------------------------------------- */
-
-/*
- * Full-bleed: the strip runs past both edges of the padded column so it reads
- * as continuing rather than as a row of cards that happens to move.
- */
-.gallery {
-  margin: 22px -22px;
-  overflow: hidden;
-  /* Fades the strip out at both ends instead of cutting it, so nothing pops
-     into or out of existence at the edge. */
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
-}
-
-.gallery__track {
-  --gallery-gap: 12px;
-
-  display: flex;
-  gap: var(--gallery-gap);
-  width: max-content;
-  /*
-   * No padding here, and that is load-bearing: a percentage translate resolves
-   * against the *border* box, so any padding on the track is counted into the
-   * -50% and the loop lands short by exactly that much. The fade at each end
-   * gives the strip its breathing room instead.
-   */
-  animation: gallery-slide 24s linear infinite;
-}
-
-/*
- * The set is rendered twice, and the track slides by exactly one set *plus the
- * gap after it* — which is not the same as half the track.
- *
- * Twelve shots have eleven gaps between them, so half the width is six shots
- * and five and a half gaps: half a gap short of where the second copy starts.
- * Left at -50% the strip jumps six pixels every time round. The correction is
- * that missing half-gap.
- */
-@keyframes gallery-slide {
-  to {
-    transform: translateX(calc(-50% - var(--gallery-gap) / 2));
-  }
-}
-
-/*
- * An iPhone 12 screen is 390x844. Real screenshots drop straight in at this
- * ratio without the strip changing height.
- */
-/* Recessed, like the tuner screen is — these are pictures of a screen. */
-.gallery__shot {
-  flex: 0 0 auto;
-  width: 104px;
-  aspect-ratio: 390 / 844;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-lg);
-  background: var(--surface-sunk);
-  border: 1px solid var(--border);
-  box-shadow: var(--sunk);
-}
-
-.gallery__label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-4);
-}
-
 /* --- price and the button ------------------------------------------------ */
 
 /*
@@ -2711,12 +2640,20 @@ button {
 
 /* --- the two lists ------------------------------------------------------- */
 
-.purchase__block {
-  margin-top: 30px;
+/*
+ * One leads into the price and the other follows the button, so they want
+ * different air above them rather than a shared margin.
+ */
+.purchase__block--gets {
+  margin: 26px 0;
+}
+
+.purchase__block--nots {
+  margin-top: 34px;
 }
 
 .purchase__h2 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -2725,48 +2662,138 @@ button {
   color: var(--text-4);
 }
 
-.purchase__list {
+/* --- what you get -------------------------------------------------------- */
+
+/*
+ * The contents of the set, hung off a single line.
+ *
+ * These were four raised cards, which is the language every list in the app
+ * speaks -- and on the one screen with no chassis around it, four cards read
+ * as four separate things being sold. The spine is the argument: it runs
+ * unbroken from the first item to the last, and each one is a bead on it.
+ */
+.purchase__gets {
+  position: relative;
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  padding: 3px 0 3px 24px;
 }
 
-/* The same raised face every list row in the app has. */
-.purchase__item {
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
-  border: 1px solid var(--border);
-  box-shadow: var(--hi);
+/* Faded at both ends, so it reads as a run rather than as a bar with stops. */
+.purchase__gets::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--green-line) 13%,
+    var(--green-line) 87%,
+    transparent
+  );
 }
 
-.purchase__item-name {
-  font-size: 14.5px;
+.purchase__get {
+  position: relative;
+}
+
+.purchase__get + .purchase__get {
+  margin-top: 17px;
+}
+
+/*
+ * The bead, centred on the first line of the name rather than on the item:
+ * an item is two lines of very different weight and its middle is nowhere in
+ * particular.
+ *
+ * Opaque and wider than the spine, so it covers the line instead of needing a
+ * ring of page color punched around it -- the page behind this is a gradient,
+ * and a ring cut out of a gradient shows its seam.
+ */
+.purchase__get::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 9px -1px var(--green-glow);
+}
+
+.purchase__get-name {
+  font-size: 15px;
   font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
   color: var(--text);
 }
 
-/* The refusals are the reassuring half, so they carry the color that means
-   "this is fine" everywhere else in the app — and the tick that goes with it. */
-/* The tick follows the words rather than leading them: it reads as a thing
-   being confirmed, not as a bullet. */
-.purchase__list--nots .purchase__item-name {
+.purchase__get-desc {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+/* --- what you do not ----------------------------------------------------- */
+
+/*
+ * The reassurances, under the button, where the doubt is.
+ *
+ * Deliberately not the list above: no spine, no beads, no fill of any kind.
+ * Hairlines between the rows and nothing around them, so this reads as a set
+ * of plain statements rather than as four more things being sold. It is the
+ * quieter half of the screen and it should look it.
+ */
+.purchase__nots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.purchase__not {
+  padding: 11px 1px;
+  border-top: 1px solid var(--border);
+}
+
+/* The lines go between the rows, not around the list. */
+.purchase__not:first-child {
+  padding-top: 1px;
+  border-top: 0;
+}
+
+.purchase__not:last-child {
+  padding-bottom: 1px;
+}
+
+/*
+ * The refusals are the reassuring half, so they carry the color that means
+ * "this is fine" everywhere else in the app -- and the tick that goes with it.
+ *
+ * The tick follows the words rather than leading them: it reads as a thing
+ * being confirmed, not as a bullet in a list of what you are missing.
+ */
+.purchase__not-name {
   display: flex;
   align-items: center;
   gap: 7px;
+  font-size: 14.5px;
+  font-weight: 650;
   color: var(--green);
 }
 
-.purchase__list--nots .purchase__item-name svg {
+.purchase__not-name svg {
   flex: 0 0 auto;
   stroke-width: 3;
 }
 
-.purchase__item-desc {
-  margin-top: 3px;
+.purchase__not-desc {
+  margin-top: 2px;
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--text-3);

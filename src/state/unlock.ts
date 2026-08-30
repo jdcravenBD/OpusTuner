@@ -34,7 +34,7 @@ export const PRICE = '$1.99';
 /** Custom tunings you can keep without the full set. */
 export const FREE_CUSTOM_TUNINGS = 1;
 
-/** Themes outside the free two. The colorless pair stay free. */
+/** Themes that need the tier. Plain, the colorless one, stays free. */
 export const PAID_THEMES = ['dark', 'light'] as const;
 
 /**
@@ -56,7 +56,7 @@ export const TIER_ASSURANCES: { title: string; detail: string }[] = [
   { title: 'Nothing expires', detail: 'Buy it once and it stays bought, on every device you own.' },
 ];
 
-/** Everything the tier covers, in the order the showcase lists it. */
+/** Everything the tier covers, in the order the purchase screen lists it. */
 export const TIER_FEATURES: { title: string; detail: string }[] = [
   {
     title: 'Every tuning',

@@ -79,7 +79,25 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
             </p>
           </header>
 
-          <Gallery />
+          {/*
+            * The contents of the set, above the price rather than below it.
+            *
+            * A strip of screenshots stood here, answering a question nobody
+            * asks about a tuner. What a thing costs is only worth reading
+            * once you know what it buys, so the list came up and the pictures
+            * went.
+            */}
+          <section className="purchase__block purchase__block--gets">
+            <h2 className="purchase__h2">What you get</h2>
+            <ul className="purchase__gets">
+              {TIER_FEATURES.map((f) => (
+                <li className="purchase__get" key={f.title}>
+                  <div className="purchase__get-name">{f.title}</div>
+                  <div className="purchase__get-desc">{f.detail}</div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
           {/*
             * The price and the word "once" are the same size on purpose. The
@@ -101,30 +119,22 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
               : 'One payment. It never becomes a subscription.'}
           </div>
 
-          <section className="purchase__block">
-            <h2 className="purchase__h2">What you get</h2>
-            <ul className="purchase__list">
-              {TIER_FEATURES.map((f) => (
-                <li className="purchase__item" key={f.title}>
-                  <div className="purchase__item-name">{f.title}</div>
-                  <div className="purchase__item-desc">{f.detail}</div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="purchase__block">
+          {/*
+            * And what the payment does not come with, directly under the
+            * button that would take it — which is where the doubt is.
+            */}
+          <section className="purchase__block purchase__block--nots">
             <h2 className="purchase__h2">What you don&rsquo;t</h2>
-            <ul className="purchase__list purchase__list--nots">
+            <ul className="purchase__nots">
               {TIER_ASSURANCES.map((a) => (
-                <li className="purchase__item" key={a.title}>
-                  <div className="purchase__item-name">
+                <li className="purchase__not" key={a.title}>
+                  <div className="purchase__not-name">
                     {a.title}
                     {/* A tick, because every one of these is a thing you are
                         being spared rather than a thing you are missing. */}
                     <CheckIcon size={13} />
                   </div>
-                  <div className="purchase__item-desc">{a.detail}</div>
+                  <div className="purchase__not-desc">{a.detail}</div>
                 </li>
               ))}
             </ul>
@@ -137,30 +147,5 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
       </div>
     </div>,
     host,
-  );
-}
-
-/**
- * Placeholders, at the proportions of the screen they will eventually show.
- *
- * The track holds the set twice and slides by one set plus the gap after it,
- * so the second copy lands exactly where the first began and the loop has no
- * seam — see the keyframes, where that distance is not half the track and the
- * difference matters. Driven by a CSS animation on a transform rather than by
- * script: it runs on the compositor and costs nothing while the rest of the
- * app is analysing audio behind it.
- */
-function Gallery() {
-  const shots = ['Plain', 'Dark', 'Light', 'Needle', 'Strobe', 'Tunings'];
-  return (
-    <div className="gallery" aria-hidden>
-      <div className="gallery__track">
-        {[...shots, ...shots].map((label, i) => (
-          <div className="gallery__shot" key={`${label}-${i}`}>
-            <span className="gallery__label">{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
