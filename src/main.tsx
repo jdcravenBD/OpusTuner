@@ -18,6 +18,15 @@ loadSegmentFont();
 // Handy from the console while developing: __tuner.frame, __tuner.engine, …
 if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__tuner = tuner;
 
+/*
+ * The App Store screenshot rig, which hands the tuner a synthetic instrument
+ * so the pictures have a note in them. Imported dynamically inside a DEV
+ * guard, so a production build drops the branch and never emits the chunk.
+ */
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('shots')) {
+  void import('./shots').then((m) => m.installScreenshotRig());
+}
+
 createRoot(root).render(
   <StrictMode>
     <App />
