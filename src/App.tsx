@@ -16,7 +16,7 @@ import {
   useWakeLock,
 } from './hooks';
 import { TunerVisual } from './components/visuals';
-import { NoteDisplay, Readout, TuningVerdict } from './components/Display';
+import { NoteDisplay, TuningVerdict } from './components/Display';
 import { Wordmark } from './components/Wordmark';
 import { StringRow } from './components/StringRow';
 import { TuningSheet } from './components/TuningSheet';
@@ -276,7 +276,6 @@ export default function App() {
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
           />
-          <Readout show={settings.showFrequency} />
         </div>
       </main>
 

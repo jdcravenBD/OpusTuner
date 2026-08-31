@@ -290,6 +290,23 @@ button {
   border-radius: var(--r-xs);
 }
 
+/*
+ * Except the panels themselves.
+ *
+ * A sheet carries tabIndex={-1} so the keyboard and VoiceOver land inside
+ * it rather than behind it, and taking focus that way painted a green ring
+ * around the whole panel. It read as the top of Settings being highlighted,
+ * because the top edge is the part of a full-height ring you can see. It
+ * happened only sometimes because browsers disagree about whether focus
+ * moved by script counts as :focus-visible.
+ *
+ * A ring belongs on something you can press. On a container it says only
+ * that something invisible has happened.
+ */
+[role='dialog']:focus-visible {
+  outline: none;
+}
+
 /* Every numeric readout in the app routes through this. */
 .mono {
   font-family: var(--font-mono);
@@ -802,7 +819,18 @@ button {
  */
 .app[data-wide-row='true'] .field-deck {
   --square-cost: 320px;
-  --column-cost: 450px;
+  /*
+   * 410, and the number is the point where this stops mattering.
+   *
+   * It was 450, measured back when a frequency bar could appear under the
+   * screen. With that gone the budget was paying for a row nothing renders
+   * into. Swept it at 390x844 on a twelve string: 450 gives a 372px deck,
+   * 410 gives 411, and below 410 nothing changes at all because the deck
+   * hits its own 3:4 ratio against a 308px width and stops. So this is
+   * where the height budget hands over to the proportions, and there is
+   * still 53px left inside the zone to centre it in.
+   */
+  --column-cost: 410px;
 }
 
 .visual-nav {
@@ -974,82 +1002,6 @@ button {
 
 .field__note--br {
   right: 11px;
-}
-
-/* --------------------------------------------------------------- readout -- */
-
-/* Centred within the lower gap of the field zone — see .field-zone. */
-.readout {
-  grid-row: 3;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  max-width: 100%;
-  padding: 0 14px;
-  pointer-events: none;
-}
-
-.readout__strip {
-  display: flex;
-  align-items: stretch;
-  border-radius: var(--r-sm);
-  background: var(--surface-sunk);
-  border: 1px solid var(--border);
-  box-shadow: var(--sunk);
-  overflow: hidden;
-  max-width: 100%;
-}
-
-.readout__cell {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  padding: 4px 8px;
-  white-space: nowrap;
-}
-
-.readout__cell + .readout__cell {
-  border-left: 1px solid var(--border);
-}
-
-.readout__key {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--text-4);
-}
-
-.readout__val {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  font-weight: 650;
-  color: var(--text-2);
-  min-width: 4ch;
-  text-align: right;
-}
-
-.readout__cell--delta .readout__val {
-  color: var(--text);
-  min-width: 5ch;
-  transition: color var(--dur) var(--ease);
-}
-
-.readout__cell--delta[data-intune='true'] {
-  background: var(--green-soft);
-}
-
-.readout__cell--delta[data-intune='true'] .readout__val,
-.readout__cell--delta[data-intune='true'] .readout__key {
-  color: var(--green);
-}
-
-.readout__unit {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 600;
-  color: var(--text-4);
 }
 
 /* ------------------------------------------------------------ string row -- */

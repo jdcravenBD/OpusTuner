@@ -64,7 +64,6 @@ export interface Settings {
   inputDeviceId: string;
   /** 0 = permissive (noisy rooms), 1 = strict (studio quiet). */
   sensitivity: number;
-  showFrequency: boolean;
   /** The wordmark across the top. Hidden without moving anything else. */
   showWordmark: boolean;
   /** The A440 / tolerance / capo strip. Hidden the same way. */
@@ -106,7 +105,6 @@ export const DEFAULT_SETTINGS: Settings = {
   capo: 0,
   inputDeviceId: 'default',
   sensitivity: 0.09,
-  showFrequency: false,
   showWordmark: true,
   showStatus: true,
   visual: DEFAULT_VISUAL,

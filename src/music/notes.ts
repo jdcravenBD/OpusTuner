@@ -73,11 +73,3 @@ export function isAccidental(midi: number): boolean {
   const pc = ((Math.round(midi) % 12) + 12) % 12;
   return [1, 3, 6, 8, 10].includes(pc);
 }
-
-/** Format a frequency the way tuners conventionally do. */
-export function formatHz(freq: number): string {
-  if (!isFinite(freq) || freq <= 0) return '—';
-  if (freq >= 1000) return freq.toFixed(1);
-  if (freq >= 100) return freq.toFixed(2);
-  return freq.toFixed(2);
-}

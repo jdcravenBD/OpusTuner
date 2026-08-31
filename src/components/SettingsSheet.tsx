@@ -231,13 +231,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         <Row name="Detail bar">
           <Switch on={s.showStatus} onChange={(v) => set('showStatus', v)} label="Detail bar" />
         </Row>
-        <Row name="Frequency bar">
-          <Switch
-            on={s.showFrequency}
-            onChange={(v) => set('showFrequency', v)}
-            label="Frequency bar"
-          />
-        </Row>
       </Section>
 
       {/* ------------------------------------------------------------- misc */}
