@@ -2801,6 +2801,59 @@ button {
   color: var(--text-3);
 }
 
+/* ----------------------------------------------------------------- basic -- */
+
+/*
+ * The same app with the boxes taken off.
+ *
+ * Everything here is drawn as a machined instrument: every face moulded with
+ * a lit top edge, an outline around it and a shadow beneath. Basic keeps all
+ * of that for the tuner itself, where depth is doing work, and takes it away
+ * from the furniture — a settings row, a tuning, the buttons in a corner.
+ * Those are lists and controls, and a list does not need a box per item to be
+ * a list.
+ *
+ * It rides on plain's palette rather than inventing one. Same lightness
+ * values, same hue drained out; only the moulding differs.
+ */
+
+/*
+ * The border stays and turns transparent rather than being removed, so every
+ * box keeps the pixel it already occupies and nothing shifts by a hair when
+ * the theme changes. It is also what the rule below writes back into.
+ *
+ * States are excluded rather than overridden. A selected tuning and the one
+ * under your finger both say so with a ring, and a later rule flattening them
+ * would take the meaning with it — the same trap that once cost a chip its
+ * white fill and left dark text on a dark background.
+ */
+:root[data-basic='true'] .icon-btn,
+:root[data-basic='true'] .setting,
+:root[data-basic='true'] .row:not([data-selected='true']):not([data-picked='true']) {
+  background: none;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+/*
+ * With the box gone, something has to say where one row ends and the next
+ * begins. A hairline between them does it without becoming a box again, and
+ * it is the border that was already there rather than a new element.
+ */
+:root[data-basic='true'] .setting + .setting,
+:root[data-basic='true']
+  .row
+  + .row:not([data-selected='true']):not([data-picked='true']) {
+  border-top-color: var(--border);
+}
+
+/* Pressed still reads as pressed; it just does it without a well to sink into. */
+:root[data-basic='true'] .icon-btn:active {
+  background: none;
+  box-shadow: none;
+  color: var(--text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

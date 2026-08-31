@@ -29,8 +29,8 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
-  /* The colorless theme leaves the hue pickers with nothing to set. */
-  const colorless = s.theme === 'plain';
+  /* Both colorless themes leave the hue pickers with nothing to set. */
+  const colorless = s.theme === 'plain' || s.theme === 'basic';
   /** Names what the reader reached for, and opens the showcase. */
   const [wanted, setWanted] = useState<string | null>(null);
   /** 'idle' before anyone asks, 'busy' while Apple is being asked. */
@@ -189,6 +189,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             value={s.theme}
             options={[
               { value: 'plain' as ThemeMode, label: 'Plain' },
+              { value: 'basic' as ThemeMode, label: 'Basic' },
               { value: 'dark' as ThemeMode, label: 'Dark', locked: isThemeLocked('dark', s.owned) },
               {
                 value: 'light' as ThemeMode,

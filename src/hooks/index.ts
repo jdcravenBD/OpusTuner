@@ -105,10 +105,17 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
      * palette of its own would mean maintaining a second copy of every
      * lightness value to no end: the numbers are the same, the color is not.
      */
-    const plain = mode === 'plain';
-    root.dataset.theme = plain ? 'dark' : mode;
-    if (plain) root.dataset.plain = 'true';
+    /*
+     * `basic` carries the drain too and adds a flag of its own, the way the
+     * deleted `simple` theme did: it is plain with the moulding taken off,
+     * not a second set of greys that happen to look similar.
+     */
+    const colorless = mode === 'plain' || mode === 'basic';
+    root.dataset.theme = colorless ? 'dark' : mode;
+    if (colorless) root.dataset.plain = 'true';
     else delete root.dataset.plain;
+    if (mode === 'basic') root.dataset.basic = 'true';
+    else delete root.dataset.basic;
 
     // Tints the browser's own chrome to match, so the app does not sit in a
     // band of someone else's color on a phone.

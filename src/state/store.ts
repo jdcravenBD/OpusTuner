@@ -15,16 +15,17 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /* ----------------------------------------------------------------- types -- */
 
 /**
- * Three themes, one of which is not a palette of its own.
+ * Four themes, two of which are not palettes of their own.
  *
  * `plain` is dark with every hue drained out of it and nothing else changed —
- * same lightness values, same moulding. The signal colors survive it; they
- * mean something.
+ * same lightness values, same moulding. `basic` is plain with the moulding
+ * taken off as well: no box around a settings row, a tuning or a corner
+ * button. The signal colors survive both; they mean something.
  */
-export type ThemeMode = 'plain' | 'dark' | 'light';
+export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light';
 
 /** Every theme on offer, in the order the picker shows them. */
-export const THEMES: ThemeMode[] = ['plain', 'dark', 'light'];
+export const THEMES: ThemeMode[] = ['plain', 'basic', 'dark', 'light'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /** Every in-tune window on offer, in the order the picker shows them. */
