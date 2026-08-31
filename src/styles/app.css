@@ -2844,12 +2844,14 @@ button {
  * the same job with no marks at all, and the rows read as sitting on
  * something rather than as floating over the tuner.
  *
- * Twelve per cent against the app's five to seven. Far enough apart to be a
- * different surface at a glance, which is the whole of what the box used to
- * be saying.
+ * A couple of points above the app rather than a dozen. Twelve per cent was
+ * the first try and it was far too much: the panel stopped reading as part of
+ * the same instrument and started looking like a light-theme sheet that had
+ * wandered in. The lift only has to be enough to see, not enough to announce
+ * itself, and the default sheet sits at 7.3 falling to 5.
  */
 :root[data-basic='true'] .sheet {
-  background: linear-gradient(180deg, hsl(0 0% 13%), hsl(0 0% 11.5%) 140px);
+  background: linear-gradient(180deg, hsl(0 0% 9.4%), hsl(0 0% 8.4%) 140px);
 }
 
 /* Pressed still reads as pressed; it just does it without a well to sink into. */
