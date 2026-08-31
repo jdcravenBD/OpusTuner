@@ -2836,15 +2836,20 @@ button {
 }
 
 /*
- * With the box gone, something has to say where one row ends and the next
- * begins. A hairline between them does it without becoming a box again, and
- * it is the border that was already there rather than a new element.
+ * The panel comes up to meet them instead.
+ *
+ * A hairline between rows was the first answer to "what separates them now",
+ * and it was the wrong one: it is a line, and lines are what this theme is
+ * for getting rid of. Lifting the sheet well clear of the app behind it does
+ * the same job with no marks at all, and the rows read as sitting on
+ * something rather than as floating over the tuner.
+ *
+ * Twelve per cent against the app's five to seven. Far enough apart to be a
+ * different surface at a glance, which is the whole of what the box used to
+ * be saying.
  */
-:root[data-basic='true'] .setting + .setting,
-:root[data-basic='true']
-  .row
-  + .row:not([data-selected='true']):not([data-picked='true']) {
-  border-top-color: var(--border);
+:root[data-basic='true'] .sheet {
+  background: linear-gradient(180deg, hsl(0 0% 13%), hsl(0 0% 11.5%) 140px);
 }
 
 /* Pressed still reads as pressed; it just does it without a well to sink into. */
