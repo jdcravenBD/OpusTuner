@@ -2844,14 +2844,17 @@ button {
  * the same job with no marks at all, and the rows read as sitting on
  * something rather than as floating over the tuner.
  *
- * A couple of points above the app rather than a dozen. Twelve per cent was
- * the first try and it was far too much: the panel stopped reading as part of
- * the same instrument and started looking like a light-theme sheet that had
- * wandered in. The lift only has to be enough to see, not enough to announce
- * itself, and the default sheet sits at 7.3 falling to 5.
+ * One point above the default sheet, which is 7.3 falling to 5, over an app
+ * that is 3.5 behind it.
+ *
+ * Arrived at downwards. Twelve per cent read as a light-theme panel that had
+ * wandered in; nine and a half was still announcing itself. With no box
+ * around each row the sheet is the only thing saying "these are on a
+ * surface", and it turns out that needs almost nothing: enough of a step to
+ * see an edge, and no more.
  */
 :root[data-basic='true'] .sheet {
-  background: linear-gradient(180deg, hsl(0 0% 9.4%), hsl(0 0% 8.4%) 140px);
+  background: linear-gradient(180deg, hsl(0 0% 8.4%), hsl(0 0% 7.4%) 140px);
 }
 
 /* Pressed still reads as pressed; it just does it without a well to sink into. */
