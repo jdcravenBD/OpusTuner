@@ -130,7 +130,7 @@ Thereafter `npm run cap:android` / `npm run cap:ios` rebuild and sync.
 - Optional confirmation chime and vibration when a string lands
 - Dark / light / follow-system themes
 - Left-handed string order
-- Input device picker and a sensitivity control for noisy rooms
+- Input device picker, and a silence gate measured from the room rather than set
 - Keeps the screen awake while tuning
 - Releases the microphone as soon as you switch away
 

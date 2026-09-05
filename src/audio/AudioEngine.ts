@@ -48,12 +48,125 @@ const CHUNK_SIZE = 512;
 const ENVELOPE_SAMPLES = 512;
 /** A pluck must raise the short-term level by at least this factor to count. */
 const ONSET_RISE_RATIO = 2.2;
+
+/* --- the adaptive noise floor --------------------------------------------- */
+
+/*
+ * Where the silence gate comes from.
+ *
+ * It used to come from a slider. One number, set by hand, deciding what counts
+ * as silence in a room the app has never heard — and it had to be asked for,
+ * because the level an instrument arrives at spans some twenty decibels
+ * between an unplugged electric and a strummed acoustic and no single constant
+ * serves both. It worked. Almost nobody ever moved it, which is the problem: a
+ * tuner that needs calibrating before it can hear you has already lost, and
+ * every tuner worth comparing this one to manages without asking.
+ *
+ * What they do instead is measure the room, and that is what these do. The
+ * gate sits a fixed distance above the quietest thing heard recently, and
+ * every other absolute threshold in this file already hangs off the gate.
+ */
+
+/**
+ * How far above the measured room noise the acquire gate sits (+11 dB).
+ *
+ * Room noise is not steady, and a gate level *with* it opens on the loud half
+ * of it. Eleven decibels clears that and is still far below anything worth
+ * detecting. In a quiet room it lands within a decibel of where the slider's
+ * default sat, which is the behaviour already known to be right.
+ */
+export const NOISE_HEADROOM = 3.5;
+/**
+ * The gate may never leave the range the slider offered.
+ *
+ * Both ends of that range shipped and both worked, which makes them the safe
+ * bounds for something now deciding on its own: -68 dBFS at the permissive
+ * end, -42.8 at the strict one. An estimate that has gone wrong can therefore
+ * only ever be as wrong as a setting the user could already have chosen by
+ * hand, which is a much smaller thing to be wrong about.
+ */
+export const GATE_MIN = 0.0004;
+export const GATE_MAX = 0.0072;
+
+/** The acquire gate for a room whose noise floor measures `floor` rms. */
+export function gateForNoiseFloor(floor: number): number {
+  return Math.min(GATE_MAX, Math.max(GATE_MIN, floor * NOISE_HEADROOM));
+}
+
+/** A quieter room is believed almost at once. */
+const FLOOR_FALL_SECONDS = 0.15;
+/**
+ * A louder one is not. The asymmetry is the whole design — see below — and it
+ * is this far apart because the two mistakes do not cost the same.
+ *
+ * Rising too eagerly puts the gate above a quiet instrument, which is the
+ * complaint this app has already had twice. Rising too slowly leaves it under
+ * a room that has genuinely got louder, where the clarity test is still in the
+ * way and the symptom is a stray reading rather than a tuner that hears
+ * nothing. And the case where a loud room matters most, which is being in one
+ * when the microphone opens, is not handled by this at all: the first frame
+ * adopts the room outright.
+ */
+const FLOOR_RISE_SECONDS = 12;
+/**
+ * Longest gap the estimate will integrate over.
+ *
+ * Two things stop the frame loop without stopping the clock: a background tab,
+ * where requestAnimationFrame simply does not fire, and the app deafening
+ * itself while it makes a sound of its own. Either can leave minutes between
+ * consecutive steps, and a step that size works out to a coefficient of 1 —
+ * the floor snapping to whatever the first frame back happens to hold.
+ */
+const MAX_FLOOR_STEP_SECONDS = 0.1;
+
+/**
+ * One step of the noise floor estimate: fast down, slow up, and frozen while a
+ * note is ringing.
+ *
+ * An adaptive floor was written here once and reverted, and it is worth being
+ * exact about why, because the bug is an easy one to write twice. It averaged.
+ * Over a long note the average climbed toward the note's own level, the gate
+ * climbed with it, the note was cut off by the very thing measuring it, and
+ * the floor then sat high across the start of the next one.
+ *
+ * Three things stop that, all of them the same observation: playing can only
+ * ever make a room louder, so a rise is never evidence of anything.
+ *
+ *  1. This tracks a minimum rather than a mean. A fall is followed at once, a
+ *     rise eighty times more slowly.
+ *  2. It does not update at all while a note is on. The engine already knows
+ *     when one is, and the note's own level is the single measurement
+ *     guaranteed to be the wrong answer.
+ *  3. The gate it feeds is clamped at both ends, so the worst case is bounded
+ *     by something that used to be selectable.
+ *
+ * The circularity — the floor decides what a note is, notes freeze the floor —
+ * is real, and it points the safe way. An estimate that has drifted too high
+ * stops onsets registering, which leaves `noteOn` false, which leaves the
+ * estimate free to fall until notes are heard again. Too low and the room
+ * itself corrects it within a fraction of a second. There is no state it can
+ * settle into and stay wrong in.
+ */
+export function nextNoiseFloor(
+  floor: number,
+  env: number,
+  dtSeconds: number,
+  noteOn: boolean,
+): number {
+  // Nothing measured yet. Adopt the room outright rather than spending the
+  // first several seconds of use climbing toward it from zero.
+  if (floor <= 0) return env;
+  if (env < floor) return floor + (env - floor) * (1 - Math.exp(-dtSeconds / FLOOR_FALL_SECONDS));
+  if (noteOn) return floor;
+  return floor + (env - floor) * (1 - Math.exp(-dtSeconds / FLOOR_RISE_SECONDS));
+}
+
 /**
  * How far above the silence gate the level has to be before a rise in it is
  * allowed to count as a pluck (~+5 dB).
  *
- * This was an absolute 0.0045 — -47 dBFS — while the gate sits at -60 by
- * default, and those thirteen decibels were a dead band. Anything inside it
+ * This was an absolute 0.0045 — -47 dBFS — while the gate in a quiet room
+ * sits near -60, and those thirteen decibels were a dead band. Anything inside it
  * was quiet enough never to register as a *note* and loud enough to be
  * detected as a pitch, which is the worst of both: no attack blank, no
  * settling damp, no tracker reset between plucks, and `sustainRef` pinned to
@@ -78,7 +191,7 @@ export const ONSET_FLOOR_RATIO = 1.8;
  * vanished while the string was plainly still sounding.
  *
  * Only ever in force after a real pluck: with no note on, the gate is exactly
- * what the sensitivity slider says it is.
+ * what the room says it is.
  */
 export const SUSTAIN_GATE_RATIO = 0.25;
 /**
@@ -183,10 +296,29 @@ export class AudioEngine {
   private minFreq = 24;
   private maxFreq = 2200;
 
-  /** Clarity floor — raise for a stricter, quieter-room reading. */
-  clarityThreshold = 0.55;
-  /** RMS floor below which we treat the input as silence. */
-  rmsGate = 0.0022;
+  /**
+   * Minimum NSDF peak height for a reading to be trusted.
+   *
+   * The second thing the sensitivity slider moved, and unlike the gate it is
+   * not a level at all: it is how periodic a window has to look, which does
+   * not depend on the room. There was nothing for it to adapt to, so it is
+   * simply the value the default slider position produced, kept to the digit
+   * so that taking the slider away changed nothing about what is accepted.
+   */
+  clarityThreshold = 0.456;
+
+  /**
+   * The room's own level, in rms, as far as it has been measured — see
+   * nextNoiseFloor. Zero until the first frame of audio arrives.
+   */
+  noiseFloor = 0;
+  /** `written` at the last floor step, so the step can be timed in samples. */
+  private floorAt = 0;
+
+  /** RMS floor below which the input is treated as silence. */
+  get rmsGate(): number {
+    return gateForNoiseFloor(this.noiseFloor);
+  }
 
   private last: TrackedPitch = { frequency: 0, clarity: 0, rms: 0, active: false };
   private peakLevel = 0;
@@ -378,6 +510,10 @@ export class AudioEngine {
   private resetEnvelope(): void {
     this.envelope = 0;
     this.prevEnvelope = 0;
+    // Measured from the room, so a new room starts from nothing rather than
+    // from whatever the last one happened to be.
+    this.noiseFloor = 0;
+    this.floorAt = 0;
     this.sustainRef = 0;
     this.samplesAtOnset = 0;
     this.noteOn = false;
@@ -474,6 +610,20 @@ export class AudioEngine {
     const env = this.shortRms(ENVELOPE_SAMPLES);
     this.envelope = env;
     this.onsetFlag = false;
+
+    /*
+     * Measure the room, then decide with it. `noteOn` is one frame stale here
+     * and has to be, since the estimate is read further down this same frame;
+     * the cost is that the frame an onset lands on is seen as room noise. At a
+     * twelve-second time constant one frame of it moves the floor by a tenth
+     * of one percent, which is not a cost.
+     */
+    const dt = Math.min(
+      (this.written - this.floorAt) / (this.sampleRate || 48000),
+      MAX_FLOOR_STEP_SECONDS,
+    );
+    this.floorAt = this.written;
+    this.noiseFloor = nextNoiseFloor(this.noiseFloor, env, dt, this.noteOn);
 
     // A pluck is a sharp rise in the short-term level. Requiring a minimum gap
     // since the last onset stops one attack registering as several.

@@ -8,13 +8,7 @@ import {
   type Tuning,
 } from '../music/tunings';
 import { isTuningLocked } from '../state/unlock';
-import {
-  sensitivityToClarity,
-  sensitivityToRmsGate,
-  useSession,
-  useSettings,
-  type ThemeMode,
-} from '../state/store';
+import { useSession, useSettings, type ThemeMode } from '../state/store';
 
 /**
  * Subscribes to the tuner's animation-frame stream.
@@ -191,14 +185,8 @@ export function useSyncControllerSettings(): void {
     tuner.tolerance = settings.tolerance;
     tuner.auto = settings.auto;
     tuner.autoAdvance = settings.autoAdvance;
-    // sensitivity 0 (permissive, noisy room) .. 1 (strict, quiet room)
-    tuner.engine.clarityThreshold = sensitivityToClarity(settings.sensitivity);
-    tuner.engine.rmsGate = sensitivityToRmsGate(settings.sensitivity);
-  }, [
-    settings.a4,
-    settings.tolerance,
-    settings.auto,
-    settings.autoAdvance,
-    settings.sensitivity,
-  ]);
+    // The detector's two floors are not here any more. The clarity threshold
+    // is a constant on the engine and the silence gate is measured from the
+    // room, so neither is a setting and neither belongs in this list.
+  }, [settings.a4, settings.tolerance, settings.auto, settings.autoAdvance]);
 }

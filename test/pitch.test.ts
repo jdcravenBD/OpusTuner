@@ -11,15 +11,27 @@
 import { PitchDetector, PitchTracker } from '../src/audio/pitch';
 import { renderPluck } from '../src/audio/tone';
 import {
+  GATE_MAX,
+  GATE_MIN,
   HOLD_DISAGREE_CENTS,
   ONSET_FLOOR_RATIO,
   SUSTAIN_GATE_RATIO,
+  gateForNoiseFloor,
+  nextNoiseFloor,
   tooFarToFollow,
 } from '../src/audio/AudioEngine';
-import { DEFAULT_SETTINGS, sensitivityToDb, sensitivityToRmsGate } from '../src/state/store';
 
 const SAMPLE_RATE = 48000;
 const WINDOW = 4096;
+
+/** A quiet room, in rms: -70 dBFS. What the gate is normally measured against. */
+const QUIET_ROOM = 0.000316;
+/**
+ * The gate the sensitivity slider produced at its default position, before it
+ * was removed. Several checks below are against this rather than against a
+ * number of their own, because the point of them is that nothing moved.
+ */
+const OLD_DEFAULT_GATE = 0.001012;
 
 let failures = 0;
 let checks = 0;
@@ -356,7 +368,7 @@ console.log('Quiet signals: a decayed note is still a note');
 {
   const detector = new PitchDetector(WINDOW, SAMPLE_RATE, 24, 2200);
   const freq = 110;
-  const gate = sensitivityToRmsGate(0); // the most permissive setting
+  const gate = GATE_MIN; // the most permissive the gate is ever allowed to be
   const base = synth(freq, WINDOW, { harmonics: 6 });
   let sum = 0;
   for (let i = 0; i < WINDOW; i++) sum += base[i] * base[i];
@@ -379,8 +391,8 @@ console.log('Quiet signals: a decayed note is still a note');
   }
   check(
     'gate floor'.padEnd(22),
-    sensitivityToDb(0) < -65,
-    `most permissive setting is ${sensitivityToDb(0).toFixed(1)} dBFS rms`,
+    20 * Math.log10(GATE_MIN) < -65,
+    `the gate bottoms out at ${(20 * Math.log10(GATE_MIN)).toFixed(1)} dBFS rms`,
   );
 }
 
@@ -485,13 +497,13 @@ console.log('Reference tone: the string model must be in tune with itself');
 /* --- 7c. a quiet instrument ------------------------------------------------ */
 // An unplugged electric is some twenty decibels down on an acoustic, and every
 // absolute threshold in the engine was calibrated on the loud one. Both of the
-// floors that used to be fixed now hang off the sensitivity gate, so the whole
-// detector moves together when that one slider does.
+// floors that used to be fixed hang off the silence gate, so the whole
+// detector moves together with the room the gate is measured from.
 console.log('Quiet instruments: an unplugged electric is still a guitar');
 {
   const detector = new PitchDetector(WINDOW, SAMPLE_RATE, 24, 2200);
   const freq = 82.407;
-  const acquire = sensitivityToRmsGate(DEFAULT_SETTINGS.sensitivity);
+  const acquire = gateForNoiseFloor(QUIET_ROOM);
   const asDb = (x: number) => 20 * Math.log10(x);
 
   // The onset floor used to be a flat 0.0045 — thirteen decibels clear of the
@@ -534,7 +546,72 @@ console.log('Quiet instruments: an unplugged electric is still a guitar');
   }
 }
 
-/* --- 7d. following a note down, not onto another one ----------------------- */
+/* --- 7d. the room sets the gate -------------------------------------------- */
+// There was a Sensitivity slider, and now the silence gate is measured from
+// the room instead. An adaptive floor was tried here once and reverted, for a
+// reason worth having a test for rather than a comment: it averaged, so a long
+// note dragged it up toward the note's own level and the gate cut the note off.
+// Every check below is about the asymmetry that stops that — playing can only
+// make a room louder, so a rise is never evidence.
+console.log('Noise floor: the room may lower the gate, a note may not raise it');
+{
+  const asDb = (x: number) => 20 * Math.log10(x);
+  const FRAME = 1 / 60;
+  /** Runs the tracker for `seconds` of frames at a fixed level. */
+  const run = (floor: number, env: number, seconds: number, noteOn: boolean) => {
+    let f = floor;
+    for (let i = 0; i < Math.round(seconds / FRAME); i++) f = nextNoiseFloor(f, env, FRAME, noteOn);
+    return f;
+  };
+
+  check(
+    'seeds from the room'.padEnd(22),
+    nextNoiseFloor(0, QUIET_ROOM, FRAME, false) === QUIET_ROOM,
+    `first frame adopts ${asDb(QUIET_ROOM).toFixed(1)} dBFS outright`,
+  );
+
+  // The reverted bug, stated as an assertion. Forty decibels up for ten
+  // seconds is a struck open string, and it must not move the floor at all.
+  const held = run(QUIET_ROOM, QUIET_ROOM * 100, 10, true);
+  check(
+    'a note cannot lift it'.padEnd(22),
+    held === QUIET_ROOM,
+    `10 s at +40 dB with a note on moved it ${asDb(held / QUIET_ROOM).toFixed(2)} dB`,
+  );
+
+  // Nothing else may lift it quickly either, note or not.
+  const crept = run(QUIET_ROOM, QUIET_ROOM * 30, 1, false);
+  check(
+    'a rise is distrusted'.padEnd(22),
+    asDb(crept / QUIET_ROOM) < 12,
+    `1 s at +30 dB with no note on moved it ${asDb(crept / QUIET_ROOM).toFixed(1)} dB`,
+  );
+
+  // A fall is the opposite: a quieter room is believed almost at once, which
+  // is what keeps a bad estimate from outliving the thing that caused it.
+  const dropped = run(QUIET_ROOM * 30, QUIET_ROOM, 1, false);
+  check(
+    'a fall is believed'.padEnd(22),
+    asDb(dropped / QUIET_ROOM) < 1,
+    `back within ${asDb(dropped / QUIET_ROOM).toFixed(2)} dB of the room after 1 s`,
+  );
+
+  check(
+    'clamped at both ends'.padEnd(22),
+    gateForNoiseFloor(0) === GATE_MIN && gateForNoiseFloor(1) === GATE_MAX,
+    `${asDb(GATE_MIN).toFixed(1)} to ${asDb(GATE_MAX).toFixed(1)} dBFS, the old slider's range`,
+  );
+
+  // The one that says removing the slider changed nothing anyone will hear.
+  const quiet = gateForNoiseFloor(QUIET_ROOM);
+  check(
+    'a quiet room = the old'.padEnd(22),
+    Math.abs(asDb(quiet) - asDb(OLD_DEFAULT_GATE)) < 1.5,
+    `${asDb(quiet).toFixed(1)} dBFS against the slider default's ${asDb(OLD_DEFAULT_GATE).toFixed(1)}`,
+  );
+}
+
+/* --- 7e. following a note down, not onto another one ----------------------- */
 // The relaxed gate buys the tail of a note. It must not also buy a different
 // note: late in a decay the played string and whatever else is ringing are
 // comparable in level, their sum is honestly periodic at a common sub-multiple,

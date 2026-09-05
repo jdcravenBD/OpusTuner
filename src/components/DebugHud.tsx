@@ -30,6 +30,9 @@ export function DebugHud() {
     el.textContent = [
       `mic   ${engine.state}${engine.error ? ` (${engine.error.kind})` : ''}`,
       `in    ${db(level)} dB   peak ${db(peak.current)} dB`,
+      // The gate is measured rather than set, so the room it was measured from
+      // is the number that explains it when it looks wrong.
+      `room  ${db(engine.noiseFloor)} dB`,
       `gate  ${db(engine.rmsGate)} dB   clarity ${engine.clarityThreshold.toFixed(2)}`,
       `hear  ${frame.hasSignal ? 'yes' : 'no'}   clarity ${frame.clarity.toFixed(2)}`,
       `hz    ${frame.frequency.toFixed(2)}   ${frame.cents >= 0 ? '+' : ''}${frame.cents.toFixed(1)}c`,

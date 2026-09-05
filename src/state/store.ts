@@ -63,8 +63,6 @@ export interface Settings {
   /** Capo position in frets — raises every target by this many semitones. */
   capo: number;
   inputDeviceId: string;
-  /** 0 = permissive (noisy rooms), 1 = strict (studio quiet). */
-  sensitivity: number;
   /** The wordmark across the top. Hidden without moving anything else. */
   showWordmark: boolean;
   /** The A440 / tolerance / capo strip. Hidden the same way. */
@@ -105,7 +103,6 @@ export const DEFAULT_SETTINGS: Settings = {
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',
-  sensitivity: 0.09,
   showWordmark: true,
   showStatus: true,
   visual: DEFAULT_VISUAL,
@@ -248,35 +245,12 @@ export function useSession(): Session {
   return useSyncExternalStore(sessionStore.subscribe, sessionStore.get, sessionStore.get);
 }
 
-/* ------------------------------------------------------- sensitivity map -- */
-
 /*
- * The sensitivity slider drives two detector floors at once. They live here
- * rather than inline in the hook so the value shown on the slider is derived
- * from the same numbers the engine is actually given, and cannot drift.
+ * The three sensitivity mappings that used to live here are gone, along with
+ * the setting they read. The detector's silence gate is measured from the room
+ * now — see the noise floor in audio/AudioEngine — and its clarity floor is a
+ * constant on the engine, so neither is anyone's to set any more.
  */
-
-/**
- * RMS below which input is treated as silence.
- *
- * Only the bottom of the range has moved, from -58 dBFS to -68: the top end is
- * about rejecting a noisy room and already worked. The bottom end is what a
- * quiet room asks for, and at -58 dB it was the gate rather than the room that
- * decided a decaying note had finished.
- */
-export function sensitivityToRmsGate(sensitivity: number): number {
-  return 0.0004 + sensitivity * 0.0068;
-}
-
-/** Minimum NSDF peak height for a detection to be trusted. */
-export function sensitivityToClarity(sensitivity: number): number {
-  return 0.42 + sensitivity * 0.4;
-}
-
-/** The same gate expressed in dBFS, which is how it gets labelled. */
-export function sensitivityToDb(sensitivity: number): number {
-  return 20 * Math.log10(sensitivityToRmsGate(sensitivity));
-}
 
 /** Recents stay short enough to scan without scrolling past them. */
 export const MAX_RECENT = 4;

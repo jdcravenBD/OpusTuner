@@ -9,7 +9,6 @@ import { TIER_NAME, isThemeLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
   DEFAULT_SETTINGS,
-  sensitivityToDb,
   settingsStore,
   TOLERANCES,
   useSettings,
@@ -122,29 +121,11 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             label="Advance automatically"
           />
         </Row>
-        <Row
-          name="Sensitivity"
-          desc="Lower for noisy rooms and quiet instruments, higher to reject stray sound."
-          stack
-        >
-          {/* Labelled with the actual noise floor it sets, in dBFS. */}
-          <SliderField value={`${Math.round(sensitivityToDb(s.sensitivity))} dB`}>
-            <input
-              className="slider"
-              type="range"
-              min={0}
-              max={1}
-              /* Twenty positions felt like a ratchet across the full width.
-                 A hundred is smooth under a thumb and still lands on a stable
-                 number in the readout. */
-              step={0.01}
-              value={s.sensitivity}
-              onChange={(e) => set('sensitivity', Number(e.target.value))}
-              aria-label="Sensitivity"
-              aria-valuetext={`${Math.round(sensitivityToDb(s.sensitivity))} decibels`}
-            />
-          </SliderField>
-        </Row>
+        {/*
+          There was a Sensitivity slider here, and no tuner anyone would
+          compare this one to has one. The gate it set is measured from the
+          room instead.
+        */}
         <Row name="Microphone" desc={micRunning ? undefined : 'Start the tuner to see device names.'}>
           <select
             className="select"
@@ -404,16 +385,6 @@ function HueField({
         aria-valuetext={`${value} degrees`}
       />
       <span className="slider-field__value">{value}°</span>
-    </div>
-  );
-}
-
-/** A slider with its current value pinned alongside, in monospace. */
-function SliderField({ value, children }: { value: string; children: ReactNode }) {
-  return (
-    <div className="slider-field">
-      {children}
-      <span className="slider-field__value">{value}</span>
     </div>
   );
 }
