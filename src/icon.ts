@@ -65,8 +65,10 @@ interface Options {
   nibScale: number;
   /** Inset of the frame from the tile edge, in output pixels. */
   inset: number;
-  /** Frame stroke weight, in output pixels. */
+  /** Dark frame stroke weight, in output pixels. */
   border: number;
+  /** Lit hairline inside the frame, in output pixels. 0 is off. */
+  hairline: number;
   /** Glow radius under the nib, in output pixels. */
   glow: number;
   /** Vertical cent gridlines. */
@@ -77,9 +79,26 @@ interface Options {
   line: number;
   /** Half-width of the translucent in-tune corridor, in cents. 0 is off. */
   corridor: number;
+  /** Which of the tuner's three needle colours to use. */
+  needle: NeedleColor;
   /** Draw the iOS mask over the top, to show what gets cut. */
   showMask: boolean;
 }
+
+/**
+ * The needle's three colours, which are the tuner's three verdicts.
+ *
+ * Not decoration: on the real screen `colorFor` picks green within tolerance,
+ * white while you are close, and amber once another note is nearer. Choosing
+ * one here is choosing which moment of tuning the icon depicts.
+ */
+export type NeedleColor = 'green' | 'white' | 'amber';
+
+const NEEDLE_VARS: Record<NeedleColor, [string, string]> = {
+  green: ['--green', '#34e08a'],
+  white: ['--tick-hot', '#e9eef4'],
+  amber: ['--amber', '#ffb02e'],
+};
 
 /*
  * Defaults chosen against the 60 px preview, not the big one.
@@ -97,11 +116,13 @@ const DEFAULTS: Options = {
   nibScale: 6.4,
   inset: 0,
   border: 15,
+  hairline: 5,
   glow: 58,
   line: 17,
   corridor: 24,
   grid: true,
   rules: true,
+  needle: 'green',
   showMask: false,
 };
 
@@ -167,6 +188,7 @@ function xOf(cents: number): number {
 
 export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
   const green = css('--green', '#34e08a');
+  const needle = css(...NEEDLE_VARS[o.needle]);
   const tick = css('--field-grid', 'rgba(255,255,255,0.17)');
   const top = css('--field-top', '#12151a');
   const mid = css('--field-bg', '#0b0d11');
@@ -268,9 +290,9 @@ export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
   const y = SIZE * o.markerY;
 
   ctx.globalAlpha = 1;
-  ctx.shadowColor = green;
+  ctx.shadowColor = needle;
   ctx.shadowBlur = o.glow;
-  ctx.fillStyle = green;
+  ctx.fillStyle = needle;
   nibPath(ctx, x, y, o.nibScale);
   ctx.fill();
   // Twice, because one pass of a blur this wide is thin at the centre.
@@ -329,11 +351,21 @@ export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
     squirclePath(ctx, o.inset + o.border / 2);
     ctx.stroke();
 
-    // The lit hairline just inside it, which is what makes the edge read as
-    // machined rather than drawn.
-    ctx.lineWidth = Math.max(1, o.border * 0.32);
+  }
+
+  /*
+   * The lit hairline just inside the dark frame, which is what makes the edge
+   * read as machined rather than drawn.
+   *
+   * Its own weight rather than a fraction of the frame's. On the real screen
+   * this ring sits *outside* the dark border; here it has to sit inside,
+   * because outside is past the mask and would be cut.
+   */
+  if (o.hairline > 0) {
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = o.hairline;
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    squirclePath(ctx, o.inset + o.border * 1.35);
+    squirclePath(ctx, o.inset + o.border + o.hairline / 2);
     ctx.stroke();
   }
 
@@ -399,7 +431,16 @@ export function installIconRig(): void {
 
   const slider = (
     label: string,
-    key: 'cents' | 'markerY' | 'nibScale' | 'inset' | 'border' | 'glow' | 'line' | 'corridor',
+    key:
+      | 'cents'
+      | 'markerY'
+      | 'nibScale'
+      | 'inset'
+      | 'border'
+      | 'hairline'
+      | 'glow'
+      | 'line'
+      | 'corridor',
     min: number,
     max: number,
     step: number,
@@ -427,6 +468,39 @@ export function installIconRig(): void {
     panel.append(row);
   };
 
+  /** The three needle colours, as the swatches they actually are. */
+  const needlePicker = () => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center;margin:6px 0 2px';
+    const label = document.createElement('span');
+    label.textContent = 'Needle';
+    row.append(label);
+    const buttons = (['amber', 'white', 'green'] as NeedleColor[]).map((name) => {
+      const b = document.createElement('button');
+      b.title = name;
+      b.style.cssText =
+        'width:30px;height:24px;border-radius:6px;cursor:pointer;' +
+        `background:var(${NEEDLE_VARS[name][0]}, ${NEEDLE_VARS[name][1]})`;
+      b.onclick = () => {
+        opts.needle = name;
+        mark();
+        render();
+      };
+      row.append(b);
+      return b;
+    });
+
+    /** Ring on the selected swatch, cleared from the other two. */
+    function mark(): void {
+      for (const b of buttons) {
+        b.style.border = b.title === opts.needle ? '2px solid #fff' : '2px solid transparent';
+      }
+    }
+
+    mark();
+    panel.append(row);
+  };
+
   const toggle = (label: string, key: 'grid' | 'rules' | 'showMask') => {
     const row = document.createElement('label');
     row.style.cssText = 'display:flex;gap:8px;align-items:center';
@@ -445,10 +519,12 @@ export function installIconRig(): void {
   slider('Needle height', 'markerY', 0.1, 0.9, 0.01);
   slider('Needle size', 'nibScale', 3, 20, 0.1);
   slider('Frame inset (px)', 'inset', 0, 90, 1);
-  slider('Frame weight (px)', 'border', 0, 30, 1);
+  slider('Dark frame weight (px)', 'border', 0, 30, 1);
+  slider('Light hairline weight (px)', 'hairline', 0, 30, 1);
   slider('Glow', 'glow', 0, 220, 1);
   slider('Centre line weight (px)', 'line', 0, 48, 1);
   slider('In-tune corridor (cents)', 'corridor', 0, 90, 1);
+  needlePicker();
   toggle('Cent gridlines', 'grid');
   toggle('Horizontal rules', 'rules');
   toggle('Show what iOS cuts', 'showMask');
