@@ -2864,6 +2864,53 @@ button {
   color: var(--text);
 }
 
+/*
+ * The row along the bottom: the strings, the tuning button and Auto.
+ *
+ * The same idea as the settings rows, applied to the controls the tuner stands
+ * on. No gradient, no moulding, and a face faint enough to read as where a key
+ * is rather than as a key sitting on top of the case.
+ *
+ * A flat translucent fill rather than `opacity` on the element, and that is the
+ * whole reason this is three rules instead of one: opacity would take the
+ * lettering down with the face, and the lettering is the part that has to stay
+ * exactly as legible as it was. Only the background moves.
+ *
+ * White at three percent because this theme is always dark — it forces
+ * data-theme="dark" alongside — so there is no light palette for this to be
+ * invisible against.
+ */
+:root[data-basic='true'] .string:not([data-active='true']):not([data-tuned='true']),
+:root[data-basic='true'] .tuning-btn,
+:root[data-basic='true'] .toggle {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/*
+ * States lose the gradient as well, and nothing else.
+ *
+ * Only `background` is set here, so the ring, the scale and the green border
+ * that say *selected* and *tuned* all survive untouched from their own rules
+ * further up. Flattening those too is the trap that once left a chip with dark
+ * text on a dark background: the fill is not decoration on these, it is the
+ * only thing carrying the state.
+ */
+:root[data-basic='true'] .string[data-active='true'] {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-basic='true'] .string[data-tuned='true'],
+:root[data-basic='true'] .string[data-tuned='true'][data-active='true'] {
+  background: var(--green-soft);
+}
+
+/* Auto, switched on. The green border and the track say so; the face need not. */
+:root[data-basic='true'] .toggle[data-on='true'] {
+  border-color: var(--green-line);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
