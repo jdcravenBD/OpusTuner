@@ -34,9 +34,15 @@ export default function App() {
 
   const [micState, setMicState] = useState(tuner.micState);
   /*
-   * True only while the packaged app's first automatic start is in flight,
-   * so the gate does not flash up for the frame before it begins. False from
-   * the outset in a browser, where nothing starts on its own.
+   * True while an automatic start is in flight, so the gate does not flash
+   * up in the frames before it begins. False from the outset in a browser,
+   * where nothing starts on its own.
+   *
+   * This used to be set false after the *first* start and never set again,
+   * which is fine on launch and wrong on every return from the background:
+   * the app drops the microphone when it is hidden, so coming back runs a
+   * fresh start with the flag already down, and the gate rendered for the
+   * frames in between.
    */
   const [autoStarting, setAutoStarting] = useState(isNative());
   const [micError, setMicError] = useState<EngineError | null>(null);
@@ -143,7 +149,10 @@ export default function App() {
     const wake = () => {
       if (document.visibilityState !== 'visible') return;
       if (tuner.micState === 'running' || tuner.micState === 'starting') return;
-      void startMic().then(() => setAutoStarting(false));
+      // Raised before the start and lowered once it settles, either way:
+      // startMic swallows its own failures, so this is not an error path.
+      setAutoStarting(true);
+      void startMic().finally(() => setAutoStarting(false));
     };
     wake();
     document.addEventListener('visibilitychange', wake);
@@ -321,10 +330,30 @@ export default function App() {
         )}
       </footer>
 
-      {/* The tuner stays on screen behind this, dimmed. On the web nothing
-          starts without a real press; in the packaged app this is the fallback
-          for a start that was refused or failed — see the effect above. */}
-      {!running && !autoStarting && (
+      {/*
+        The tuner stays on screen behind this, dimmed.
+
+        On the web nothing starts without a real press, and that press is
+        load-bearing: an AudioContext built outside a user gesture comes up
+        suspended on iOS Safari. Removing it once before is what broke the
+        tuner badly enough to be reverted, so the web path here is untouched.
+
+        The packaged app is the opposite case and the comment above already
+        said so — the gate is *the fallback for a start that was refused or
+        failed* — while the condition rendered it whenever the microphone
+        was not running, which is a different and much larger set. It
+        included the moment after every return from the background, and iOS
+        takes the app-switcher snapshot while the app is hidden, so the card
+        you tap to come back could have the gate painted into it. Hence a
+        prompt that flashes up for a split second on the way in and that no
+        amount of care over render timing can remove, because by then it is
+        a photograph.
+
+        So on a device it appears only when there is something to say. A
+        refusal or a failure still lands on exactly the screen it always
+        did, carrying the error and a button to try again.
+      */}
+      {!running && !autoStarting && (!isNative() || micError !== null) && (
         <PowerGate
           starting={micState === 'starting'}
           error={micError}
