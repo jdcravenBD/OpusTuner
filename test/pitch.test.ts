@@ -546,6 +546,54 @@ console.log('Quiet instruments: an unplugged electric is still a guitar');
   }
 }
 
+/* --- 7c2. holding a note through a dropout --------------------------------- */
+// A decaying string spends its last second hovering right at the edge of what
+// the detector can resolve, dipping under and coming back frame by frame. The
+// tracker holds the reading across those gaps; the hold is the only reason the
+// display does not strobe. It used to be counted in frames, which made it half
+// as long on a 120 Hz screen as on a 60 Hz one.
+console.log('Hold: a dropout is not the end of a note');
+{
+  /** Feeds `seconds` of nothing at `fps` and reports what survives. */
+  const coast = (seconds: number, fps: number) => {
+    const tracker = new PitchTracker();
+    for (let i = 0; i < 30; i++) tracker.update({ frequency: 329.63, clarity: 0.95, rms: 0.1 }, false, 1 / fps);
+    let out = { frequency: 0, active: false } as { frequency: number; active: boolean };
+    for (let i = 0; i < Math.round(seconds * fps); i++) {
+      out = tracker.update({ frequency: 0, clarity: 0.2, rms: 0.001 }, false, 1 / fps);
+    }
+    return out;
+  };
+
+  for (const fps of [60, 120]) {
+    const held = coast(0.4, fps);
+    check(
+      `holds 0.4 s at ${fps} Hz`.padEnd(22),
+      held.frequency > 0 && Math.abs(centsError(held.frequency, 329.63)) < 1,
+      `${held.frequency.toFixed(2)} Hz still on screen, active ${held.active}`,
+    );
+  }
+  for (const fps of [60, 120]) {
+    const gone = coast(0.6, fps);
+    check(
+      `drops it at ${fps} Hz`.padEnd(22),
+      gone.frequency === 0,
+      `gone after 0.6 s of nothing`,
+    );
+  }
+
+  // The point of the hold: the value survives, so anything reading `frequency`
+  // rather than `active` rides straight through a one-frame dropout.
+  const tracker = new PitchTracker();
+  for (let i = 0; i < 30; i++) tracker.update({ frequency: 329.63, clarity: 0.95, rms: 0.1 });
+  const blip = tracker.update({ frequency: 0, clarity: 0.3, rms: 0.01 });
+  check(
+    'one bad frame is a blip'.padEnd(22),
+    blip.frequency > 0 && !blip.active,
+    `${blip.frequency.toFixed(2)} Hz held with active=false`,
+  );
+}
+
 /* --- 7d. the room sets the gate -------------------------------------------- */
 // There was a Sensitivity slider, and now the silence gate is measured from
 // the room instead. An adaptive floor was tried here once and reverted, for a

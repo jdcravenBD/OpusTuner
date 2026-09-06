@@ -258,13 +258,30 @@ export class TunerController {
       return;
     }
 
-    if (!reading.active || reading.frequency <= 0) {
+    /*
+     * Only when the tracker has actually given up, not merely when this one
+     * frame had nothing in it.
+     *
+     * `active` is false the instant a single frame fails to detect, while the
+     * tracker goes on holding the note for half a second afterwards precisely
+     * so a momentary dropout does not become a gap on screen. Testing it here
+     * threw that away: every marginal frame blanked the display even though
+     * the reading underneath was intact, and the lock below was already
+     * written the other way — it releases on `frequency <= 0`, never on
+     * `active`. So the string survived a dropout and the display did not.
+     *
+     * A decaying note spends its last second or so hovering right at the edge
+     * of what the detector can resolve, dipping under and coming back frame by
+     * frame. That is the flicker, and it is worst on the high E, which decays
+     * fastest and therefore spends the largest share of its life down there.
+     */
+    if (reading.frequency <= 0) {
       f.hasSignal = false;
       f.frequency = 0;
       f.inTune = false;
       this.inTuneFrames = 0;
       this.outOfTuneFrames = 0;
-      if (reading.frequency <= 0) this.releaseLock();
+      this.releaseLock();
       // Target and cents are intentionally left at their last values so the
       // needle rests where the note died instead of snapping to centre.
       this.notifyFrame();

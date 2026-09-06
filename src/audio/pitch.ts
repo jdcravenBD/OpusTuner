@@ -253,22 +253,33 @@ export class PitchTracker {
   private history: number[] = [];
   private smoothCents = 0;
   private hasValue = false;
-  private silentFrames = 0;
+  private silentSeconds = 0;
   private octaveVotes = 0;
   private pendingCents = 0;
 
-  /** Frames of silence tolerated before the reading is dropped. */
-  private readonly holdFrames: number;
+  /**
+   * How long a reading survives with nothing arriving to confirm it.
+   *
+   * This was eighteen *frames*, which is 300 ms on a 60 Hz screen and 150 on a
+   * 120 Hz one — the tuner held a note for half as long on a newer phone, for
+   * no reason anyone chose. Everything else in the engine is measured in
+   * samples for exactly this reason.
+   *
+   * Half a second, up from 300 ms. A decaying string spends a while hovering
+   * either side of the point where the detector can still see it, and each
+   * frame it dips under used to be a gap on screen.
+   */
+  private readonly holdSeconds: number;
   private readonly medianSize = 5;
 
-  constructor(holdFrames = 18) {
-    this.holdFrames = holdFrames;
+  constructor(holdSeconds = 0.5) {
+    this.holdSeconds = holdSeconds;
   }
 
   reset(): void {
     this.history.length = 0;
     this.hasValue = false;
-    this.silentFrames = 0;
+    this.silentSeconds = 0;
     this.octaveVotes = 0;
   }
 
@@ -284,18 +295,20 @@ export class PitchTracker {
    */
   noteAttack(): void {
     this.history.length = 0;
-    this.silentFrames = 0;
+    this.silentSeconds = 0;
     this.octaveVotes = 0;
   }
 
   /**
    * @param settling true while the struck note is still falling from its
    *   attack sharpening — see `ATTACK_SHARP_CENTS`.
+   * @param dt seconds since the previous update. Defaults to one frame at
+   *   60 Hz, which is what it was implicitly counting before.
    */
-  update(result: PitchResult, settling = false): TrackedPitch {
+  update(result: PitchResult, settling = false, dt = 1 / 60): TrackedPitch {
     if (result.frequency <= 0) {
-      this.silentFrames++;
-      if (this.silentFrames > this.holdFrames) {
+      this.silentSeconds += dt;
+      if (this.silentSeconds > this.holdSeconds) {
         this.reset();
         return { frequency: 0, clarity: result.clarity, rms: result.rms, active: false };
       }
@@ -307,7 +320,7 @@ export class PitchTracker {
       };
     }
 
-    this.silentFrames = 0;
+    this.silentSeconds = 0;
     const cents = freqToCents(result.frequency);
 
     // Octave-jump guard: a single frame landing exactly 1200 cents away is far

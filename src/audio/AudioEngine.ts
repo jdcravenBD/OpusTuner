@@ -233,12 +233,26 @@ export function tooFarToFollow(followingHz: number, hz: number): boolean {
  *
  * This was -23 dB, which at a normal guitar decay is about four seconds — the
  * note was being given up on while it was still perfectly audible and still
- * perfectly detectable. Fifteen dB more is roughly two and a half seconds more
- * of ring. It is still a guard, just a less twitchy one: the string latch and
- * the disagreement test in TunerController are what actually stop the reading
- * wandering onto a neighbour during the tail, and they are untouched.
+ * perfectly detectable. It is still a guard, just a less twitchy one: the
+ * string latch and the disagreement test in TunerController are what actually
+ * stop the reading wandering onto a neighbour during the tail, and they are
+ * untouched.
+ *
+ * Then it was -38, and measurement said that was still early. Rendering a
+ * pluck of each string into a room and asking two questions of every frame —
+ * has this rule fired yet, and can the detector still read the note — put this
+ * rule first on every string in a quiet or normal room, by four to six tenths
+ * of a second each time. It was ending notes that were still being read
+ * correctly, which is the whole of "I wish it held on a bit longer".
+ *
+ * The room is why. The envelope this compares contains the room as well as the
+ * note, so it can never fall below the room's own level: in a quiet room the
+ * rule fires early, and in a living room it never fires at all. At -50 dB it
+ * stops firing first anywhere, which makes every room behave like the loud one
+ * already did and leaves the decision to the detector — the only part of this
+ * that can actually tell whether a note is still there.
  */
-const NOTE_OFF_RATIO = 0.012;
+const NOTE_OFF_RATIO = 0.003;
 /**
  * Samples held back *beyond* the analysis window before the first reading of a
  * new note is trusted.
@@ -698,7 +712,9 @@ export class AudioEngine {
       raw = { frequency: 0, clarity: raw.clarity, rms: raw.rms };
     }
 
-    this.last = this.tracker.update(raw, settling);
+    // `dt` rather than a frame count, so the hold lasts the same length of
+    // time on a 120 Hz screen as on a 60 Hz one.
+    this.last = this.tracker.update(raw, settling, dt);
     return this.last;
   }
 
