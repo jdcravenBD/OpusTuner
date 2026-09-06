@@ -15,7 +15,8 @@ import {
   GATE_MIN,
   HOLD_DISAGREE_CENTS,
   ONSET_FLOOR_RATIO,
-  SUSTAIN_GATE_RATIO,
+  followGateForNoiseFloor,
+  AudioEngine,
   gateForNoiseFloor,
   nextNoiseFloor,
   tooFarToFollow,
@@ -518,12 +519,31 @@ console.log('Quiet instruments: an unplugged electric is still a guitar');
 
   // Following a note we already have is a different question from acquiring
   // one, and gets a lower answer.
-  const sustain = acquire * SUSTAIN_GATE_RATIO;
+  const sustain = followGateForNoiseFloor(QUIET_ROOM);
   check(
     'sustain gate relaxes'.padEnd(22),
-    asDb(acquire) - asDb(sustain) >= 10,
+    asDb(acquire) - asDb(sustain) >= 6,
     `${asDb(sustain).toFixed(1)} dBFS while a note is on, ${asDb(acquire).toFixed(1)} to acquire`,
   );
+
+  /*
+   * And the one that was actually wrong. Expressed as a fraction of the
+   * acquire gate it worked out below the room, and a gate under the noise
+   * floor can never fire: once anything was on screen the level test stopped
+   * guarding and a room with any hum in it kept the reading alive forever.
+   */
+  for (const [name, floor] of [
+    ['a silent room', 0.0000316],
+    ['a quiet room', QUIET_ROOM],
+    ['a loud room', 0.00316],
+  ] as [string, number][]) {
+    const follow = followGateForNoiseFloor(floor);
+    check(
+      `above ${name}`.padEnd(22),
+      follow > floor,
+      `${asDb(follow).toFixed(1)} dBFS against a floor of ${asDb(floor).toFixed(1)}`,
+    );
+  }
 
   // And the detector has to actually be good down there, or relaxing the gate
   // only buys a longer stretch of nonsense.
@@ -591,6 +611,65 @@ console.log('Hold: a dropout is not the end of a note');
     'one bad frame is a blip'.padEnd(22),
     blip.frequency > 0 && !blip.active,
     `${blip.frequency.toFixed(2)} Hz held with active=false`,
+  );
+}
+
+/* --- 7c3. a re-arming attack blank must not freeze the display ------------- */
+// analyse() holds the previous reading while the pick transient is still in
+// the window. That blank is 213 ms, but a fresh onset re-arms it after 34 ms,
+// so anything firing onsets faster than the blank expires used to freeze the
+// reading on screen indefinitely — perfectly steady, with nothing counting
+// down, because the tracker was never consulted and its hold never started.
+console.log('Attack blank: a frozen reading still has to expire');
+{
+  const engine = new AudioEngine() as unknown as {
+    detector: PitchDetector;
+    sampleRate: number;
+    state: string;
+    push(s: Float32Array): void;
+    analyse(): { frequency: number };
+  };
+  engine.detector = new PitchDetector(WINDOW, SAMPLE_RATE, 46.25, 493.9);
+  engine.sampleRate = SAMPLE_RATE;
+  engine.state = 'running';
+
+  const CHUNK = Math.round(SAMPLE_RATE / 60);
+  const chunk = new Float32Array(CHUNK);
+  const tone = synth(196, SAMPLE_RATE * 2, { harmonics: 6 });
+
+  // A second of a real note, to get a reading on screen.
+  let read = 0;
+  for (let at = 0; at + CHUNK < SAMPLE_RATE; at += CHUNK) {
+    chunk.set(tone.subarray(at, at + CHUNK));
+    engine.push(chunk);
+    read = engine.analyse().frequency;
+  }
+  check(
+    'a reading to freeze'.padEnd(22),
+    read > 0,
+    `${read.toFixed(1)} Hz on screen before the bursts start`,
+  );
+
+  // Now nothing but a burst every 50 ms: loud, abrupt, and far too fast for
+  // the blank to ever expire between them.
+  const rand = makeRandom(31337);
+  let frames = 0;
+  let stillShowing = 0;
+  for (let i = 0; i < 180; i++) {
+    // 3 s at 60 fps
+    const burst = i % 3 === 0;
+    for (let j = 0; j < CHUNK; j++) {
+      chunk[j] = burst ? (rand() * 2 - 1) * 0.25 : (rand() * 2 - 1) * 0.0002;
+    }
+    engine.push(chunk);
+    const f = engine.analyse().frequency;
+    frames++;
+    if (f > 0) stillShowing = frames;
+  }
+  check(
+    'the freeze expires'.padEnd(22),
+    stillShowing / 60 < 1.0,
+    `reading gone ${(stillShowing / 60).toFixed(2)} s into a 3 s burst train`,
   );
 }
 

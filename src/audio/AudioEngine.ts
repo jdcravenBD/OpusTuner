@@ -93,6 +93,27 @@ export function gateForNoiseFloor(floor: number): number {
   return Math.min(GATE_MAX, Math.max(GATE_MIN, floor * NOISE_HEADROOM));
 }
 
+/**
+ * Absolute bottom of the follow gate, -80 dBFS.
+ *
+ * Not a calibration — it is the level the follow gate used to sit at, kept
+ * only so that a microphone delivering digital silence cannot produce a gate
+ * of exactly zero, which gates nothing. In any real room the room-relative
+ * term is far above this and it never applies.
+ *
+ * It deliberately does NOT use GATE_MIN. That bound exists to stop the acquire
+ * gate becoming more permissive than the most permissive slider position ever
+ * was; applying it here would put the follow gate 12 dB *above* a near-silent
+ * room and make following a note stricter than acquiring one, which is
+ * backwards.
+ */
+const FOLLOW_MIN = 0.0001;
+
+/** The gate while a note is already being followed — see `FOLLOW_HEADROOM`. */
+export function followGateForNoiseFloor(floor: number): number {
+  return Math.min(GATE_MAX, Math.max(FOLLOW_MIN, floor * FOLLOW_HEADROOM));
+}
+
 /** A quieter room is believed almost at once. */
 const FLOOR_FALL_SECONDS = 0.15;
 /**
@@ -179,21 +200,33 @@ export function nextNoiseFloor(
  */
 export const ONSET_FLOOR_RATIO = 1.8;
 /**
- * How far the silence gate is allowed to drop once a note has been acquired
- * (-12 dB).
+ * Where the gate sits while a note is already being followed: +3 dB over the
+ * room, against +11 to acquire one.
  *
  * "Is anything there" and "is that still there" are different questions and
  * deserve different answers. Acquiring has to be strict or a room invents
- * notes; following one we already have can afford to be far more permissive,
+ * notes; following one we already have can afford to be more permissive,
  * because a string is known to be ringing and every reading still has to clear
- * the clarity test on its way out. One absolute floor for both meant a decay
- * ran into a threshold calibrated for a loud instrument and the reading
- * vanished while the string was plainly still sounding.
+ * the clarity test on its way out.
  *
- * Only ever in force after a real pluck: with no note on, the gate is exactly
- * what the room says it is.
+ * This was expressed as a fraction of the acquire gate — a quarter of it,
+ * -12 dB — and that was safe only while the acquire gate was a fixed number
+ * someone had chosen. Measured from the room instead, a quarter of it works
+ * out at 3.5 x 0.25 = 0.875, which is *below the room*, and a gate below the
+ * noise floor is not a gate. It can never fire, so once anything was on screen
+ * the level test stopped guarding at all and clarity was the only thing left
+ * holding the door. A room with any tonal content in it — mains hum, a fan,
+ * the 240 Hz that reads as a note between A# and B — clears a clarity
+ * threshold easily, because a hum is a sine and a sine is perfectly periodic.
+ * Readings then appeared from nothing and notes would not die.
+ *
+ * So it is a headroom over the room in its own right, not a fraction of
+ * another one. Three decibels means the window has to hold about as much note
+ * as room, which is the same place the detector gives up anyway: it is not
+ * throwing away signal, it is declining to keep a dead note alive on a
+ * technicality.
  */
-export const SUSTAIN_GATE_RATIO = 0.25;
+export const FOLLOW_HEADROOM = 1.41;
 /**
  * How far a reading may disagree with the note already on screen before it is
  * refused rather than followed, once the gate has been relaxed.
@@ -664,9 +697,28 @@ export class AudioEngine {
 
     this.updateLevelMeter(env);
 
-    // Guard 1: hold everything steady while the pick transient is still inside
-    // the analysis window.
-    if (!attackClear) return this.last;
+    /*
+     * Guard 1: hold everything steady while the pick transient is still inside
+     * the analysis window.
+     *
+     * The hold goes through the tracker rather than returning `last` untouched,
+     * and that matters more than it looks. Returning early skipped the tracker
+     * entirely, so its half-second hold never started counting — and the blank
+     * is 213 ms but a fresh onset re-arms it after only 34 ms. Anything firing
+     * onsets faster than the blank expires therefore froze the reading on
+     * screen *indefinitely*, perfectly steady, with nothing counting down. A
+     * note that had already stopped could sit there for as long as the room
+     * kept tripping the onset test.
+     *
+     * Feeding the tracker silence instead bounds it: a real pluck resets the
+     * count through `noteAttack` and then produces readings long before half a
+     * second is up, so nothing changes there, while a blank that will not stop
+     * re-arming now expires like any other silence.
+     */
+    if (!attackClear) {
+      this.last = this.tracker.update({ frequency: 0, clarity: 0, rms: env }, false, dt);
+      return this.last;
+    }
 
     // Guard 2: the note has decayed into the noise — stop chasing its tail.
     const noteDead = this.noteOn && this.sustainRef > 0 && env < this.sustainRef * NOTE_OFF_RATIO;
@@ -700,7 +752,7 @@ export class AudioEngine {
      * string has to be free to arrive from wherever it likes.
      */
     const following = !settling && this.last.frequency > 0;
-    const gate = following ? this.rmsGate * SUSTAIN_GATE_RATIO : this.rmsGate;
+    const gate = following ? followGateForNoiseFloor(this.noiseFloor) : this.rmsGate;
 
     let raw = noteDead
       ? { frequency: 0, clarity: 0, rms: env }

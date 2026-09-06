@@ -295,8 +295,22 @@ export class PitchTracker {
    */
   noteAttack(): void {
     this.history.length = 0;
-    this.silentSeconds = 0;
     this.octaveVotes = 0;
+    /*
+     * The silence count is deliberately NOT reset here.
+     *
+     * It was, and that is what made a frozen reading unbounded: an onset
+     * re-arms the engine's 213 ms attack blank, during which no detection is
+     * possible, and resetting the count here meant a room firing onsets faster
+     * than the blank expires could hold a dead note on screen forever with
+     * nothing counting down. The hold is the one thing that decides how long a
+     * reading outlives its evidence, and an onset is not evidence — it is a
+     * transient, which is the one thing we know carries no pitch.
+     *
+     * It costs nothing on a real pluck: the blank is 213 ms against a hold of
+     * 500, so a note re-struck while it was still being read has ample room
+     * before the count matters.
+     */
   }
 
   /**
