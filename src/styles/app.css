@@ -151,12 +151,14 @@
   /* Signal colors are semantic, not decorative — they never follow the hue. */
   --green: #34e08a;
   /*
-   * Text on a solid green fill. Dark here because the dark theme's green is
-   * a bright one; the light theme's is deep enough to need white instead,
-   * and defines its own below. Anything painting a green face has to set
-   * this on its children or it inherits a green-on-green row.
+   * A sheet of green laid over something, for marking a row as chosen.
+   *
+   * Stronger than --green-soft, which is a hint; this has to read as the
+   * selected one at a glance down a list. Still weak enough that everything
+   * on the row keeps the colour it has everywhere else, which is the whole
+   * reason it is a wash and not a fill.
    */
-  --green-ink: #04240f;
+  --green-wash: rgba(52, 224, 138, 0.17);
   --green-soft: rgba(52, 224, 138, 0.13);
   --green-line: rgba(52, 224, 138, 0.36);
   --green-glow: rgba(52, 224, 138, 0.5);
@@ -211,7 +213,7 @@
   --text-4: hsl(var(--h) calc(14% * var(--s)) 70%);
 
   --green: #0fa059;
-  --green-ink: #ffffff;
+  --green-wash: rgba(15, 160, 89, 0.15);
   --green-soft: rgba(15, 160, 89, 0.11);
   --green-line: rgba(15, 160, 89, 0.34);
   --green-glow: rgba(15, 160, 89, 0.34);
@@ -480,8 +482,18 @@ button {
 }
 
 /* Hidden, not removed: visibility keeps the box so the controls below stay put. */
+/*
+ * Off means gone, not merely invisible.
+ *
+ * It used to hold its place so that switching it did not move the controls
+ * below, and that was the wrong instinct: what it actually held was a
+ * wordmark-shaped hole at the top of the screen, which pushed everything
+ * down and left the tuner sitting low. `display: none` gives the row back
+ * its own gap too, since a flex gap only exists between things that are
+ * there.
+ */
 .wordmark--off {
-  visibility: hidden;
+  display: none;
 }
 
 /* Hidden the same way the wordmark is: out of sight, still holding its place,
@@ -1629,37 +1641,22 @@ button {
 }
 
 /*
- * The selected tuning, filled rather than outlined.
+ * The selected tuning: the ordinary row with green laid over it.
  *
- * Every child that carried its own colour has to be told, and that is the
- * whole cost of this rule: the name was green, the star could be amber, and
- * both would have landed on a green face. Setting the face without setting
- * what sits on it is the trap that once left a chip with dark text on a
- * dark background.
+ * A wash rather than a fill. `background-image` puts a flat translucent
+ * sheet on top of the surface gradient `.row` already carries, which is
+ * exactly what a coloured overlay is and leaves the row's own moulding
+ * visible underneath. Filling it with solid green instead meant every child
+ * carrying its own colour had to be re-coloured to stay legible — the name
+ * was green, the star could be amber — and none of them do now, because
+ * they are still sitting on a dark surface.
  */
 .row[data-selected='true'] {
-  background: var(--green);
-  border-color: var(--green);
-  box-shadow: var(--hi), 0 0 0 1px var(--green), 0 0 20px -8px var(--green-glow);
-}
-
-.row[data-selected='true'] .row__meta,
-.row[data-selected='true'] .row__badge,
-.row[data-selected='true'] .row__lock,
-.row[data-selected='true'] .row__star,
-.row[data-selected='true'] .row__star[data-on='true'] {
-  color: var(--green-ink);
-}
-
-/* The meta line stays the quieter of the two, as it is everywhere else. */
-.row[data-selected='true'] .row__meta {
-  opacity: 0.72;
-}
-
-/* A hover well on a filled row would be a lighter patch, not a darker one. */
-.row[data-selected='true'] .row__star:hover {
-  background: rgba(0, 0, 0, 0.14);
-  color: var(--green-ink);
+  background-image:
+    linear-gradient(var(--green-wash), var(--green-wash)),
+    linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
+  border-color: var(--green-line);
+  box-shadow: var(--hi), 0 0 0 1px var(--green-line), 0 0 20px -8px var(--green-glow);
 }
 
 /*
@@ -1714,7 +1711,7 @@ button {
 }
 
 .row[data-selected='true'] .row__name {
-  color: var(--green-ink);
+  color: var(--green);
 }
 
 .row__meta {

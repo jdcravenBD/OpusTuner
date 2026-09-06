@@ -226,11 +226,11 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             locked={!s.owned}
           />
         </Row>
-        <Row name="Sharp/flat indicator" desc={'The "Too sharp" and "Too flat" line.'}>
+        <Row name="Pitch indicator" desc={'The "Too sharp" and "Too flat" line.'}>
           <Switch
             on={s.showVerdict}
             onChange={(v) => (s.owned ? set('showVerdict', v) : setWanted('Hide the indicator'))}
-            label="Sharp/flat indicator"
+            label="Pitch indicator"
             locked={!s.owned}
           />
         </Row>
