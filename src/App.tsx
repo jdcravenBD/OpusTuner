@@ -159,6 +159,52 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', wake);
   }, [startMic]);
 
+  /*
+   * The graph can die without the engine noticing, and nothing else notices
+   * either.
+   *
+   * iOS can take the audio session away across an app switch, and when it
+   * does, no event this code listens for fires: `visibilitychange` may not
+   * come, and `state` is set by AudioEngine alone so it still says running.
+   * Every guard on the way back then agrees there is nothing to do —
+   * `start()` returns early on a running engine and the resume handler above
+   * returns early for the same reason — and the tuner sits there hearing
+   * nothing until the app is force-quit. That is the report: it stops
+   * picking up sound after you come back from another app.
+   *
+   * So this asks the one question that cannot be answered wrongly: is audio
+   * arriving. Two seconds of being visible before it will act, because
+   * nothing arrives while backgrounded and the first check after a resume
+   * would otherwise see a stale clock and restart a graph that was about to
+   * be fine.
+   *
+   * Native only. On the web the microphone needs a gesture to start and the
+   * power button is right there; restarting without one is the change that
+   * broke this app badly enough to be reverted once already.
+   */
+  useEffect(() => {
+    if (!isNative()) return;
+    let visibleSince = document.visibilityState === 'visible' ? Date.now() : 0;
+    const onVisible = () => {
+      visibleSince = document.visibilityState === 'visible' ? Date.now() : 0;
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    const id = setInterval(() => {
+      if (!visibleSince || Date.now() - visibleSince < 2000) return;
+      if (tuner.micState !== 'running') return;
+      if (tuner.engine.capturing) return;
+      // Stop first: start() would refuse an engine that still says running.
+      tuner.stopMic();
+      void startMic();
+    }, 1000);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [startMic]);
+
   // Release the microphone while backgrounded; browsers otherwise keep the
   // recording indicator lit and burn battery.
   useEffect(() => {

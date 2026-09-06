@@ -382,6 +382,8 @@ export class AudioEngine {
   private onsetFlag = false;
   /** Wall clock past which input is trusted again — see deafenFor(). */
   private deafUntil = 0;
+  /** Wall clock of the last chunk to arrive from the capture graph. */
+  private lastPushAt = 0;
 
   constructor(opts: AudioEngineOptions = {}) {
     this.windowSize = opts.windowSize ?? 4096;
@@ -478,6 +480,9 @@ export class AudioEngine {
         this.setupFallback(ctx);
       }
 
+      // Stamped here rather than waiting for the first chunk, so `capturing`
+      // does not read false for the few milliseconds before one arrives.
+      this.lastPushAt = performance.now();
       this.state = 'running';
     } catch (err) {
       this.stop();
@@ -550,6 +555,7 @@ export class AudioEngine {
     this.tracker.reset();
     this.last = { frequency: 0, clarity: 0, rms: 0, active: false };
     this.peakLevel = 0;
+    this.lastPushAt = 0;
     this.resetEnvelope();
     if (this.state !== 'error') this.state = 'idle';
   }
@@ -571,6 +577,7 @@ export class AudioEngine {
   /* -------------------------------------------------------------- capture -- */
 
   private push(samples: Float32Array): void {
+    this.lastPushAt = performance.now();
     const ring = this.ring;
     const gain = this.inputGain;
     let w = this.writeIndex;
@@ -623,6 +630,27 @@ export class AudioEngine {
   /** True while the engine is ignoring a sound of the app's own making. */
   get deaf(): boolean {
     return performance.now() < this.deafUntil;
+  }
+
+  /**
+   * Whether audio is actually arriving, as opposed to whether the engine
+   * believes it is running.
+   *
+   * Those are different states and nothing else here could tell them apart.
+   * `state` is set by this class and only this class: iOS can take the audio
+   * session away — another app wanting the microphone, a call, the OS
+   * reclaiming it across a switch — and the graph goes quiet without a single
+   * event any of this code is listening for. `state` stays `running`, which
+   * is then believed by `start()`, which returns early, and by the resume
+   * handler, which does the same. A tuner that has stopped hearing anything
+   * and a tuner in a silent room look identical from the outside, so this is
+   * the only honest way to ask.
+   *
+   * A chunk is 512 samples, so at any real rate they arrive every ten or
+   * eleven milliseconds. A whole second of nothing is not a quiet room.
+   */
+  get capturing(): boolean {
+    return this.state === 'running' && performance.now() - this.lastPushAt < 1000;
   }
 
   /**
