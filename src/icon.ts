@@ -92,6 +92,17 @@ interface Options {
   lit: boolean;
   /** Which of the tuner's three needle colours to use. */
   needle: NeedleColor;
+  /**
+   * The needle in its no-signal state: dimmed, with the glow pulled in.
+   *
+   * The app fades the nib out when it has nothing to listen to -
+   * `alpha = 0.32 + fade * 0.68` in PitchField, so 0.32 with no signal -
+   * and drops the glow from 22 to 12. Both are reproduced here. The size is
+   * not: the app also shrinks the nib to 0.7, but the size is a slider of
+   * its own here and moving it out from under you would be worse than being
+   * slightly unfaithful.
+   */
+  needleDim: boolean;
   /** Draw the iOS mask over the top, to show what gets cut. */
   showMask: boolean;
 }
@@ -136,6 +147,7 @@ const DEFAULTS: Options = {
   rules: true,
   lit: true,
   needle: 'green',
+  needleDim: false,
   showMask: false,
 };
 
@@ -312,19 +324,24 @@ export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
   const x = xOf(o.cents);
   const y = SIZE * o.markerY;
 
-  ctx.globalAlpha = 1;
+  const nibAlpha = o.needleDim ? 0.32 : 1;
+
+  ctx.globalAlpha = nibAlpha;
   ctx.shadowColor = needle;
-  ctx.shadowBlur = o.glow;
+  ctx.shadowBlur = o.glow * (o.needleDim ? 12 / 22 : 1);
   ctx.fillStyle = needle;
   nibPath(ctx, x, y, o.nibScale);
   ctx.fill();
-  // Twice, because one pass of a blur this wide is thin at the centre.
-  ctx.fill();
+  // Twice, because one pass of a blur this wide is thin at the centre. Only
+  // at full strength: a second pass at 0.32 composites to 0.54 and the dim
+  // needle would come out brighter than the app ever draws it.
+  if (!o.needleDim) ctx.fill();
   ctx.shadowBlur = 0;
 
   // The same bright core the screen puts inside the nib, so it stays legible
-  // on top of its own glow.
-  ctx.globalAlpha = 0.85;
+  // on top of its own glow. The app carries it at 0.8 of the nib's own
+  // alpha, so it dims with it rather than staying lit over a faded nib.
+  ctx.globalAlpha = nibAlpha * 0.85;
   ctx.fillStyle = '#ffffff';
   nibPath(ctx, x, y, o.nibScale * 0.44);
   ctx.fill();
@@ -547,7 +564,10 @@ export function installIconRig(): void {
     panel.append(row);
   };
 
-  const toggle = (label: string, key: 'grid' | 'rules' | 'lit' | 'showMask') => {
+  const toggle = (
+    label: string,
+    key: 'grid' | 'rules' | 'lit' | 'needleDim' | 'showMask',
+  ) => {
     const row = document.createElement('label');
     row.style.cssText = 'display:flex;gap:8px;align-items:center';
     const input = document.createElement('input');
@@ -572,6 +592,7 @@ export function installIconRig(): void {
   slider('Centre line weight (px)', 'line', 0, 48, 1);
   slider('In-tune corridor (cents)', 'corridor', 0, 90, 1);
   needlePicker();
+  toggle('Needle dimmed (no signal)', 'needleDim');
   toggle('Centre line lit (in tune)', 'lit');
   toggle('Cent gridlines', 'grid');
   toggle('Horizontal rules', 'rules');
