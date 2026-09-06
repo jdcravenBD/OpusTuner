@@ -423,10 +423,23 @@ button {
 
 .topbar__row {
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  /*
+   * Kept in step with .icon-btn's own size. The two corner buttons are the
+   * outer tracks, so the width here is what actually places them and the
+   * button's width only fills the track it was given.
+   */
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: 10px;
   width: 100%;
+  /*
+   * Draws both corners in off the edges of the app, a little.
+   *
+   * Padding rather than a margin on the buttons: this is the row's own inset,
+   * and the status strip in the middle should give up the same space rather
+   * than staying full width with the buttons floating over its ends.
+   */
+  padding: 0 5px;
 }
 
 /* --- wordmark --- */
@@ -469,6 +482,18 @@ button {
   visibility: hidden;
 }
 
+/*
+ * The same trick, for the pieces that arrived later and share it.
+ *
+ * The carousel and the sharp/flat line both sit above the tuner, and both
+ * are turned off from Settings. `display: none` on either would let the
+ * tuner climb the screen the moment it was switched, which reads as the
+ * whole app resizing rather than as one thing being hidden.
+ */
+.is-hidden {
+  visibility: hidden;
+}
+
 /* The joke: dropped to the faintest ink so the eye reads past it. */
 .wordmark__ghost {
   color: var(--text-4);
@@ -479,8 +504,9 @@ button {
 .icon-btn {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  /* Matches the outer tracks of .topbar__row — change both together. */
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-md);
   color: var(--text-2);
   background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
@@ -2801,10 +2827,16 @@ button {
   color: var(--text-3);
 }
 
-/* ----------------------------------------------------------------- basic -- */
+/* ------------------------------------------------------------------ bare -- */
 
 /*
  * The same app with the boxes taken off.
+ *
+ * The flag is `data-bare`, named for what it does rather than for the theme
+ * that sets it. It used to be `data-basic`, which was fine until the two
+ * colourless themes traded names: the selectors would then have said basic
+ * while styling the one called Plain, and every future edit would have had
+ * to remember that.
  *
  * Everything here is drawn as a machined instrument: every face moulded with
  * a lit top edge, an outline around it and a shadow beneath. Basic keeps all
@@ -2827,9 +2859,9 @@ button {
  * would take the meaning with it — the same trap that once cost a chip its
  * white fill and left dark text on a dark background.
  */
-:root[data-basic='true'] .icon-btn,
-:root[data-basic='true'] .setting,
-:root[data-basic='true'] .row:not([data-selected='true']):not([data-picked='true']) {
+:root[data-bare='true'] .icon-btn,
+:root[data-bare='true'] .setting,
+:root[data-bare='true'] .row:not([data-selected='true']):not([data-picked='true']) {
   background: none;
   border: 1px solid transparent;
   box-shadow: none;
@@ -2853,12 +2885,12 @@ button {
  * surface", and it turns out that needs almost nothing: enough of a step to
  * see an edge, and no more.
  */
-:root[data-basic='true'] .sheet {
+:root[data-bare='true'] .sheet {
   background: linear-gradient(180deg, hsl(0 0% 8.4%), hsl(0 0% 7.4%) 140px);
 }
 
 /* Pressed still reads as pressed; it just does it without a well to sink into. */
-:root[data-basic='true'] .icon-btn:active {
+:root[data-bare='true'] .icon-btn:active {
   background: none;
   box-shadow: none;
   color: var(--text);
@@ -2880,9 +2912,9 @@ button {
  * data-theme="dark" alongside — so there is no light palette for this to be
  * invisible against.
  */
-:root[data-basic='true'] .string:not([data-active='true']):not([data-tuned='true']),
-:root[data-basic='true'] .tuning-btn,
-:root[data-basic='true'] .toggle {
+:root[data-bare='true'] .string:not([data-active='true']):not([data-tuned='true']),
+:root[data-bare='true'] .tuning-btn,
+:root[data-bare='true'] .toggle {
   background: rgba(255, 255, 255, 0.03);
   border-color: transparent;
   box-shadow: none;
@@ -2897,17 +2929,17 @@ button {
  * text on a dark background: the fill is not decoration on these, it is the
  * only thing carrying the state.
  */
-:root[data-basic='true'] .string[data-active='true'] {
+:root[data-bare='true'] .string[data-active='true'] {
   background: rgba(255, 255, 255, 0.1);
 }
 
-:root[data-basic='true'] .string[data-tuned='true'],
-:root[data-basic='true'] .string[data-tuned='true'][data-active='true'] {
+:root[data-bare='true'] .string[data-tuned='true'],
+:root[data-bare='true'] .string[data-tuned='true'][data-active='true'] {
   background: var(--green-soft);
 }
 
 /* Auto, switched on. The green border and the track say so; the face need not. */
-:root[data-basic='true'] .toggle[data-on='true'] {
+:root[data-bare='true'] .toggle[data-on='true'] {
   border-color: var(--green-line);
 }
 

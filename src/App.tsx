@@ -264,16 +264,24 @@ export default function App() {
       </header>
 
       <main className="stage">
+        {/* Hidden the way the wordmark is: taken out of sight but not out of
+            the layout, so the tuner below does not jump up the screen. A
+            wrapper would have done it too and would have put a div between
+            .stage and its flex child, which is a different bug later. */}
         <NoteDisplay
           naming={settings.naming}
           tolerance={settings.tolerance}
           fallbackMidi={fallbackMidi}
+          className={settings.showCarousel ? undefined : 'is-hidden'}
         />
         {/* The field is centred in this zone, which spans the full gap between
             the carousel and the string row. The frequency readout is pinned to
             the bottom of the zone so it cannot pull the field off centre. */}
         <div className="field-zone">
-          <TuningVerdict tolerance={settings.tolerance} />
+          <TuningVerdict
+            tolerance={settings.tolerance}
+            className={settings.showVerdict ? undefined : 'is-hidden'}
+          />
           <TunerVisual
             visual={settings.visual}
             onChange={(visual) => settingsStore.set({ visual })}
@@ -284,6 +292,7 @@ export default function App() {
             themeKey={`${settings.theme}:${settings.hue}`}
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
+            marks={settings.showTunerMarks}
           />
         </div>
       </main>

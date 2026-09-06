@@ -100,16 +100,21 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
      * lightness value to no end: the numbers are the same, the color is not.
      */
     /*
-     * `basic` carries the drain too and adds a flag of its own, the way the
-     * deleted `simple` theme did: it is plain with the moulding taken off,
-     * not a second set of greys that happen to look similar.
+     * Both colourless themes drain the hue; one of them also takes the
+     * moulding off. They are not two sets of greys that happen to look
+     * similar, they are one palette with and without its boxes.
+     *
+     * `bare` is the id `basic`, which reads backwards and is deliberate:
+     * the two swapped display names and the stored ids did not follow, so
+     * that nobody's saved theme changed underneath them. THEMES in the
+     * store carries the same note.
      */
     const colorless = mode === 'plain' || mode === 'basic';
     root.dataset.theme = colorless ? 'dark' : mode;
     if (colorless) root.dataset.plain = 'true';
     else delete root.dataset.plain;
-    if (mode === 'basic') root.dataset.basic = 'true';
-    else delete root.dataset.basic;
+    if (mode === 'basic') root.dataset.bare = 'true';
+    else delete root.dataset.bare;
 
     // Tints the browser's own chrome to match, so the app does not sit in a
     // band of someone else's color on a phone.

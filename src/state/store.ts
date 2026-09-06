@@ -17,14 +17,26 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /**
  * Four themes, two of which are not palettes of their own.
  *
- * `plain` is dark with every hue drained out of it and nothing else changed —
- * same lightness values, same moulding. `basic` is plain with the moulding
- * taken off as well: no box around a settings row, a tuning or a corner
- * button. The signal colors survive both; they mean something.
+ * One is dark with every hue drained out of it and nothing else changed — same
+ * lightness values, same moulding. The other is that with the moulding taken
+ * off as well: no box around a settings row, a tuning, a corner button or a
+ * string. The signal colors survive both; they mean something.
+ *
+ * Which id is which is the confusing part, and deliberately so — see THEMES.
  */
 export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light';
 
-/** Every theme on offer, in the order the picker shows them. */
+/*
+ * Every theme on offer, in the order the picker shows them.
+ *
+ * **The two colourless ids read backwards on purpose.** `plain` is the one
+ * with the boxes and is labelled "Basic"; `basic` is the one without them
+ * and is labelled "Plain". The names were swapped and the ids were not,
+ * because swapping the ids would have meant migrating every stored setting
+ * and getting it wrong would silently change the theme under anyone already
+ * using one. The labels live in SettingsSheet and the CSS flag is
+ * `data-bare`, which is named for what it does instead.
+ */
 export const THEMES: ThemeMode[] = ['plain', 'basic', 'dark', 'light'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
@@ -63,10 +75,33 @@ export interface Settings {
   /** Capo position in frets — raises every target by this many semitones. */
   capo: number;
   inputDeviceId: string;
+  /*
+   * What the screen shows, all of it paid.
+   *
+   * Every one of these hides something rather than adding it, which is the
+   * shape the tier takes here: the free app is the complete instrument and
+   * what money buys is the right to strip it back to the parts you use.
+   * They are stored as `show*` and default to true, so a build that has
+   * never been paid for looks exactly as it always did.
+   */
   /** The wordmark across the top. Hidden without moving anything else. */
   showWordmark: boolean;
   /** The A440 / tolerance / capo strip. Hidden the same way. */
   showStatus: boolean;
+  /** The big note and its two chromatic neighbours, above the tuner. */
+  showCarousel: boolean;
+  /** The "Too sharp" / "Too flat" line under the carousel. */
+  showVerdict: boolean;
+  /**
+   * The instrument-face furniture on the tuner screens.
+   *
+   * The accidental marks down the sides, the small print in the corners,
+   * and the note names along the top of the field. Not the readings: the
+   * strobe keeps its note and cents, and the field keeps its cents, because
+   * those are what the tuner is *for* and an instrument with no numbers on
+   * it is a decoration.
+   */
+  showTunerMarks: boolean;
   /** Which tuner screen is on show — see components/visuals. */
   visual: VisualId;
   /**
@@ -105,6 +140,9 @@ export const DEFAULT_SETTINGS: Settings = {
   inputDeviceId: 'default',
   showWordmark: true,
   showStatus: true,
+  showCarousel: true,
+  showVerdict: true,
+  showTunerMarks: true,
   visual: DEFAULT_VISUAL,
   owned: false,
 };

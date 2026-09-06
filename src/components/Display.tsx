@@ -7,6 +7,8 @@ interface Props {
   tolerance: number;
   /** Note to centre the carousel on before anything has been detected. */
   fallbackMidi: number;
+  /** Extra classes on the block, so it can be hidden without unmounting. */
+  className?: string;
 }
 
 /** Chromatic offsets shown either side of the focused note. */
@@ -30,7 +32,7 @@ const VERDICT_TEXT: Record<string, string> = {
  * to the DOM through refs instead of setting state. React renders this once and
  * then stays out of the way.
  */
-export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
+export function NoteDisplay({ naming, tolerance, fallbackMidi, className }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
   const octaveRef = useRef<HTMLSpanElement>(null);
@@ -85,7 +87,7 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   });
 
   return (
-    <div className="note-block">
+    <div className={className ? `note-block ${className}` : 'note-block'}>
       <div
         className="carousel"
         ref={wrapRef}
@@ -130,7 +132,13 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
  * Words only — the needle and the readout already carry the amount, and a
  * third copy of the number would compete with the note for the first glance.
  */
-export function TuningVerdict({ tolerance }: { tolerance: number }) {
+export function TuningVerdict({
+  tolerance,
+  className,
+}: {
+  tolerance: number;
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const toleranceRef = useRef(tolerance);
@@ -152,7 +160,12 @@ export function TuningVerdict({ tolerance }: { tolerance: number }) {
   });
 
   return (
-    <div className="verdict" ref={ref} data-state="idle" aria-live="polite">
+    <div
+      className={className ? `verdict ${className}` : 'verdict'}
+      ref={ref}
+      data-state="idle"
+      aria-live="polite"
+    >
       <span ref={textRef} />
     </div>
   );

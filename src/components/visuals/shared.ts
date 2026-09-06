@@ -91,6 +91,15 @@ export interface Size {
 
 /** Props every tuner screen is handed. */
 export interface VisualProps {
+  /**
+   * Whether the instrument-face furniture is drawn.
+   *
+   * False takes away the accidentals, the corner print and the field's
+   * note names. It never takes away a reading: the strobe keeps its note
+   * and cents and the field keeps its cents, because those are the answer
+   * the tuner exists to give.
+   */
+  marks: boolean;
   /** Half-width of the in-tune window, in cents. */
   tolerance: number;
   /** Changing this re-reads the CSS custom properties. */

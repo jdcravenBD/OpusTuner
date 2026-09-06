@@ -163,14 +163,15 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         </Row>
       </Section>
 
-      {/* ----------------------------------------------------------- color */}
-      <Section label="Color">
+      {/* ---------------------------------------------------------- visual */}
+      <Section label="Visual">
         <Row name="Theme">
           <Segmented
             value={s.theme}
             options={[
-              { value: 'plain' as ThemeMode, label: 'Plain' },
-              { value: 'basic' as ThemeMode, label: 'Basic' },
+              /* The ids read backwards; see THEMES in state/store. */
+              { value: 'plain' as ThemeMode, label: 'Basic' },
+              { value: 'basic' as ThemeMode, label: 'Plain' },
               { value: 'dark' as ThemeMode, label: 'Dark', locked: isThemeLocked('dark', s.owned) },
               {
                 value: 'light' as ThemeMode,
@@ -210,8 +211,40 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             locked={!s.owned}
           />
         </Row>
-        <Row name="Detail bar">
-          <Switch on={s.showStatus} onChange={(v) => set('showStatus', v)} label="Detail bar" />
+        <Row name="Detail bar" desc="The reference pitch, window and capo strip.">
+          <Switch
+            on={s.showStatus}
+            onChange={(v) => (s.owned ? set('showStatus', v) : setWanted('Hide the detail bar'))}
+            label="Detail bar"
+            locked={!s.owned}
+          />
+        </Row>
+        <Row name="Note carousel" desc="The big note and its neighbours above the tuner.">
+          <Switch
+            on={s.showCarousel}
+            onChange={(v) => (s.owned ? set('showCarousel', v) : setWanted('Hide the carousel'))}
+            label="Note carousel"
+            locked={!s.owned}
+          />
+        </Row>
+        <Row name="Sharp/flat indicator" desc={'The "Too sharp" and "Too flat" line.'}>
+          <Switch
+            on={s.showVerdict}
+            onChange={(v) => (s.owned ? set('showVerdict', v) : setWanted('Hide the indicator'))}
+            label="Sharp/flat indicator"
+            locked={!s.owned}
+          />
+        </Row>
+        <Row
+          name="Tuner marks"
+          desc="Accidentals, corner print and the field's note names. The readings stay."
+        >
+          <Switch
+            on={s.showTunerMarks}
+            onChange={(v) => (s.owned ? set('showTunerMarks', v) : setWanted('Hide the tuner marks'))}
+            label="Tuner marks"
+            locked={!s.owned}
+          />
         </Row>
       </Section>
 

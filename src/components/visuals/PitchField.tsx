@@ -42,7 +42,7 @@ const TRAIL_CAPACITY = 256;
  * Driven straight from the tuner's frame stream; React never re-renders this
  * while a note is sounding.
  */
-export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: VisualProps) {
+export function PitchField({ tolerance, themeKey, naming, fallbackMidi, marks }: VisualProps) {
   /**
    * Offscreen buffer for the trail. The trail is stroked opaque in here so that
    * where it crosses itself nothing accumulates, then faded once on the way
@@ -72,6 +72,8 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Visual
   namingRef.current = naming;
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
+  const marksRef = useRef(marks);
+  marksRef.current = marks;
 
   const canvasRef = useVisualCanvas({
     themeKey,
@@ -124,6 +126,7 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi }: Visual
         scroll: scrollOffset.current,
         naming: namingRef.current,
         fallbackMidi: fallbackRef.current,
+        marks: marksRef.current,
         trail: t,
         buffer: trailCanvas.current,
       });
@@ -148,6 +151,7 @@ interface DrawState {
   scroll: number;
   naming: NoteNaming;
   fallbackMidi: number;
+  marks: boolean;
   trail: Trail;
   buffer: HTMLCanvasElement | null;
 }
@@ -272,7 +276,10 @@ function draw(
   // a string sitting a semitone sharp reads as landing on a named note rather
   // than as an abstract "+1".
   const refMidi = frame.targetMidi > 0 ? frame.targetMidi : s.fallbackMidi;
-  if (refMidi > 0) {
+  // Furniture, not a reading: these go with the accidentals and the corner
+  // print when the marks are turned off. The cent readout below stays, since
+  // that is the answer the screen exists to give.
+  if (s.marks && refMidi > 0) {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = p.text3;
     ctx.font = visualFont(Math.max(10, Math.round(h * 0.042)));

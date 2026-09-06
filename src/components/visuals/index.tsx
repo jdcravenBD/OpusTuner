@@ -308,19 +308,30 @@ function Screen({
   return (
     <div className="field" data-screen={id} data-visual={id}>
       <Component {...rest} />
-      <span className="field__edge field__edge--flat" aria-hidden>
-        ♭
-      </span>
-      <span className="field__edge field__edge--sharp" aria-hidden>
-        ♯
-      </span>
-      {/* Instrument-face small print: which screen, its range, capture rate. */}
-      <span className="field__note field__note--bl" aria-hidden>
-        {meta.name.toUpperCase()} · {meta.range}
-      </span>
-      <span className="field__note field__note--br" aria-hidden>
-        {sampleRateLabel}
-      </span>
+      {/*
+        The furniture, and only the furniture. Removed outright rather than
+        hidden: none of it holds space open — the marks are absolutely
+        positioned against the screen's own edges — so taking it out moves
+        nothing. The canvas draws its own share of this and is told
+        separately, through `marks` on VisualProps.
+      */}
+      {rest.marks && (
+        <>
+          <span className="field__edge field__edge--flat" aria-hidden>
+            ♭
+          </span>
+          <span className="field__edge field__edge--sharp" aria-hidden>
+            ♯
+          </span>
+          {/* Which screen, its range, and the capture rate. */}
+          <span className="field__note field__note--bl" aria-hidden>
+            {meta.name.toUpperCase()} · {meta.range}
+          </span>
+          <span className="field__note field__note--br" aria-hidden>
+            {sampleRateLabel}
+          </span>
+        </>
+      )}
     </div>
   );
 }

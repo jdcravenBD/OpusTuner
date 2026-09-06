@@ -459,7 +459,7 @@ export function installIconRig(): void {
   const root = document.documentElement;
   root.dataset.theme = 'dark';
   root.dataset.plain = 'true';
-  delete root.dataset.basic;
+  delete root.dataset.bare;
 
   document.body.innerHTML = '';
   document.body.style.cssText =
