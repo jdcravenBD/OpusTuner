@@ -27,11 +27,20 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has('shots')) {
   void import('./shots').then((m) => m.installScreenshotRig());
 }
 
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+/*
+ * The app icon designer. Unlike the screenshot rig this one *replaces* the
+ * app rather than driving it — it needs the stylesheet's colours and nothing
+ * else, and an icon is not a screen the tuner can be photographed on.
+ */
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('icon')) {
+  void import('./icon').then((m) => m.installIconRig());
+} else {
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
 
 /**
  * A LAN address means this is the `npm run phone` server, being looked at from

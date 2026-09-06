@@ -166,7 +166,12 @@ interface Trail {
  * lower edges curving inward so they taper to a hairline at the bottom — the
  * tip is the reading, and it wants to be as fine as the accuracy behind it.
  */
-function nibPath(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number): void {
+export function nibPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+): void {
   const W = 13 * scale; // half-width at the shoulders
   const H = 30 * scale; // tip to crown
 
