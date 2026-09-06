@@ -6,6 +6,12 @@
  * icons` works on a clean checkout on any platform.
  *
  *   node scripts/generate-icons.mjs
+ *
+ * **This also rewrites the iOS launch screen, back to the lettermark.** The
+ * launch screen is now generated from the app icon instead, by
+ * install-app-icon.mjs, so running this after that one silently undoes it and
+ * the app opens on "EAT" again with nothing to say why. If you run this, run
+ * `npm run icon:app -- <the icon png>` afterwards.
  */
 
 import { deflateSync } from 'node:zlib';
