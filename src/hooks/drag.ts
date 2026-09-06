@@ -362,6 +362,10 @@ export function useSheetGestures(
     let touchTime = 0;
     let touchVelocity = 0;
     let pulling = false;
+    /** Was the list against its top stop when the finger landed? */
+    let startedAtTop = false;
+    /** Where the pull itself began, which is not where the finger landed. */
+    let pullOriginY = 0;
 
     const onTouchStart = (e: TouchEvent) => {
       if (closing || e.touches.length !== 1) return;
@@ -371,6 +375,21 @@ export function useSheetGestures(
       touchTime = e.timeStamp;
       touchVelocity = 0;
       pulling = false;
+      /*
+       * Decided once, here, and not re-asked on every move.
+       *
+       * Asking during the gesture is what made scrolling back up to the top
+       * turn into a dismissal. Scrolling up *is* a downward drag, so by the
+       * time the list reached its stop the finger had already travelled a long
+       * way down: the test passed, the pull engaged mid-scroll, and the panel
+       * lurched. Worse, the distance was measured from where the finger landed
+       * rather than from where the pull started, so it was usually already
+       * past the close threshold and the sheet shut on release.
+       *
+       * A gesture that begins inside a scrolled list is a scroll for its whole
+       * life. Reaching the top only means there is nothing more to scroll.
+       */
+      startedAtTop = body.scrollTop <= 0;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -379,10 +398,14 @@ export function useSheetGestures(
       const dy = y - touchStartY;
 
       if (!pulling) {
+        if (!startedAtTop) return;
         if (dy < DRAG_SLOP || body.scrollTop > 0) return;
         // Anything under the finger that scrolls sideways is not ours.
         if (horizontalScroller(e.target, panel)) return;
         pulling = true;
+        // The pull is measured from here, so it always starts from zero even
+        // if the finger reached this point by some other route.
+        pullOriginY = y;
         panel.style.animation = 'none';
         panel.style.transition = 'none';
       }
@@ -393,13 +416,13 @@ export function useSheetGestures(
       touchTime = e.timeStamp;
 
       if (e.cancelable) e.preventDefault();
-      panel.style.transform = `translateY(${Math.max(0, dy - DRAG_SLOP)}px)`;
+      panel.style.transform = `translateY(${Math.max(0, y - pullOriginY)}px)`;
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       if (!pulling) return;
       pulling = false;
-      const travelled = (e.changedTouches[0]?.clientY ?? touchLastY) - touchStartY - DRAG_SLOP;
+      const travelled = (e.changedTouches[0]?.clientY ?? touchLastY) - pullOriginY;
       const flickedDown =
         touchVelocity > CLOSE_VELOCITY && travelled > CLOSE_DISTANCE * CLOSE_FLICK_FRACTION;
       if (travelled > CLOSE_DISTANCE || flickedDown) {

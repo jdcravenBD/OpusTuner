@@ -150,6 +150,13 @@
 
   /* Signal colors are semantic, not decorative — they never follow the hue. */
   --green: #34e08a;
+  /*
+   * Text on a solid green fill. Dark here because the dark theme's green is
+   * a bright one; the light theme's is deep enough to need white instead,
+   * and defines its own below. Anything painting a green face has to set
+   * this on its children or it inherits a green-on-green row.
+   */
+  --green-ink: #04240f;
   --green-soft: rgba(52, 224, 138, 0.13);
   --green-line: rgba(52, 224, 138, 0.36);
   --green-glow: rgba(52, 224, 138, 0.5);
@@ -204,6 +211,7 @@
   --text-4: hsl(var(--h) calc(14% * var(--s)) 70%);
 
   --green: #0fa059;
+  --green-ink: #ffffff;
   --green-soft: rgba(15, 160, 89, 0.11);
   --green-line: rgba(15, 160, 89, 0.34);
   --green-glow: rgba(15, 160, 89, 0.34);
@@ -348,7 +356,7 @@ button {
    * gets cleared.
    */
   padding: var(--safe-t) var(--safe-r)
-    calc(22px + var(--safe-b) * var(--safe-b-share)) var(--safe-l);
+    calc(32px + var(--safe-b) * var(--safe-b-share)) var(--safe-l);
   background:
     radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
     linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
@@ -482,17 +490,6 @@ button {
   visibility: hidden;
 }
 
-/*
- * The same trick, for the pieces that arrived later and share it.
- *
- * The carousel and the sharp/flat line both sit above the tuner, and both
- * are turned off from Settings. `display: none` on either would let the
- * tuner climb the screen the moment it was switched, which reads as the
- * whole app resizing rather than as one thing being hidden.
- */
-.is-hidden {
-  visibility: hidden;
-}
 
 /* The joke: dropped to the faintest ink so the eye reads past it. */
 .wordmark__ghost {
@@ -857,6 +854,21 @@ button {
    * still 53px left inside the zone to centre it in.
    */
   --column-cost: 410px;
+}
+
+/*
+ * Absolutely positioned, which is what lets the toggle for these be a plain
+ * `display: none`: they are not in the flow, so the screen beside them does
+ * not resize when they go. The deck still subtracts --nav-w from its own
+ * width either way, so the tuner stays exactly where it was.
+ *
+ * Both classes in the off rule, not one. `.visual-nav` sets `display: grid`,
+ * and a single-class rule for the modifier only wins if it comes later in the
+ * file — which it did not, and the arrows stayed on screen looking exactly as
+ * though the setting did nothing.
+ */
+.visual-nav.visual-nav--off {
+  display: none;
 }
 
 .visual-nav {
@@ -1616,9 +1628,38 @@ button {
   box-shadow: var(--sunk);
 }
 
+/*
+ * The selected tuning, filled rather than outlined.
+ *
+ * Every child that carried its own colour has to be told, and that is the
+ * whole cost of this rule: the name was green, the star could be amber, and
+ * both would have landed on a green face. Setting the face without setting
+ * what sits on it is the trap that once left a chip with dark text on a
+ * dark background.
+ */
 .row[data-selected='true'] {
-  border-color: var(--green-line);
-  box-shadow: var(--hi), 0 0 0 1px var(--green-line), 0 0 20px -8px var(--green-glow);
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: var(--hi), 0 0 0 1px var(--green), 0 0 20px -8px var(--green-glow);
+}
+
+.row[data-selected='true'] .row__meta,
+.row[data-selected='true'] .row__badge,
+.row[data-selected='true'] .row__lock,
+.row[data-selected='true'] .row__star,
+.row[data-selected='true'] .row__star[data-on='true'] {
+  color: var(--green-ink);
+}
+
+/* The meta line stays the quieter of the two, as it is everywhere else. */
+.row[data-selected='true'] .row__meta {
+  opacity: 0.72;
+}
+
+/* A hover well on a filled row would be a lighter patch, not a darker one. */
+.row[data-selected='true'] .row__star:hover {
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--green-ink);
 }
 
 /*
@@ -1673,7 +1714,7 @@ button {
 }
 
 .row[data-selected='true'] .row__name {
-  color: var(--green);
+  color: var(--green-ink);
 }
 
 .row__meta {

@@ -8,7 +8,6 @@ import { restoreFullSet, type Outcome } from '../state/purchases';
 import { TIER_NAME, isThemeLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
-  DEFAULT_SETTINGS,
   settingsStore,
   TOLERANCES,
   useSettings,
@@ -246,6 +245,16 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             locked={!s.owned}
           />
         </Row>
+        <Row name="Tuner arrows" desc="The two arrows either side of the tuner.">
+          <Switch
+            on={s.showTunerArrows}
+            onChange={(v) =>
+              s.owned ? set('showTunerArrows', v) : setWanted('Hide the tuner arrows')
+            }
+            label="Tuner arrows"
+            locked={!s.owned}
+          />
+        </Row>
       </Section>
 
       {/* ------------------------------------------------------------- misc */}
@@ -297,13 +306,22 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         >
           Reset settings
         </button>
+        {/*
+          * Two lines, and both have to be here.
+          *
+          * The version and build are the first thing to ask for when someone
+          * reports something, and this is the only place in the app they
+          * appear. The font credit is a condition of the SIL Open Font
+          * License, which requires attribution wherever the face ships.
+          *
+          * What was here and is not any more: a line about the McLeod Pitch
+          * Method, and a line restating the default A and window. The first
+          * was flattery of the algorithm, and the second repeated two numbers
+          * the settings above already show, live, in the state they are
+          * actually in.
+          */}
         <div className="about">
           Easy as Tuning {appVersion} &middot; built {__BUILD_ID__}
-          <br />
-          Pitch detection by the McLeod Pitch Method, accurate to well under a cent
-          on a clean signal.
-          <br />
-          Defaults: A = {DEFAULT_SETTINGS.a4} Hz, ±{DEFAULT_SETTINGS.tolerance}¢ window.
           <br />
           Strobe readout set in 7-Segment by Jan Bobrowski, under the SIL Open Font
           License.

@@ -310,24 +310,28 @@ export default function App() {
       </header>
 
       <main className="stage">
-        {/* Hidden the way the wordmark is: taken out of sight but not out of
-            the layout, so the tuner below does not jump up the screen. A
-            wrapper would have done it too and would have put a div between
-            .stage and its flex child, which is a different bug later. */}
-        <NoteDisplay
-          naming={settings.naming}
-          tolerance={settings.tolerance}
-          fallbackMidi={fallbackMidi}
-          className={settings.showCarousel ? undefined : 'is-hidden'}
-        />
+        {/*
+          Taken out of the layout, not merely out of sight.
+          
+          These were hidden with visibility so nothing moved when they were
+          switched, which was the wrong call: leaving a carousel-shaped hole
+          above the tuner is exactly what makes the screen look off-centre once
+          you have turned the carousel off. Unmounting hands the space to
+          .field-zone, which is the flexible row, and its own grid re-centres
+          the tuner inside whatever it ends up with.
+        */}
+        {settings.showCarousel && (
+          <NoteDisplay
+            naming={settings.naming}
+            tolerance={settings.tolerance}
+            fallbackMidi={fallbackMidi}
+          />
+        )}
         {/* The field is centred in this zone, which spans the full gap between
             the carousel and the string row. The frequency readout is pinned to
             the bottom of the zone so it cannot pull the field off centre. */}
         <div className="field-zone">
-          <TuningVerdict
-            tolerance={settings.tolerance}
-            className={settings.showVerdict ? undefined : 'is-hidden'}
-          />
+          {settings.showVerdict && <TuningVerdict tolerance={settings.tolerance} />}
           <TunerVisual
             visual={settings.visual}
             onChange={(visual) => settingsStore.set({ visual })}
@@ -339,6 +343,7 @@ export default function App() {
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
             marks={settings.showTunerMarks}
+            arrows={settings.showTunerArrows}
           />
         </div>
       </main>

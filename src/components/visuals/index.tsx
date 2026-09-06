@@ -47,9 +47,11 @@ interface Props extends VisualProps {
   onChange: (id: VisualId) => void;
   /** Capture rate, shown as small print in the opposite corner. */
   sampleRateLabel: string;
+  /** Whether the two pager arrows are drawn. They cost no layout either way. */
+  arrows: boolean;
 }
 
-export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Props) {
+export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest }: Props) {
   const rowRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLDivElement>(null);
 
@@ -254,7 +256,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
   return (
     <div className="field-row" ref={rowRef}>
       <button
-        className="visual-nav"
+        className={arrows ? 'visual-nav' : 'visual-nav visual-nav--off'}
         onClick={() => begin(-1)}
         aria-label={`Previous display: ${prev.name}`}
         title={prev.name}
@@ -280,7 +282,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, ...rest }: Prop
       </div>
 
       <button
-        className="visual-nav"
+        className={arrows ? 'visual-nav' : 'visual-nav visual-nav--off'}
         onClick={() => begin(1)}
         aria-label={`Next display: ${next.name}`}
         title={next.name}

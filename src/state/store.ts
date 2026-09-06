@@ -102,6 +102,8 @@ export interface Settings {
    * it is a decoration.
    */
   showTunerMarks: boolean;
+  /** The two pager arrows either side of the tuner screen. */
+  showTunerArrows: boolean;
   /** Which tuner screen is on show — see components/visuals. */
   visual: VisualId;
   /**
@@ -143,6 +145,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showCarousel: true,
   showVerdict: true,
   showTunerMarks: true,
+  showTunerArrows: true,
   visual: DEFAULT_VISUAL,
   owned: false,
 };
