@@ -69,6 +69,8 @@ interface Options {
   border: number;
   /** Lit hairline inside the frame, in output pixels. 0 is off. */
   hairline: number;
+  /** Depth of the recess shadow, as a percentage of the app's own. */
+  recess: number;
   /** Glow radius under the nib, in output pixels. */
   glow: number;
   /** Vertical cent gridlines. */
@@ -79,6 +81,15 @@ interface Options {
   line: number;
   /** Half-width of the translucent in-tune corridor, in cents. 0 is off. */
   corridor: number;
+  /**
+   * Whether the centre line and corridor are in their in-tune state.
+   *
+   * The app has both: lit and green while the note is inside the tolerance,
+   * dim and grey when it is not. An icon showing an amber needle is showing
+   * a note that is well off, so a bright green corridor behind it is a state
+   * the app never actually draws.
+   */
+  lit: boolean;
   /** Which of the tuner's three needle colours to use. */
   needle: NeedleColor;
   /** Draw the iOS mask over the top, to show what gets cut. */
@@ -117,11 +128,13 @@ const DEFAULTS: Options = {
   inset: 0,
   border: 15,
   hairline: 5,
+  recess: 100,
   glow: 58,
   line: 17,
   corridor: 24,
   grid: true,
   rules: true,
+  lit: true,
   needle: 'green',
   showMask: false,
 };
@@ -146,6 +159,14 @@ function css(name: string, fallback: string): string {
   }
   probe.style.color = `var(${name}, ${fallback})`;
   return getComputedStyle(probe).color || fallback;
+}
+
+/** Composites `amount` of white over an `rgb()` string, opaquely. */
+function lighten(color: string, amount: number): string {
+  const m = color.match(/-?[\d.]+/g);
+  if (!m || m.length < 3) return color;
+  const k = (v: string) => Math.round(Number(v) * (1 - amount) + 255 * amount);
+  return `rgb(${k(m[0])}, ${k(m[1])}, ${k(m[2])})`;
 }
 
 /* -------------------------------------------------------------- shapes -- */
@@ -272,14 +293,16 @@ export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
   /* --- the in-tune corridor and the centre line -------------------------- */
   if (o.corridor > 0) {
     const half = xOf(o.corridor) - SIZE / 2;
-    ctx.globalAlpha = 0.2;
+    ctx.globalAlpha = o.lit ? 0.2 : 0.09;
     ctx.fillStyle = green;
     ctx.fillRect(SIZE / 2 - half, 0, half * 2, SIZE);
   }
 
-  ctx.globalAlpha = 0.95;
-  ctx.strokeStyle = green;
-  ctx.lineWidth = o.line;
+  // Exactly the app's two states: green at 0.95 when the note is in tune,
+  // otherwise the gridline colour at 0.4 and three quarters of the weight.
+  ctx.globalAlpha = o.lit ? 0.95 : 0.4;
+  ctx.strokeStyle = o.lit ? green : tick;
+  ctx.lineWidth = o.lit ? o.line : o.line * 0.75;
   ctx.beginPath();
   ctx.moveTo(SIZE / 2, 0);
   ctx.lineTo(SIZE / 2, SIZE);
@@ -310,34 +333,41 @@ export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
   /*
    * The screen is a hole in the chassis, not a card on top of it, and what
    * says so is shadow raking in from the top edge and wrapping the opening.
-   * In CSS that is five inset boxShadows; here it is the same thing painted
-   * as gradients along the inside of the frame.
+   * In CSS that is five inset box-shadows.
+   *
+   * This was painted as gradient rectangles down each edge, which is wrong
+   * in the corners and only in the corners: a rectangle's shadow arrives
+   * straight, so it met the curve at an angle and left the corner lighter
+   * than the flats either side of it. No arrangement of axis-aligned
+   * gradients follows a superellipse.
+   *
+   * So the shadow is cast by the shape itself. Clipped to the inside, the
+   * region *outside* the curve is filled through an even-odd path and given
+   * a canvas shadow; what lands inside the clip is that shadow spilling
+   * inward over the edge, which follows the curve exactly because the curve
+   * is what cast it. Offsetting it downward rakes it in from the top, the
+   * way the first of the CSS shadows does.
    */
+  const cast = (blur: number, dy: number, alpha: number) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    // Far enough out that this rectangle's own edges never cast into view.
+    ctx.rect(-SIZE, -SIZE, SIZE * 3, SIZE * 3);
+    squirclePath(ctx, o.inset, false);
+    ctx.shadowColor = `rgba(0, 0, 0, ${alpha})`;
+    ctx.shadowBlur = blur;
+    ctx.shadowOffsetY = dy;
+    ctx.fillStyle = '#000';
+    ctx.fill('evenodd');
+    ctx.restore();
+  };
+
   ctx.globalAlpha = 1;
-  const depth = SIZE * 0.13;
-
-  const fromTop = ctx.createLinearGradient(0, o.inset, 0, o.inset + depth);
-  fromTop.addColorStop(0, 'rgba(0,0,0,0.62)');
-  fromTop.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = fromTop;
-  ctx.fillRect(0, 0, SIZE, o.inset + depth);
-
-  const sides = ctx.createLinearGradient(o.inset, 0, o.inset + depth * 0.62, 0);
-  sides.addColorStop(0, 'rgba(0,0,0,0.4)');
-  sides.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = sides;
-  ctx.fillRect(0, 0, o.inset + depth * 0.62, SIZE);
-  ctx.save();
-  ctx.translate(SIZE, 0);
-  ctx.scale(-1, 1);
-  ctx.fillRect(0, 0, o.inset + depth * 0.62, SIZE);
-  ctx.restore();
-
-  const fromBottom = ctx.createLinearGradient(0, SIZE - o.inset - depth * 0.5, 0, SIZE - o.inset);
-  fromBottom.addColorStop(0, 'rgba(0,0,0,0)');
-  fromBottom.addColorStop(1, 'rgba(0,0,0,0.34)');
-  ctx.fillStyle = fromBottom;
-  ctx.fillRect(0, SIZE - o.inset - depth * 0.5, SIZE, depth * 0.5 + o.inset);
+  const d = o.recess / 100;
+  cast(SIZE * 0.16, SIZE * 0.055, 0.62 * d); // rakes in from the top
+  cast(SIZE * 0.055, SIZE * 0.02, 0.48 * d); // tighter, right at the edge
+  cast(SIZE * 0.13, 0, 0.34 * d); // and a wrap around all four sides
 
   ctx.restore(); // release the clip
 
@@ -362,9 +392,24 @@ export function drawIcon(ctx: CanvasRenderingContext2D, o: Options): void {
    * because outside is past the mask and would be cut.
    */
   if (o.hairline > 0) {
+    /*
+     * Opaque, not a wash of white.
+     *
+     * It was `rgba(255,255,255,0.1)`, which is the right *colour* over the
+     * dark background and the wrong thing to draw: it took a tint from
+     * whatever it crossed, so where the ring passed the green centre line it
+     * went green. This is the same colour arrived at by composition instead,
+     * a tenth of white mixed into the background gradient at the same stops,
+     * so it looks as it did against the dark and sees through to nothing.
+     */
+    const litRing = ctx.createLinearGradient(0, 0, 0, SIZE);
+    litRing.addColorStop(0, lighten(top, 0.1));
+    litRing.addColorStop(0.55, lighten(mid, 0.1));
+    litRing.addColorStop(1, lighten(bottom, 0.1));
+
     ctx.globalAlpha = 1;
     ctx.lineWidth = o.hairline;
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.strokeStyle = litRing;
     squirclePath(ctx, o.inset + o.border + o.hairline / 2);
     ctx.stroke();
   }
@@ -438,6 +483,7 @@ export function installIconRig(): void {
       | 'inset'
       | 'border'
       | 'hairline'
+      | 'recess'
       | 'glow'
       | 'line'
       | 'corridor',
@@ -501,7 +547,7 @@ export function installIconRig(): void {
     panel.append(row);
   };
 
-  const toggle = (label: string, key: 'grid' | 'rules' | 'showMask') => {
+  const toggle = (label: string, key: 'grid' | 'rules' | 'lit' | 'showMask') => {
     const row = document.createElement('label');
     row.style.cssText = 'display:flex;gap:8px;align-items:center';
     const input = document.createElement('input');
@@ -521,10 +567,12 @@ export function installIconRig(): void {
   slider('Frame inset (px)', 'inset', 0, 90, 1);
   slider('Dark frame weight (px)', 'border', 0, 30, 1);
   slider('Light hairline weight (px)', 'hairline', 0, 30, 1);
+  slider('Recess shadow (%)', 'recess', 0, 160, 1);
   slider('Glow', 'glow', 0, 220, 1);
   slider('Centre line weight (px)', 'line', 0, 48, 1);
   slider('In-tune corridor (cents)', 'corridor', 0, 90, 1);
   needlePicker();
+  toggle('Centre line lit (in tune)', 'lit');
   toggle('Cent gridlines', 'grid');
   toggle('Horizontal rules', 'rules');
   toggle('Show what iOS cuts', 'showMask');
