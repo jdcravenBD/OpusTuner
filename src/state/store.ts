@@ -40,6 +40,19 @@ export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light';
 export const THEMES: ThemeMode[] = ['plain', 'basic', 'dark', 'light'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
+/**
+ * How heavy the field's trail is drawn, as a multiplier.
+ *
+ * A multiplier rather than a width, because the trail does not have one
+ * width: it tapers from three pixels under the nib to one at the bottom of
+ * the screen, which is what makes it read as falling away rather than as a
+ * line. Scaling keeps that taper; setting a width would flatten it.
+ */
+export type TrailWidth = 0.6 | 1 | 1.6;
+
+/** Every trail weight on offer, in the order the picker shows them. */
+export const TRAIL_WIDTHS: TrailWidth[] = [0.6, 1, 1.6];
+
 /** Every in-tune window on offer, in the order the picker shows them. */
 export const TOLERANCES: ToleranceCents[] = [2, 5, 10, 20];
 
@@ -52,6 +65,8 @@ export interface Settings {
   naming: NoteNaming;
   /** Half-width of the "in tune" window, in cents. */
   tolerance: ToleranceCents;
+  /** Weight of the field's trail — see TrailWidth. */
+  trailWidth: TrailWidth;
   /** Auto-detect which string is being played. */
   auto: boolean;
   /** Jump to the next untuned string once one lands. */
@@ -130,6 +145,7 @@ export const DEFAULT_SETTINGS: Settings = {
   a4: DEFAULT_A4,
   naming: 'sharp',
   tolerance: 10,
+  trailWidth: 1,
   auto: true,
   autoAdvance: false,
   chimeOnTuned: false,
@@ -268,6 +284,11 @@ export const settingsStore = createStore<Settings>(
     // ±3¢ was dropped from the choices; anyone holding it would otherwise see
     // an in-tune window the settings panel shows no button for.
     tolerance: TOLERANCES.includes(s.tolerance) ? s.tolerance : DEFAULT_SETTINGS.tolerance,
+    // Same guard as the tolerance above: a stored value that is no longer on
+    // offer would leave the picker showing no selection at all.
+    trailWidth: TRAIL_WIDTHS.includes(s.trailWidth)
+      ? s.trailWidth
+      : DEFAULT_SETTINGS.trailWidth,
     // 'system', and later 'simple', were dropped from the picker; anyone still
     // holding one would otherwise sit on a theme with no button, exactly as
     // with the tolerance above.

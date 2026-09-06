@@ -100,6 +100,8 @@ export interface VisualProps {
    * the tuner exists to give.
    */
   marks: boolean;
+  /** Multiplier on the field trail's weight — see TrailWidth in the store. */
+  trailWidth: number;
   /** Half-width of the in-tune window, in cents. */
   tolerance: number;
   /** Changing this re-reads the CSS custom properties. */

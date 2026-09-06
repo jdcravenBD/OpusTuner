@@ -343,6 +343,7 @@ export default function App() {
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
             marks={settings.showTunerMarks}
+            trailWidth={settings.trailWidth}
             arrows={settings.showTunerArrows}
           />
         </div>

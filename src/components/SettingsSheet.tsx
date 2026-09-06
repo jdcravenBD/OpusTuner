@@ -10,6 +10,7 @@ import {
   DEFAULT_HUE,
   settingsStore,
   TOLERANCES,
+  TRAIL_WIDTHS,
   useSettings,
   type Settings,
   type ThemeMode,
@@ -90,6 +91,16 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             value={s.tolerance}
             options={TOLERANCES.map((t) => ({ value: t, label: `±${t}¢` }))}
             onChange={(v) => set('tolerance', v)}
+          />
+        </Row>
+        <Row name="Trail weight" desc="How heavy the Field screen draws the last few seconds.">
+          <Segmented
+            value={s.trailWidth}
+            options={TRAIL_WIDTHS.map((w, i) => ({
+              value: w,
+              label: ['Fine', 'Normal', 'Bold'][i],
+            }))}
+            onChange={(v) => set('trailWidth', v)}
           />
         </Row>
         <Row name="Note names">
@@ -236,7 +247,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         </Row>
         <Row
           name="Tuner marks"
-          desc="Accidentals, corner print and the field's note names. The readings stay."
+          desc="Accidentals, corner print and the field's note names."
         >
           <Switch
             on={s.showTunerMarks}

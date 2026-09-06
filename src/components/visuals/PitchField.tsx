@@ -42,7 +42,14 @@ const TRAIL_CAPACITY = 256;
  * Driven straight from the tuner's frame stream; React never re-renders this
  * while a note is sounding.
  */
-export function PitchField({ tolerance, themeKey, naming, fallbackMidi, marks }: VisualProps) {
+export function PitchField({
+  tolerance,
+  themeKey,
+  naming,
+  fallbackMidi,
+  marks,
+  trailWidth,
+}: VisualProps) {
   /**
    * Offscreen buffer for the trail. The trail is stroked opaque in here so that
    * where it crosses itself nothing accumulates, then faded once on the way
@@ -74,6 +81,8 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi, marks }:
   fallbackRef.current = fallbackMidi;
   const marksRef = useRef(marks);
   marksRef.current = marks;
+  const trailWidthRef = useRef(trailWidth);
+  trailWidthRef.current = trailWidth;
 
   const canvasRef = useVisualCanvas({
     themeKey,
@@ -127,6 +136,7 @@ export function PitchField({ tolerance, themeKey, naming, fallbackMidi, marks }:
         naming: namingRef.current,
         fallbackMidi: fallbackRef.current,
         marks: marksRef.current,
+        trailWidth: trailWidthRef.current,
         trail: t,
         buffer: trailCanvas.current,
       });
@@ -152,6 +162,7 @@ interface DrawState {
   naming: NoteNaming;
   fallbackMidi: number;
   marks: boolean;
+  trailWidth: number;
   trail: Trail;
   buffer: HTMLCanvasElement | null;
 }
@@ -368,7 +379,7 @@ function drawTrail(
   const newest = (t.head - 1 + TRAIL_CAPACITY) % TRAIL_CAPACITY;
   if (t.live[newest]) {
     bctx.strokeStyle = hot;
-    bctx.lineWidth = 3;
+    bctx.lineWidth = 3 * s.trailWidth;
     bctx.beginPath();
     bctx.moveTo(markerX, markerY);
     bctx.lineTo(t.x[newest], t.y[newest]);
@@ -385,7 +396,9 @@ function drawTrail(
     if (t.y[a] > h) continue;
     const depth = clamp(1 - (t.y[a] - markerY) / Math.max(1, h - markerY), 0, 1);
     bctx.strokeStyle = colorFor(p, t.cents[a], s.tolerance);
-    bctx.lineWidth = 1 + depth * 2;
+    // Scaled, not replaced: the taper from three pixels under the nib to one
+    // at the bottom is what makes the trail read as falling away.
+    bctx.lineWidth = (1 + depth * 2) * s.trailWidth;
     bctx.beginPath();
     bctx.moveTo(t.x[a], t.y[a]);
     bctx.lineTo(t.x[b], t.y[b]);

@@ -583,7 +583,7 @@ export function installIconRig(): void {
 
   slider('Needle position (cents)', 'cents', -250, 250, 1);
   slider('Needle height', 'markerY', 0.1, 0.9, 0.01);
-  slider('Needle size', 'nibScale', 3, 20, 0.1);
+  slider('Needle size', 'nibScale', 3, 40, 0.1);
   slider('Frame inset (px)', 'inset', 0, 90, 1);
   slider('Dark frame weight (px)', 'border', 0, 30, 1);
   slider('Light hairline weight (px)', 'hairline', 0, 30, 1);
