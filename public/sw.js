@@ -16,6 +16,11 @@
 
 const CACHE_VERSION = 'easyastuning-dev';
 const SHELL = './index.html';
+/*
+ * The directory the worker was served from, with its trailing slash. On Pages
+ * the app lives under /<repo>/, so a bare '/' would never match.
+ */
+const scopePath = new URL('./', self.location.href).pathname;
 
 /**
  * Everything the app needs to start with no network, filled in at build time by
@@ -74,11 +79,24 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
+    /*
+     * Only the app itself is worth keeping as the shell.
+     *
+     * This used to cache every successful navigation under SHELL, which was
+     * harmless while the app was the only page on the origin. It is not any
+     * more: the privacy policy and the support page are served from here too,
+     * and visiting either one would have replaced the offline copy of the
+     * tuner with a page of prose. Opening the app on a plane would then show
+     * the privacy policy.
+     */
+    const isApp = url.pathname === scopePath || url.pathname === scopePath + 'index.html';
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(SHELL, copy));
+          if (isApp) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put(SHELL, copy));
+          }
           return response;
         })
         .catch(() => caches.match(SHELL).then((cached) => cached || Response.error())),
