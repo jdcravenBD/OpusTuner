@@ -3303,14 +3303,21 @@ button {
 /*
  * The only advertisement in the app.
  *
- * Orange, which is the one colour here that is not already spoken for: green
- * means in tune, blue means a control you can press, and amber is the needle.
- * Borrowed rather than taken -- the needle is a small moving mark and this is
- * a band of colour, and nobody reads them as the same thing.
+ * A row like the rows above it, tinted -- not a block of colour. It was a
+ * solid orange fill, and a solid fill is what an advertisement looks like:
+ * the eye goes to it first, every time Settings is opened, forever. This is
+ * the treatment the selected tuning gets, for the same reason it got it. The
+ * wash marks the row; everything on it keeps the weight it would have had
+ * anywhere else.
  *
- * One row tall, and that is the design. It is seen every time Settings is
- * opened, possibly for years, and the version of this with a headline and a
- * picture is the version people stop seeing on the second day. It is also
+ * Orange because it is the one colour here not already spoken for: green
+ * means in tune and blue means a control you can press. Amber is the needle,
+ * and this borrows rather than takes it -- a small moving mark and a tinted
+ * row do not read as the same thing.
+ *
+ * One row tall, and that is the design. It will be seen every time Settings
+ * is opened, possibly for years, and the version of this with a headline and
+ * a picture is the version people stop seeing on the second day. It is also
  * gone for good the moment it is taken, which is the only promise a thing
  * like this can make that is worth anything.
  */
@@ -3320,17 +3327,26 @@ button {
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin: 2px 0 14px;
   padding: 12px 14px;
   border-radius: var(--r-lg);
-  /* A literal, not a token: it has to read as this colour in all five
-     appearances, and the palette drains its hues on two of them. */
-  background: linear-gradient(180deg, #ffa63d 0%, #f2860b 100%);
-  color: #3a1d00;
+  /*
+   * Two layers: the wash, over the face every other raised thing wears. Not
+   * one flat blend, so the row keeps whatever moulding the style gives it and
+   * the tint sits on top of that rather than replacing it.
+   *
+   * `color-mix` rather than four hand-written rgba values, one per palette --
+   * the amber is already defined in each and this follows it, including into
+   * the two that drain their hues.
+   */
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--amber) 14%, transparent),
+      color-mix(in srgb, var(--amber) 14%, transparent)
+    ),
+    linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  box-shadow: var(--hi);
   text-align: left;
-  box-shadow:
-    var(--hi),
-    0 6px 18px -10px rgba(242, 134, 11, 0.9);
   transition: transform 110ms var(--ease);
 }
 
@@ -3346,30 +3362,36 @@ button {
   gap: 2px;
 }
 
+/* The one thing on the row that is actually the colour. */
 .promo__name {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #2b1500;
+  color: var(--amber);
 }
 
 .promo__desc {
   font-size: 12.5px;
   line-height: 1.35;
-  /* Dark on orange rather than white: white on this fill is the one pairing
-     that fails to read in sunlight, which is where a tuner gets used. */
-  color: rgba(60, 28, 0, 0.78);
+  color: var(--text-3);
 }
 
 .promo svg {
   flex: 0 0 auto;
-  color: rgba(60, 28, 0, 0.55);
+  color: var(--text-4);
 }
 
-/* Rounder, like everything else in that style, and wearing the same lit edge. */
+/* No border and no moulding in that style: the lit edge does both. */
 :root[data-theme='modern'] .promo {
+  border: 0;
   border-radius: 16px;
-  box-shadow: 0 6px 18px -10px rgba(242, 134, 11, 0.8);
+  box-shadow: none;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--amber) 15%, transparent),
+      color-mix(in srgb, var(--amber) 15%, transparent)
+    ),
+    linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 62%);
 }
 
 /* ------------------------------------------------------------ screenshots -- */

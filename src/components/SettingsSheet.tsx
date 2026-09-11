@@ -76,15 +76,18 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         * people learn to scroll past on the second day.
         */}
       {!s.owned && (
-        <button className="promo" onClick={() => setWanted(TIER_NAME)}>
-          <span className="promo__text">
-            <span className="promo__name">Unlock the {TIER_NAME}</span>
-            <span className="promo__desc">
-              Every tuning, every style. {PRICE} once, forever.
+        <div className="sheet__section">
+          <div className="sheet__label">Support me</div>
+          <button className="promo" onClick={() => setWanted(TIER_NAME)}>
+            <span className="promo__text">
+              <span className="promo__name">Unlock the {TIER_NAME}</span>
+              <span className="promo__desc">
+                Every tuning, every style. {PRICE} once, forever.
+              </span>
             </span>
-          </span>
-          <ChevronRightIcon size={18} />
-        </button>
+            <ChevronRightIcon size={18} />
+          </button>
+        </div>
       )}
 
       {/* ------------------------------------------------------------ pitch */}
