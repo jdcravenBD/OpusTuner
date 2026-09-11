@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Sheet } from './Sheet';
 import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
@@ -579,8 +579,52 @@ function Segmented<T extends string | number>({
   /** Nothing here applies right now — see the Mode row. */
   disabled?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  /**
+   * Where the lit pill sits, in pixels across the track.
+   *
+   * Measured rather than computed, because the options are not equal widths:
+   * "Fine / Normal / Bold" and "±2¢ … ±20¢" each size to their own label, and
+   * anything that assumed otherwise would slide the pill to the wrong place
+   * the first time a label changed length.
+   */
+  const [thumb, setThumb] = useState<{ x: number; w: number } | null>(null);
+
+  /*
+   * Layout effect, not effect: this runs before the browser paints, so the
+   * pill is already in position on the first frame. In a plain effect it
+   * would be drawn at zero and then jump, and the jump would animate.
+   */
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const measure = () => {
+      const on = root.querySelector<HTMLElement>('[data-on="true"]');
+      if (!on) return setThumb(null);
+      const next = { x: on.offsetLeft, w: on.offsetWidth };
+      // Same numbers, same object. The measure runs from a ResizeObserver as
+      // well as from a change of value, and handing back a fresh object every
+      // time would re-render, re-measure and never stop.
+      setThumb((prev) => (prev && prev.x === next.x && prev.w === next.w ? prev : next));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    // The labels reflow when the panel does, and a rotation is the obvious
+    // case: the pill has to end up back under the word it belongs to.
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [value, options.length]);
+
   return (
-    <div className="segmented" role="group" data-disabled={disabled}>
+    <div className="segmented" ref={ref} role="group" data-disabled={disabled}>
+      {thumb && (
+        <span
+          className="segmented__thumb"
+          style={{ transform: `translateX(${thumb.x}px)`, width: thumb.w }}
+          aria-hidden
+        />
+      )}
       {options.map((o) => (
         <button
           key={String(o.value)}

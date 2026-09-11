@@ -1744,8 +1744,24 @@ button {
   color: var(--text-2);
 }
 
+/*
+ * Pinned: turned, darkened, filled.
+ *
+ * Gold said "favourite", which is a different claim -- and it said it in a
+ * colour this app already spends on being sharp of the note. The turn is what
+ * a pin actually does when it goes in, and it is the part you catch out of
+ * the corner of an eye while the list is scrolling.
+ */
+.row__pin svg {
+  transition: transform 240ms var(--ease-out);
+}
+
 .row__pin[data-on='true'] {
-  color: var(--amber);
+  color: var(--text);
+}
+
+.row__pin[data-on='true'] svg {
+  transform: rotate(45deg);
 }
 
 .row__badge {
@@ -1871,6 +1887,7 @@ button {
 }
 
 .segmented {
+  position: relative;
   display: flex;
   gap: 2px;
   flex: 0 0 auto;
@@ -1880,7 +1897,35 @@ button {
   box-shadow: var(--sunk);
 }
 
+/*
+ * The selection, as one object that moves rather than a fill that swaps.
+ *
+ * Both say the same thing about which option is chosen; only this one says
+ * anything about where it came from, and on a control whose options are
+ * ordered -- fine to bold, near to far -- that is the useful half. It also
+ * stops the eye having to find the selection again after every press.
+ *
+ * Position and width come from the DOM, measured in Segmented: the options
+ * size to their own labels, so there is no arithmetic that would hold.
+ */
+.segmented__thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  border-radius: var(--r-xs);
+  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
+  box-shadow: var(--hi), var(--elev-1);
+  transition:
+    transform 260ms var(--ease),
+    width 260ms var(--ease);
+  pointer-events: none;
+}
+
 .segmented button {
+  /* Above the thumb, which is painted behind the whole row of them. */
+  position: relative;
+  z-index: 1;
   padding: 5px 10px;
   border-radius: var(--r-xs);
   font-size: 12px;
@@ -1896,10 +1941,10 @@ button {
   color: var(--text-2);
 }
 
+/* The face this used to paint is the thumb's now; the ink is still the
+   button's, so it can cross-fade while the thumb slides under it. */
 .segmented button[data-on='true'] {
-  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
   color: var(--text);
-  box-shadow: var(--hi), var(--elev-1);
 }
 
 .stepper {
@@ -2923,11 +2968,21 @@ button {
   --bg-1: #f2f2f7;
   --bg-glow: transparent;
 
-  --surface: #ffffff;
+  /*
+   * Not quite white, and that is the whole trick.
+   *
+   * A rim can only read as lit if there is something for it to be brighter
+   * than, and on a pure white face there is nothing: white on white is a
+   * line you cannot see, so the only edge left to draw was a dark one, and a
+   * dark line round a white card is an outline rather than a highlight.
+   * Four levels down off white is enough to give the rim somewhere to go and
+   * little enough that nothing reads as grey.
+   */
+  --surface: #f8f8fa;
   --surface-hi: #ffffff;
   --surface-press: #d1d1d6;
-  --surface-raised-a: #ffffff;
-  --surface-raised-b: #ffffff;
+  --surface-raised-a: #f8f8fa;
+  --surface-raised-b: #f8f8fa;
   --surface-sunk: #e9e9ea;
 
   /*
@@ -2991,28 +3046,28 @@ button {
   color-scheme: light;
 
   /*
-   * The stroke that runs light at the top and dark at the bottom.
+   * The lit edge, run corner to corner.
    *
-   * Every raised thing in this theme is white on a near-white page, which is
-   * why a flat hairline reads as flat: one grey line all the way round says
-   * nothing about which way is up. This says it the way a real edge does --
-   * the top catches the light and stands proud of the page behind it, the
-   * bottom falls into its own shadow.
+   * All highlight and no outline: it is white at the top-left corner and
+   * fades to nothing at the bottom-right, so the light has a direction and
+   * the far side simply stops rather than turning into a dark line. A dark
+   * line would have been the shape's outline, and an outline is exactly the
+   * flat thing this is here to replace.
    *
-   * The angle is 155deg rather than straight down so the two long edges are
-   * not the only ones doing the work: a round-cornered shape spends a lot of
-   * its outline on the corners, and off-axis puts the turn from light to dark
-   * across them instead of at the ends.
+   * 135deg, which on a rectangle is the diagonal: the brightest point is a
+   * corner rather than a side, and the fade crosses the whole element instead
+   * of stopping at the top edge. The face beneath it is a few levels off
+   * white so there is something for the rim to be brighter than.
    *
    * Kept as one token because it is one idea. The rule that paints it is
    * further down and is the same for everything that gets it.
    */
   --stroke-mixed: linear-gradient(
-    155deg,
-    rgba(255, 255, 255, 0.92) 0%,
-    rgba(60, 60, 67, 0.08) 38%,
-    rgba(60, 60, 67, 0.16) 62%,
-    rgba(60, 60, 67, 0.34) 100%
+    135deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.66) 34%,
+    rgba(255, 255, 255, 0.3) 66%,
+    rgba(255, 255, 255, 0.1) 100%
   );
 
   /* Corner radii, at the sizes a grouped list uses. */
@@ -3282,9 +3337,18 @@ button {
 }
 
 :root[data-theme='modern'] .segmented button[data-on='true'] {
-  background: var(--surface);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
   color: var(--text);
+}
+
+/* Two pixels of track either side here, against the app's three. */
+:root[data-theme='modern'] .segmented__thumb {
+  top: 2px;
+  bottom: 2px;
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.12),
+    0 1px 1px rgba(0, 0, 0, 0.04);
 }
 
 /*
@@ -3322,12 +3386,39 @@ button {
 
 :root[data-theme='modern'] .stepper,
 :root[data-theme='modern'] .select,
-:root[data-theme='modern'] .text-input,
-:root[data-theme='modern'] .search {
+:root[data-theme='modern'] .text-input {
   border: 0;
   background: rgba(118, 118, 128, 0.12);
   box-shadow: none;
   color: var(--text);
+}
+
+/*
+ * The search field, and a fill that was on the wrong element.
+ *
+ * `.search` is a positioning wrapper with no shape of its own: it holds the
+ * input, the magnifier and the clear button. Painting the fill on it put a
+ * hard-cornered rectangle behind an input with rounded corners, and the
+ * corners of the rectangle sat outside them -- which is what you could see.
+ * The fill belongs on the input, which is the thing with the shape.
+ */
+:root[data-theme='modern'] .search input {
+  height: 46px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 42px;
+  background: rgba(118, 118, 128, 0.12);
+  box-shadow: none;
+  color: var(--text);
+}
+
+/* Both ends move in with the curve, or they end up in it. */
+:root[data-theme='modern'] .search__icon {
+  left: 16px;
+}
+
+:root[data-theme='modern'] .search__clear {
+  right: 10px;
 }
 
 :root[data-theme='modern'] .chip {
@@ -3359,6 +3450,19 @@ button {
   border-top-left-radius: 40px;
   border-top-right-radius: 40px;
   box-shadow: var(--elev-3);
+}
+
+/*
+ * No rule under the title.
+ *
+ * The app's sheets draw one because their header sits on the same surface as
+ * the list and something has to separate them. Here the list is a column of
+ * cards on a tinted page, which already reads as a different layer, so the
+ * line is a mark doing nothing -- and this idiom does not draw marks that do
+ * nothing.
+ */
+:root[data-theme='modern'] .sheet__head {
+  border-bottom: 0;
 }
 
 :root[data-theme='modern'] .sheet__title {
