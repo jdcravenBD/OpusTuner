@@ -19,6 +19,17 @@ import {
 } from '../state/store';
 import type { NoteNaming } from '../music/notes';
 
+/**
+ * The two pages Apple links to from the store listing, linked from in here too.
+ *
+ * Written out rather than derived from BASE_URL, because inside the packaged
+ * app there is no base to derive from: the bundle is served off capacitor://
+ * and these live on the web. They are also what App Store Connect has been
+ * given, so there is one address for each and it is this one.
+ */
+const PRIVACY_URL = 'https://jdcravenbd.github.io/OpusTuner/privacy.html';
+const SUPPORT_URL = 'https://jdcravenbd.github.io/OpusTuner/support.html';
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -344,6 +355,27 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             </button>
           </Row>
         )}
+        {/*
+          * The two pages, reachable from inside the app and not only from the
+          * store listing.
+          *
+          * `target="_blank"` is load-bearing rather than habit. In the packaged
+          * app this is a web view with no address bar and no back button, so a
+          * link that navigated in place would replace the tuner with a policy
+          * page and leave no way out of it. Capacitor sends a new-window
+          * request to the system browser, which is a place the reader already
+          * knows how to leave.
+          */}
+        <Row name="Privacy policy" desc="What the app collects, which is nothing.">
+          <a className="btn" href={PRIVACY_URL} target="_blank" rel="noreferrer">
+            Read
+          </a>
+        </Row>
+        <Row name="Support" desc="Answers to the common ones, and how to reach me.">
+          <a className="btn" href={SUPPORT_URL} target="_blank" rel="noreferrer">
+            Open
+          </a>
+        </Row>
         <button
           className="btn btn--block sheet__reset"
           onClick={() => {

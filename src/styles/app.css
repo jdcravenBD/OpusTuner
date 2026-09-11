@@ -2415,6 +2415,9 @@ button {
   font-size: 14px;
   font-weight: 620;
   color: var(--text);
+  /* Some of these are anchors -- the two links in About -- and an underline
+     is the one thing that would give that away. */
+  text-decoration: none;
   transition:
     border-color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease),
