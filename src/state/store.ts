@@ -215,6 +215,13 @@ function createStore<T extends object>(
    * a renamed or split setting is already gone.
    */
   migrate?: (state: T, stored: Readonly<Record<string, unknown>>) => T,
+  /**
+   * Keys a reset must not touch.
+   *
+   * A reset is for preferences, and not everything kept in one of these is
+   * one. See the list where the settings store is built.
+   */
+  keep: readonly (keyof T)[] = [],
 ): Store<T> {
   const { state: hydrated, stored } = hydrate(key, initial);
   let state: T = migrate ? migrate(hydrated, stored) : hydrated;
@@ -245,7 +252,9 @@ function createStore<T extends object>(
       listeners.forEach((l) => l());
     },
     reset() {
-      state = { ...initial };
+      const held = {} as Partial<T>;
+      for (const k of keep) held[k] = state[k];
+      state = { ...initial, ...held };
       persist();
       listeners.forEach((l) => l());
     },
@@ -367,6 +376,17 @@ export const settingsStore = createStore<Settings>(
       ? s.trailWidth
       : DEFAULT_SETTINGS.trailWidth,
   }),
+  /*
+   * What a reset leaves alone.
+   *
+   * `owned` is not a preference. It is this device's copy of something Apple
+   * knows, and a button labelled "Reset settings" taking it away is the app
+   * revoking a purchase over a tidy-up -- recoverable, since Restore brings it
+   * straight back, but nobody should have to know that, and the ones who do
+   * not just paid twice or gave up. Its default is `false`, so it was landing
+   * in the spread with everything else.
+   */
+  ['owned'],
 );
 export const sessionStore = createStore<Session>(
   'easyastuning.session.v1',
