@@ -99,31 +99,10 @@ main {
   );
 }
 
-/* --- the way back ---------------------------------------------------------- */
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin: 22px 0 0;
-  padding: 8px 14px 8px 10px;
-  border-radius: 999px;
-  background: var(--fill);
-  color: var(--text);
-  font-size: 13.5px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.back svg {
-  width: 16px;
-  height: 16px;
-}
-
 /* --- the claim ------------------------------------------------------------- */
 
 .eyebrow {
-  margin: 30px 0 0;
+  margin: 52px 0 0;
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -225,6 +204,11 @@ h2 {
   margin-top: 12px;
 }
 
+.card p.address + p,
+.card p + p.address {
+  margin-top: 4px;
+}
+
 .card strong {
   color: var(--text);
   font-weight: 600;
@@ -250,21 +234,30 @@ h2 {
   background: var(--border);
 }
 
-/* --- the button ------------------------------------------------------------ */
+/* --- the address ----------------------------------------------------------- */
 
-.cta {
-  position: relative;
-  display: block;
-  margin-top: 16px;
-  padding: 14px 20px;
-  border-radius: 999px;
-  background: var(--accent-grad);
-  color: #ffffff;
-  font-size: 16px;
+/*
+ * Text, not a button, and that is the whole requirement.
+ *
+ * It was a pill with a mailto behind it, which looks like the obvious thing to
+ * do and takes something away: a link is one tap-and-hold from a menu about
+ * links, and the one thing somebody on this page actually wants is to select
+ * the address and copy it. So it is a string on the page. `user-select` is
+ * spelled out rather than left to the default because the app's own stylesheet
+ * turns selection off everywhere, and these pages are one careless copy away
+ * from inheriting that idea.
+ */
+.address {
+  margin-top: 8px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  text-align: center;
-  text-decoration: none;
+  color: var(--accent);
+  -webkit-user-select: text;
+  user-select: text;
+  /* An address is a single object; wrapping it mid-domain helps nobody. */
+  white-space: nowrap;
+  overflow-x: auto;
 }
 
 /* --- odds and ends --------------------------------------------------------- */
