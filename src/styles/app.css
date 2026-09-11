@@ -1278,7 +1278,13 @@ button {
   align-items: center;
   gap: 9px;
   height: 52px;
-  padding: 0 9px 0 14px;
+  /*
+   * Even, so the word and the switch sit in the middle of the pill. It was
+   * 14 and 9, which put them two and a half pixels to the right of centre --
+   * not enough to name, enough to see next to a tuning button that is
+   * centred properly.
+   */
+  padding: 0 12px;
   border-radius: var(--r-md);
   background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
   border: 1px solid var(--border);
@@ -1373,7 +1379,18 @@ button {
   display: flex;
   flex-direction: column;
   max-height: min(90%, 780px);
-  background: linear-gradient(180deg, var(--bg-1), var(--bg-0) 140px);
+  /*
+   * Flat, where it used to ramp from --bg-1 down to --bg-0 over the first
+   * 140 pixels.
+   *
+   * The header sits inside those 140 and the list starts at about 60, so the
+   * bar was drawn at one colour and the list at another, with the join
+   * landing exactly where the blurred edge begins -- and the blur paints
+   * --bg-0, which made the step a hard line instead of a gradient. A panel
+   * with a differently coloured strip at the top is not what the gradient was
+   * for; one colour is.
+   */
+  background: var(--bg-0);
   border-top-left-radius: var(--r-xl);
   border-top-right-radius: var(--r-xl);
   border-top: 1px solid var(--border-hi);
@@ -3212,10 +3229,17 @@ button {
    *
    * Eleven levels page to face, ten face to rim. Even steps, and each one
    * visible on a phone in daylight, which is the only test that counts.
+   *
+   * **Written as hue and saturation rather than as hex.** They were literals,
+   * which is why the Display color setting used to sit out this theme with
+   * nothing to reach; against the same two variables the rest of the app
+   * uses, the slider tints this one too and the switch drains it, with no
+   * code anywhere that knows Modern is special. The saturations are low
+   * enough that the stock hue lands within a hair of the greys they replaced.
    */
-  --bg-void: #e9e9ee;
-  --bg-0: #e9e9ee;
-  --bg-1: #e9e9ee;
+  --bg-void: hsl(var(--h) calc(13% * var(--s)) 92.4%);
+  --bg-0: hsl(var(--h) calc(13% * var(--s)) 92.4%);
+  --bg-1: hsl(var(--h) calc(13% * var(--s)) 92.4%);
   --bg-glow: transparent;
 
   /*
@@ -3228,13 +3252,25 @@ button {
    * Four levels down off white is enough to give the rim somewhere to go and
    * little enough that nothing reads as grey.
    */
-  --surface: #f0f0f4;
-  --surface-hi: #ffffff;
-  --surface-press: #d1d1d6;
-  --surface-raised-a: #f0f0f4;
-  --surface-raised-b: #f0f0f4;
+  --surface: hsl(var(--h) calc(15% * var(--s)) 94.9%);
+  --surface-hi: hsl(var(--h) calc(20% * var(--s)) 98%);
+  --surface-press: hsl(var(--h) calc(7% * var(--s)) 83.7%);
+  --surface-raised-a: hsl(var(--h) calc(15% * var(--s)) 94.9%);
+  --surface-raised-b: hsl(var(--h) calc(15% * var(--s)) 94.9%);
   /* Below the page as well as below the face -- a well is a hole in both. */
-  --surface-sunk: #e0e0e6;
+  --surface-sunk: hsl(var(--h) calc(11% * var(--s)) 89%);
+
+  /*
+   * The tint behind a control that is not a card: a segmented track, a search
+   * field, a filter chip, the detail bar.
+   *
+   * One token because it is one material, and because the *only* thing that
+   * changes about it between light and dark is how much of it there is. It is
+   * a grey laid over whatever is behind at low alpha, so on a light page it
+   * darkens and on a dark one it lifts, which is the same idea read twice.
+   */
+  --fill: rgba(118, 118, 128, 0.12);
+  --fill-quiet: rgba(118, 118, 128, 0.1);
 
   /*
    * The accent. Blue is what a control that does something is drawn in here,
@@ -3268,9 +3304,15 @@ button {
   /* The tuner screen: a card like any other, not a hole in a chassis. */
   --tick: rgba(60, 60, 67, 0.22);
   --tick-hot: #1c1c1e;
-  --field-top: #ffffff;
-  --field-bg: #ffffff;
-  --field-bottom: #ffffff;
+  /*
+   * The tuner screen is a card like the others, so it is the same colour as
+   * the others. It was white while they came down off white, which left the
+   * one element with the most edge to light unable to show any of it: a white
+   * rim on a white face is a line you cannot see.
+   */
+  --field-top: hsl(var(--h) calc(15% * var(--s)) 94.9%);
+  --field-bg: hsl(var(--h) calc(15% * var(--s)) 94.9%);
+  --field-bottom: hsl(var(--h) calc(15% * var(--s)) 94.9%);
   --field-grid: rgba(60, 60, 67, 0.16);
   --field-label: rgba(60, 60, 67, 0.5);
 
@@ -3586,7 +3628,7 @@ button {
   gap: 0;
   padding: 2px;
   border-radius: 9px;
-  background: rgba(118, 118, 128, 0.12);
+  background: var(--fill);
   box-shadow: none;
 }
 
@@ -3652,7 +3694,7 @@ button {
 :root[data-theme='modern'] .select,
 :root[data-theme='modern'] .text-input {
   border: 0;
-  background: rgba(118, 118, 128, 0.12);
+  background: var(--fill);
   box-shadow: none;
   color: var(--text);
 }
@@ -3671,7 +3713,7 @@ button {
   border: 0;
   border-radius: 999px;
   padding: 0 42px;
-  background: rgba(118, 118, 128, 0.12);
+  background: var(--fill);
   box-shadow: none;
   color: var(--text);
 }
@@ -3687,7 +3729,7 @@ button {
 
 :root[data-theme='modern'] .chip {
   border: 0;
-  background: rgba(118, 118, 128, 0.12);
+  background: var(--fill);
   box-shadow: none;
 }
 
@@ -3709,7 +3751,6 @@ button {
  * bigger the curve the more of it there is to see.
  */
 :root[data-theme='modern'] .sheet {
-  background: var(--bg-0);
   border-top: 0;
   border-top-left-radius: 40px;
   border-top-right-radius: 40px;
@@ -3925,7 +3966,7 @@ button {
 :root[data-theme='modern'] .status,
 :root[data-theme='modern'] .status--off {
   border: 0;
-  background: rgba(118, 118, 128, 0.1);
+  background: var(--fill-quiet);
   box-shadow: inset 0 1px 2px rgba(60, 60, 67, 0.11);
 }
 
@@ -4027,4 +4068,119 @@ button {
   .app {
     height: min(100dvh, 956px);
   }
+}
+
+/*
+ * Modern, at the other end of the scale.
+ *
+ * Not a second theme: the same relationships, read from the dark end. The
+ * page is the floor, a card stands a step off it, a well sits a step further
+ * out, and the lit edge comes from above -- all exactly as in the light, with
+ * every lightness reflected and every step kept. Nothing structural appears
+ * here, because nothing structural changes.
+ *
+ * The two things that are not simply mirrored:
+ *
+ * The **tint** behind a track or a chip doubles rather than inverts. It is a
+ * mid grey at low alpha, and the same alpha that reads clearly when it
+ * darkens a near-white page barely shows when it lifts a near-black one --
+ * so the alpha goes up to keep the contrast the eye actually receives. The
+ * platform does the same thing with its own fill colours.
+ *
+ * The **signal colours** step up a shade. A blue or a green tuned to be read
+ * against white is too dense against black; these are the brighter pair of
+ * each, which is again what the platform ships two of.
+ */
+:root[data-theme='modern'][data-mode='dark'] {
+  --bg-void: hsl(var(--h) calc(11% * var(--s)) 7%);
+  --bg-0: hsl(var(--h) calc(11% * var(--s)) 7%);
+  --bg-1: hsl(var(--h) calc(11% * var(--s)) 7%);
+
+  --surface: hsl(var(--h) calc(10% * var(--s)) 12.5%);
+  --surface-hi: hsl(var(--h) calc(10% * var(--s)) 16%);
+  --surface-press: hsl(var(--h) calc(9% * var(--s)) 21%);
+  --surface-raised-a: hsl(var(--h) calc(10% * var(--s)) 12.5%);
+  --surface-raised-b: hsl(var(--h) calc(10% * var(--s)) 12.5%);
+  --surface-sunk: hsl(var(--h) calc(8% * var(--s)) 24%);
+
+  --fill: rgba(118, 118, 128, 0.28);
+  --fill-quiet: rgba(118, 118, 128, 0.22);
+
+  --accent: #0a84ff;
+  --select-ring: #0a84ff;
+  --select-glow: rgba(10, 132, 255, 0.24);
+
+  --border: rgba(235, 235, 245, 0.16);
+  --border-hi: rgba(235, 235, 245, 0.16);
+  --border-strong: rgba(235, 235, 245, 0.24);
+
+  --text: #ffffff;
+  --text-2: rgba(235, 235, 245, 0.6);
+  --text-3: rgba(235, 235, 245, 0.6);
+  --text-4: rgba(235, 235, 245, 0.4);
+
+  --green: #30d158;
+  --green-wash: rgba(48, 209, 88, 0.14);
+  --green-soft: rgba(48, 209, 88, 0.1);
+  --green-line: rgba(48, 209, 88, 0.45);
+  --green-glow: rgba(48, 209, 88, 0.45);
+  --amber: #ff9f0a;
+  --red: #ff453a;
+
+  --tick: rgba(235, 235, 245, 0.24);
+  --tick-hot: #f2f2f7;
+  --field-top: hsl(var(--h) calc(10% * var(--s)) 12.5%);
+  --field-bg: hsl(var(--h) calc(10% * var(--s)) 12.5%);
+  --field-bottom: hsl(var(--h) calc(10% * var(--s)) 12.5%);
+  --field-grid: rgba(235, 235, 245, 0.14);
+  --field-label: rgba(235, 235, 245, 0.45);
+
+  --elev-3: 0 -1px 20px rgba(0, 0, 0, 0.5);
+  --shadow: var(--elev-3);
+  --scrim: rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+
+  /*
+   * The lit edge, at the weight a dark face can take.
+   *
+   * Same direction, same corner-to-corner run, a third of the strength. On a
+   * near-white face the rim is white against something a few levels below it;
+   * on a near-black one white at full strength would not be an edge catching
+   * the light, it would be a drawn outline -- the exact thing this replaced.
+   */
+  --stroke-mixed: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0.2) 34%,
+    rgba(255, 255, 255, 0.09) 66%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+}
+
+/* The knob is white in the light; in the dark it is the card it slides on. */
+:root[data-theme='modern'][data-mode='dark'] .switch::after,
+:root[data-theme='modern'][data-mode='dark'] .switch:not([data-on='true'])::after {
+  background: #f2f2f7;
+}
+
+/* A white pill on a dark track would be the brightest thing in the panel. */
+:root[data-theme='modern'][data-mode='dark'] .segmented__thumb {
+  background: hsl(var(--h) calc(9% * var(--s)) 27%);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.4),
+    0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * The chosen tuning: the light theme takes the system green down to sit under
+ * black text, so the dark one takes it up to sit over white. Same move, same
+ * reason, opposite direction.
+ */
+:root[data-theme='modern'][data-mode='dark'] .row[data-selected='true'] {
+  background-image: linear-gradient(rgba(48, 209, 88, 0.16), rgba(48, 209, 88, 0.16));
+}
+
+:root[data-theme='modern'][data-mode='dark'] .row[data-selected='true'] .row__name {
+  color: #4fdd7d;
 }

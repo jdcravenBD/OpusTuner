@@ -29,14 +29,8 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
-  /*
-   * Modern is a fixed set of system colors rather than a tint of the app's,
-   * so neither the mode nor the hue is its to follow. Both rows below say so
-   * while it is the chosen style.
-   */
-  const modern = s.themeStyle === 'modern';
   /** Nothing for the hue slider to set: the palette has no color in it. */
-  const colorless = modern || !s.themeColor;
+  const colorless = !s.themeColor;
   /** Names what the reader reached for, and opens the showcase. */
   const [wanted, setWanted] = useState<string | null>(null);
   /** 'idle' before anyone asks, 'busy' while Apple is being asked. */
@@ -200,17 +194,9 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             }
           />
         </Row>
-        {/*
-          Modern is light and only light — see the theme's own note in the
-          stylesheet. The row says so rather than accepting a press and
-          changing nothing, which is the failure this whole section was
-          rebuilt to stop: a control whose effect depends on a setting
-          somewhere else.
-        */}
-        <Row name="Mode" desc={modern ? 'Modern is light only.' : undefined}>
+        <Row name="Mode">
           <Segmented
             value={s.themeMode}
-            disabled={modern}
             options={[
               { value: 'dark' as ThemeMode, label: 'Dark' },
               {
@@ -234,11 +220,10 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         */}
         <Row
           name="Display color"
-          desc={modern ? 'The Modern style brings its own colors.' : undefined}
           stack
           aside={
             <Switch
-              on={s.themeColor && !modern}
+              on={s.themeColor}
               onChange={(v) =>
                 isAppearanceLocked('themeColor', v, s.owned)
                   ? setWanted('Display color')
@@ -246,7 +231,6 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
               }
               label="Display color"
               locked={isAppearanceLocked('themeColor', true, s.owned)}
-              disabled={modern}
             />
           }
         >

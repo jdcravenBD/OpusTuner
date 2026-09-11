@@ -100,21 +100,27 @@ export function useAppearance(
     const root = document.documentElement;
     /*
      * Modern is a palette *and* a structure, so it takes the data-theme slot
-     * outright rather than sitting on top of one of the two palettes. It is
-     * light and only light, which is why the mode is not consulted here: the
-     * setting is kept for when the style changes back, not applied now.
+     * outright rather than sitting on top of one of the two palettes. Its
+     * light and dark are one set of relationships at two ends of the scale,
+     * not two themes, so the mode rides alongside on its own attribute and
+     * only the colour block reads it — every structural rule in the theme
+     * goes on matching `[data-theme='modern']` without knowing which it is.
      */
     root.dataset.theme = style === 'modern' ? 'modern' : mode;
+    if (style === 'modern') root.dataset.mode = mode;
+    else delete root.dataset.mode;
     /*
      * Draining the colour is a flag rather than a palette of its own, because
      * that is what it is: the same theme with `--s` at zero. A second set of
      * lightness values that happened to match would be two things to keep in
      * step for no gain — the numbers are the same, the colour is not.
      *
-     * Modern is exempt because it has no hue to drain: every colour in it is
-     * a literal, so the flag would be a no-op that read as if it did something.
+     * Modern is no longer exempt. Its neutrals were literals, which is why it
+     * was: there was nothing in the palette for a hue to reach. They are
+     * written against the same two variables as everything else now, so the
+     * flag does to it exactly what it does to the rest.
      */
-    if (!colored && style !== 'modern') root.dataset.plain = 'true';
+    if (!colored) root.dataset.plain = 'true';
     else delete root.dataset.plain;
 
     // Tints the browser's own chrome to match, so the app does not sit in a
