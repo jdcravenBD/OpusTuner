@@ -35,7 +35,7 @@ export const PRICE = '$1.99';
 export const FREE_CUSTOM_TUNINGS = 1;
 
 /** Themes that need the tier. Plain, the colorless one, stays free. */
-export const PAID_THEMES = ['dark', 'light'] as const;
+export const PAID_THEMES = ['dark', 'light', 'modern'] as const;
 
 /**
  * The things this is *not*, which for a paid app is half of what anyone wants

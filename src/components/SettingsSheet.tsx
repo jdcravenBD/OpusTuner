@@ -28,8 +28,12 @@ interface Props {
 
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
-  /* Both colorless themes leave the hue pickers with nothing to set. */
-  const colorless = s.theme === 'plain' || s.theme === 'basic';
+  /*
+   * Themes with no hue of their own leave the picker nothing to set. The two
+   * colorless ones drain it; Modern never had one, being a fixed set of
+   * system colors rather than a tint of the app's.
+   */
+  const colorless = s.theme === 'plain' || s.theme === 'basic' || s.theme === 'modern';
   /** Names what the reader reached for, and opens the showcase. */
   const [wanted, setWanted] = useState<string | null>(null);
   /** 'idle' before anyone asks, 'busy' while Apple is being asked. */
@@ -175,7 +179,12 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- visual */}
       <Section label="Visual">
-        <Row name="Theme">
+        {/*
+          On its own line since the fifth theme arrived. Five labels and a
+          word beside them do not fit across a phone, and what gives first is
+          the label: it was rendering as "Them" with the e cut off.
+        */}
+        <Row name="Theme" stack>
           <Segmented
             value={s.theme}
             options={[
@@ -187,6 +196,11 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
                 value: 'light' as ThemeMode,
                 label: 'Light',
                 locked: isThemeLocked('light', s.owned),
+              },
+              {
+                value: 'modern' as ThemeMode,
+                label: 'Modern',
+                locked: isThemeLocked('modern', s.owned),
               },
             ]}
             onChange={(v) => (isThemeLocked(v, s.owned) ? setWanted('Color themes') : set('theme', v))}
@@ -376,7 +390,15 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="sheet__section">
       <div className="sheet__label">{label}</div>
-      {children}
+      {/*
+        The rows are wrapped because in a grouped list the group is a real
+        object — a card the rows are lines in — and it needs an element to be.
+        Deliberately its own class rather than `.stack`, which carries a flex
+        gap that would land on top of the margin the rows already use and space
+        every other theme differently. This one is styled by Modern and by
+        nothing else.
+      */}
+      <div className="sheet__group">{children}</div>
     </div>
   );
 }

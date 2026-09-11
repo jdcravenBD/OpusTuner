@@ -24,7 +24,7 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
  *
  * Which id is which is the confusing part, and deliberately so — see THEMES.
  */
-export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light';
+export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light' | 'modern';
 
 /*
  * Every theme on offer, in the order the picker shows them.
@@ -37,7 +37,7 @@ export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light';
  * using one. The labels live in SettingsSheet and the CSS flag is
  * `data-bare`, which is named for what it does instead.
  */
-export const THEMES: ThemeMode[] = ['plain', 'basic', 'dark', 'light'];
+export const THEMES: ThemeMode[] = ['plain', 'basic', 'dark', 'light', 'modern'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /**

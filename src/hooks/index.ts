@@ -110,6 +110,12 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
      * store carries the same note.
      */
     const colorless = mode === 'plain' || mode === 'basic';
+    /*
+     * `modern` is the one theme that is a palette *and* a structure, so it is
+     * carried by data-theme alone rather than by a palette plus a flag. It
+     * also picks its own light or dark from the device, in CSS, which is why
+     * nothing here has to know which one it ended up in.
+     */
     root.dataset.theme = colorless ? 'dark' : mode;
     if (colorless) root.dataset.plain = 'true';
     else delete root.dataset.plain;

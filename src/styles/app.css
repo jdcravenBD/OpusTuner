@@ -2981,6 +2981,588 @@ button {
   border-color: var(--green-line);
 }
 
+/* ---------------------------------------------------------------- modern -- */
+
+/*
+ * A theme in the idiom of the platform's own settings apps.
+ *
+ * The rest of this file draws a machined instrument: every face moulded, every
+ * edge lit, everything raised off a chassis. This is the opposite argument.
+ * Depth is replaced by grouping, and the only things left doing work are a
+ * white card, a hairline, and a lot of space. Nothing here is raised, so
+ * nothing here needs a shadow.
+ *
+ * The whole theme is one attribute, `data-theme="modern"`, rather than the
+ * palette-plus-flag pair the colourless themes use. Those two are the dark
+ * palette wearing different amounts of moulding; this one is its own set of
+ * colours and its own structure, and splitting it would be pretending
+ * otherwise.
+ *
+ * It follows the device between light and dark on its own, which is the
+ * convention it is built in: there is no setting for it because the platform
+ * already has one. Every other theme in this app is a fixed choice.
+ *
+ * **No Apple assets are used or required.** The type is the same system stack
+ * the rest of the app already asks for, which resolves to the platform's own
+ * UI face on each; every glyph is the app's own; every colour below is a
+ * literal written here. Nothing is bundled that is not ours to bundle.
+ */
+
+:root[data-theme='modern'] {
+  /* Grouped background, and the cards that sit on it. */
+  --bg-void: #f2f2f7;
+  --bg-0: #f2f2f7;
+  --bg-1: #f2f2f7;
+  --bg-glow: transparent;
+
+  --surface: #ffffff;
+  --surface-hi: #ffffff;
+  --surface-press: #d1d1d6;
+  --surface-raised-a: #ffffff;
+  --surface-raised-b: #ffffff;
+  --surface-sunk: #e9e9ea;
+
+  /*
+   * The accent. Blue is what a control that does something is drawn in here,
+   * and it is deliberately not the green: green already means in tune, and a
+   * tuner that used one colour for "this is a button" and "you have arrived"
+   * would be throwing away the one signal it exists to give.
+   */
+  --accent: #007aff;
+
+  --select-ring: #007aff;
+  --select-glow: rgba(0, 122, 255, 0.18);
+
+  /* Hairlines, at the weight the platform draws them. */
+  --border: rgba(60, 60, 67, 0.29);
+  --border-hi: rgba(60, 60, 67, 0.29);
+  --border-strong: rgba(60, 60, 67, 0.36);
+
+  --text: #000000;
+  --text-2: rgba(60, 60, 67, 0.6);
+  --text-3: rgba(60, 60, 67, 0.6);
+  --text-4: rgba(60, 60, 67, 0.45);
+
+  --green: #34c759;
+  --green-wash: rgba(52, 199, 89, 0.14);
+  --green-soft: rgba(52, 199, 89, 0.1);
+  --green-line: rgba(52, 199, 89, 0.45);
+  --green-glow: rgba(52, 199, 89, 0.45);
+  --amber: #ff9500;
+  --red: #ff3b30;
+
+  /* The tuner screen: a card like any other, not a hole in a chassis. */
+  --tick: rgba(60, 60, 67, 0.22);
+  --tick-hot: #1c1c1e;
+  --field-top: #ffffff;
+  --field-bg: #ffffff;
+  --field-bottom: #ffffff;
+  --field-grid: rgba(60, 60, 67, 0.16);
+  --field-label: rgba(60, 60, 67, 0.5);
+
+  /* Nothing is raised, so nothing casts. */
+  --hi: none;
+  --hi-strong: none;
+  --sunk: none;
+  --elev-1: none;
+  --elev-2: none;
+  --elev-3: 0 -1px 20px rgba(0, 0, 0, 0.14);
+  --shadow: var(--elev-3);
+  --noise-opacity: 0;
+  --scrim: rgba(0, 0, 0, 0.28);
+
+  /* Corner radii, at the sizes a grouped list uses. */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 10px;
+  --r-xl: 13px;
+}
+
+/*
+ * Dark follows the device rather than a setting.
+ *
+ * Grouped dark is not simply the light one inverted: the page goes to true
+ * black and the cards come *up* to near-black, which is the reverse of the
+ * light arrangement, where the page is grey and the cards are white. Reading
+ * it as an inversion is how you end up with grey cards on a white page.
+ */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='modern'] {
+    --bg-void: #000000;
+    --bg-0: #000000;
+    --bg-1: #000000;
+
+    --surface: #1c1c1e;
+    --surface-hi: #2c2c2e;
+    --surface-press: #3a3a3c;
+    --surface-raised-a: #1c1c1e;
+    --surface-raised-b: #1c1c1e;
+    --surface-sunk: #39393d;
+
+    --accent: #0a84ff;
+    --select-ring: #0a84ff;
+    --select-glow: rgba(10, 132, 255, 0.22);
+
+    --border: rgba(84, 84, 88, 0.65);
+    --border-hi: rgba(84, 84, 88, 0.65);
+    --border-strong: rgba(84, 84, 88, 0.8);
+
+    --text: #ffffff;
+    --text-2: rgba(235, 235, 245, 0.6);
+    --text-3: rgba(235, 235, 245, 0.6);
+    --text-4: rgba(235, 235, 245, 0.4);
+
+    --green: #30d158;
+    --green-wash: rgba(48, 209, 88, 0.18);
+    --green-soft: rgba(48, 209, 88, 0.12);
+    --green-line: rgba(48, 209, 88, 0.5);
+    --green-glow: rgba(48, 209, 88, 0.5);
+    --amber: #ff9f0a;
+    --red: #ff453a;
+
+    --tick: rgba(235, 235, 245, 0.22);
+    --tick-hot: #ffffff;
+    --field-top: #1c1c1e;
+    --field-bg: #1c1c1e;
+    --field-bottom: #1c1c1e;
+    --field-grid: rgba(235, 235, 245, 0.14);
+    --field-label: rgba(235, 235, 245, 0.45);
+
+    --elev-3: 0 -1px 20px rgba(0, 0, 0, 0.5);
+    --scrim: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* --- the grouped list ---------------------------------------------------- */
+
+/*
+ * `.sheet__group` is the card; `.setting` is a row inside it.
+ *
+ * Everywhere else in this app a settings row is its own moulded box with a gap
+ * to the next one. Here the boxes join into one card and the gaps close, which
+ * is the entire visual idea of a grouped list: the group is the object, and a
+ * row is a line in it.
+ */
+:root[data-theme='modern'] .sheet__group,
+:root[data-theme='modern'] .stack {
+  gap: 0;
+  background: var(--surface);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+:root[data-theme='modern'] .setting,
+:root[data-theme='modern'] .sheet__group > .btn {
+  gap: 12px;
+  padding: 11px 16px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/*
+ * The separator stops short of the left edge and runs to the right one.
+ *
+ * That asymmetry is not a flourish: it lines the rule up with the text above
+ * and below it, so the eye reads a column of labels rather than a stack of
+ * boxes. A rule running the full width would draw the boxes back on.
+ *
+ * Done with a pseudo-element rather than a border so the inset does not also
+ * move the row: a left margin on the row itself would step every other line in
+ * by sixteen pixels.
+ */
+:root[data-theme='modern'] .setting + .setting,
+:root[data-theme='modern'] .setting + .btn,
+:root[data-theme='modern'] .btn + .setting {
+  position: relative;
+  margin-top: 0;
+}
+
+:root[data-theme='modern'] .setting + .setting::before,
+:root[data-theme='modern'] .setting + .btn::before,
+:root[data-theme='modern'] .btn + .setting::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--border);
+}
+
+:root[data-theme='modern'] .setting__name {
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+:root[data-theme='modern'] .setting__desc {
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-2);
+}
+
+/* The label column gives, so a three-word control is never squeezed to two. */
+:root[data-theme='modern'] .setting__main {
+  min-width: 0;
+}
+
+/*
+ * The list is inset from the edges of the screen, which is where the name
+ * "inset grouped" comes from and is most of why it reads as a list of cards
+ * rather than as a full-bleed table.
+ */
+:root[data-theme='modern'] .sheet__body {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/*
+ * Section headings: sentence case, small, grey, and outdented to sit over the
+ * card rather than inside it. The rest of the app sets these as tracked-out
+ * monospace capitals, which is instrument lettering and would read as a label
+ * engraved on a panel.
+ */
+:root[data-theme='modern'] .sheet__label {
+  padding: 0 16px 7px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--text-2);
+}
+
+/*
+ * No rule after the heading.
+ *
+ * The base theme runs a hairline from the label to the edge, which is a panel
+ * being engraved. Here the card underneath is already the boundary, and a
+ * second line above it would be describing the same edge twice.
+ */
+:root[data-theme='modern'] .sheet__label::after {
+  display: none;
+}
+
+:root[data-theme='modern'] .sheet__section {
+  margin-top: 28px;
+}
+
+:root[data-theme='modern'] .sheet__section:first-child {
+  margin-top: 18px;
+}
+
+/* --- tunings ------------------------------------------------------------- */
+
+/* The same card, holding the same kind of row. */
+:root[data-theme='modern'] .row {
+  padding: 10px 16px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .row + .row {
+  border-top: 0.5px solid var(--border);
+}
+
+/*
+ * Selected is a tick and a tint, not a ring.
+ *
+ * A glowing outline is how the instrument themes mark a choice; a list marks
+ * it the way a list does. The wash stays because it survives being scrolled
+ * past at speed, which a single tick at the right-hand edge does not.
+ */
+:root[data-theme='modern'] .row[data-selected='true'] {
+  background-image: linear-gradient(var(--green-wash), var(--green-wash));
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .row__name {
+  font-size: 17px;
+  font-weight: 400;
+}
+
+/*
+ * The second line of a row is a subtitle, not a readout.
+ *
+ * It is set in the app's monospace elsewhere, tracked out, which is the small
+ * print stencilled on an instrument. The tuner's own numbers stay monospace
+ * wherever they are actually numbers being read off a display — those are
+ * tabular so the digits cannot jitter, and that reason does not stop applying
+ * because the theme changed.
+ */
+:root[data-theme='modern'] .row__meta,
+:root[data-theme='modern'] .tuning-btn__instrument {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+/*
+ * The switch, at the platform's proportions: 51 by 31, with a knob that fills
+ * it to a hair. The app's own is smaller and sits in a well; this one sits on
+ * the surface and the only shadow in it is under the knob.
+ */
+:root[data-theme='modern'] .switch {
+  width: 51px;
+  height: 31px;
+  background: var(--surface-sunk);
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .switch::after {
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+}
+
+:root[data-theme='modern'] .switch[data-on='true'] {
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .switch[data-on='true']::after {
+  transform: translateX(20px);
+}
+
+/* The knob is white in both schemes here, unlike the app's dark theme. */
+:root[data-theme='modern'] .switch:not([data-on='true'])::after {
+  background: #ffffff;
+}
+
+/*
+ * Segmented control: a tinted track with a white pill on the chosen one. The
+ * app's version sinks the track into the surface and lights the selection;
+ * this one has no depth to work with, so the pill is the only cue and has to
+ * carry a shadow of its own.
+ */
+:root[data-theme='modern'] .segmented {
+  gap: 0;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgba(118, 118, 128, 0.12);
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .segmented button {
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+:root[data-theme='modern'] .segmented button[data-on='true'] {
+  background: var(--surface);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='modern'] .segmented {
+    background: rgba(118, 118, 128, 0.24);
+  }
+
+  :root[data-theme='modern'] .segmented button[data-on='true'] {
+    background: #636366;
+  }
+}
+
+/*
+ * Buttons are text in the accent colour, not chrome.
+ *
+ * A raised button says "press me"; in this idiom the blue says it, and the
+ * chrome is what you take away. The one exception is the primary action, which
+ * keeps a filled shape because a screen with two blue words on it and no
+ * hierarchy is worse than a button.
+ */
+:root[data-theme='modern'] .btn {
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: none;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+:root[data-theme='modern'] .btn--primary {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+:root[data-theme='modern'] .btn--danger {
+  color: var(--red);
+}
+
+:root[data-theme='modern'] .btn:active {
+  background: var(--surface-press);
+}
+
+:root[data-theme='modern'] .stepper,
+:root[data-theme='modern'] .select,
+:root[data-theme='modern'] .text-input,
+:root[data-theme='modern'] .search {
+  border: 0;
+  background: rgba(118, 118, 128, 0.12);
+  box-shadow: none;
+  color: var(--text);
+}
+
+:root[data-theme='modern'] .chip {
+  border: 0;
+  background: rgba(118, 118, 128, 0.12);
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .chip[data-on='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* --- the sheets ---------------------------------------------------------- */
+
+:root[data-theme='modern'] .sheet {
+  background: var(--bg-0);
+  border-top: 0;
+  box-shadow: var(--elev-3);
+}
+
+:root[data-theme='modern'] .sheet__title {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+:root[data-theme='modern'] .sheet__grip {
+  background: rgba(60, 60, 67, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='modern'] .sheet__grip {
+    background: rgba(235, 235, 245, 0.3);
+  }
+}
+
+/* --- the chassis --------------------------------------------------------- */
+
+/*
+ * The tuner screen stops being a recess.
+ *
+ * Everything that made it one — the inset shadow raking in from the top, the
+ * lit ring outside the dark border, the gradient down the face — is depth, and
+ * there is none of that here. What is left is a card with a hairline, which is
+ * how this idiom draws a region: by enclosing it, not by sinking it.
+ */
+:root[data-theme='modern'] .field {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .icon-btn,
+:root[data-theme='modern'] .tuning-btn,
+:root[data-theme='modern'] .toggle {
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .icon-btn {
+  color: var(--accent);
+}
+
+:root[data-theme='modern'] .icon-btn:active,
+:root[data-theme='modern'] .tuning-btn:active,
+:root[data-theme='modern'] .toggle:active {
+  background: var(--surface-press);
+}
+
+/*
+ * The strings, as a row of plain keys.
+ *
+ * Selected is filled in the accent rather than ringed and lifted, and tuned
+ * stays green, because those two have to remain tellable apart at a glance and
+ * the shapes are identical.
+ */
+:root[data-theme='modern'] .string {
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: none;
+  font-family: var(--font-ui);
+  font-weight: 500;
+}
+
+:root[data-theme='modern'] .string[data-active='true'] {
+  background: var(--accent);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: none;
+  transform: scale(1.08);
+}
+
+:root[data-theme='modern'] .string[data-tuned='true'] {
+  background: var(--green-wash);
+  border-color: transparent;
+}
+
+:root[data-theme='modern'] .string[data-tuned='true'][data-active='true'] {
+  background: var(--green);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .toggle[data-on='true'] {
+  color: var(--green);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Instrument lettering has no place here; the small print is just small. */
+:root[data-theme='modern'] .status,
+:root[data-theme='modern'] .status--off {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:root[data-theme='modern'] .verdict {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-theme='modern'] .wordmark {
+  color: var(--text);
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
