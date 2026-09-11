@@ -3298,6 +3298,80 @@ button {
   }
 }
 
+/* ------------------------------------------------------------------ promo -- */
+
+/*
+ * The only advertisement in the app.
+ *
+ * Orange, which is the one colour here that is not already spoken for: green
+ * means in tune, blue means a control you can press, and amber is the needle.
+ * Borrowed rather than taken -- the needle is a small moving mark and this is
+ * a band of colour, and nobody reads them as the same thing.
+ *
+ * One row tall, and that is the design. It is seen every time Settings is
+ * opened, possibly for years, and the version of this with a headline and a
+ * picture is the version people stop seeing on the second day. It is also
+ * gone for good the moment it is taken, which is the only promise a thing
+ * like this can make that is worth anything.
+ */
+.promo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 2px 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  /* A literal, not a token: it has to read as this colour in all five
+     appearances, and the palette drains its hues on two of them. */
+  background: linear-gradient(180deg, #ffa63d 0%, #f2860b 100%);
+  color: #3a1d00;
+  text-align: left;
+  box-shadow:
+    var(--hi),
+    0 6px 18px -10px rgba(242, 134, 11, 0.9);
+  transition: transform 110ms var(--ease);
+}
+
+.promo:active {
+  transform: scale(0.99);
+}
+
+.promo__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.promo__name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #2b1500;
+}
+
+.promo__desc {
+  font-size: 12.5px;
+  line-height: 1.35;
+  /* Dark on orange rather than white: white on this fill is the one pairing
+     that fails to read in sunlight, which is where a tuner gets used. */
+  color: rgba(60, 28, 0, 0.78);
+}
+
+.promo svg {
+  flex: 0 0 auto;
+  color: rgba(60, 28, 0, 0.55);
+}
+
+/* Rounder, like everything else in that style, and wearing the same lit edge. */
+:root[data-theme='modern'] .promo {
+  border-radius: 16px;
+  box-shadow: 0 6px 18px -10px rgba(242, 134, 11, 0.8);
+}
+
 /* ------------------------------------------------------------ screenshots -- */
 
 /*
@@ -4014,6 +4088,7 @@ button {
 :root[data-theme='modern'] .field::after,
 :root[data-theme='modern'] .row::after,
 :root[data-theme='modern'] .chip::after,
+:root[data-theme='modern'] .promo::after,
 :root[data-theme='modern'] .search::after,
 :root[data-theme='modern'] .sheet__group::after,
 /*

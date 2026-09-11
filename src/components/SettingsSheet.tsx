@@ -4,9 +4,9 @@ import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
 import { ScreensSection } from './ScreensSection';
-import { CheckIcon, LockIcon } from './Icons';
+import { CheckIcon, ChevronRightIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
-import { TIER_NAME, isAppearanceLocked } from '../state/unlock';
+import { PRICE, TIER_NAME, isAppearanceLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
   settingsStore,
@@ -65,6 +65,28 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
   return (
     <Sheet open={open} title="Settings" onClose={onClose}>
+      {/*
+        * The one advertisement in the app, and it goes the moment it is taken.
+        *
+        * At the top because that is where it is seen and nowhere else it could
+        * go is honest -- buried at the bottom it would be a thing pretending
+        * not to be an advertisement. One row tall because it is going to be
+        * seen every time Settings is opened, possibly for years, and the
+        * version of this that is a banner with a headline is the version
+        * people learn to scroll past on the second day.
+        */}
+      {!s.owned && (
+        <button className="promo" onClick={() => setWanted(TIER_NAME)}>
+          <span className="promo__text">
+            <span className="promo__name">Unlock the {TIER_NAME}</span>
+            <span className="promo__desc">
+              Every tuning, every style. {PRICE} once, forever.
+            </span>
+          </span>
+          <ChevronRightIcon size={18} />
+        </button>
+      )}
+
       {/* ------------------------------------------------------------ pitch */}
       <Section label="Pitch">
         <Row
