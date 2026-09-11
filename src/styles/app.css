@@ -2998,9 +2998,14 @@ button {
  * colours and its own structure, and splitting it would be pretending
  * otherwise.
  *
- * It follows the device between light and dark on its own, which is the
- * convention it is built in: there is no setting for it because the platform
- * already has one. Every other theme in this app is a fixed choice.
+ * It is light, and only light. It followed the device's own light/dark setting
+ * at first, on the reasoning that the idiom it borrows from has both and the
+ * platform already owns that switch — but the app's theme picker is a list of
+ * fixed choices, and one entry in it that silently means something else
+ * depending on a setting elsewhere is a worse idea than a second entry would
+ * be. Picking Modern on a phone in dark mode gave you a dark theme, which is
+ * not what the name or the swatch promised. A dark counterpart can be its own
+ * entry later if it is wanted.
  *
  * **No Apple assets are used or required.** The type is the same system stack
  * the rest of the app already asks for, which resolves to the platform's own
@@ -3071,67 +3076,23 @@ button {
   --noise-opacity: 0;
   --scrim: rgba(0, 0, 0, 0.28);
 
+  /*
+   * Light, whatever the device is set to.
+   *
+   * This is what stops the *native* parts going dark underneath: a select's
+   * dropdown, a scrollbar, a focus ring and the caret are drawn by the
+   * platform, and they follow `color-scheme` rather than anything painted
+   * here. Without it the page is light and the controls opening over it are
+   * not, and the app has no way to colour them itself.
+   */
+  color-scheme: light;
+
   /* Corner radii, at the sizes a grouped list uses. */
   --r-xs: 6px;
   --r-sm: 8px;
   --r-md: 10px;
   --r-lg: 10px;
   --r-xl: 13px;
-}
-
-/*
- * Dark follows the device rather than a setting.
- *
- * Grouped dark is not simply the light one inverted: the page goes to true
- * black and the cards come *up* to near-black, which is the reverse of the
- * light arrangement, where the page is grey and the cards are white. Reading
- * it as an inversion is how you end up with grey cards on a white page.
- */
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='modern'] {
-    --bg-void: #000000;
-    --bg-0: #000000;
-    --bg-1: #000000;
-
-    --surface: #1c1c1e;
-    --surface-hi: #2c2c2e;
-    --surface-press: #3a3a3c;
-    --surface-raised-a: #1c1c1e;
-    --surface-raised-b: #1c1c1e;
-    --surface-sunk: #39393d;
-
-    --accent: #0a84ff;
-    --select-ring: #0a84ff;
-    --select-glow: rgba(10, 132, 255, 0.22);
-
-    --border: rgba(84, 84, 88, 0.65);
-    --border-hi: rgba(84, 84, 88, 0.65);
-    --border-strong: rgba(84, 84, 88, 0.8);
-
-    --text: #ffffff;
-    --text-2: rgba(235, 235, 245, 0.6);
-    --text-3: rgba(235, 235, 245, 0.6);
-    --text-4: rgba(235, 235, 245, 0.4);
-
-    --green: #30d158;
-    --green-wash: rgba(48, 209, 88, 0.18);
-    --green-soft: rgba(48, 209, 88, 0.12);
-    --green-line: rgba(48, 209, 88, 0.5);
-    --green-glow: rgba(48, 209, 88, 0.5);
-    --amber: #ff9f0a;
-    --red: #ff453a;
-
-    --tick: rgba(235, 235, 245, 0.22);
-    --tick-hot: #ffffff;
-    --field-top: #1c1c1e;
-    --field-bg: #1c1c1e;
-    --field-bottom: #1c1c1e;
-    --field-grid: rgba(235, 235, 245, 0.14);
-    --field-label: rgba(235, 235, 245, 0.45);
-
-    --elev-3: 0 -1px 20px rgba(0, 0, 0, 0.5);
-    --scrim: rgba(0, 0, 0, 0.5);
-  }
 }
 
 /* --- the grouped list ---------------------------------------------------- */
@@ -3375,16 +3336,6 @@ button {
   color: var(--text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='modern'] .segmented {
-    background: rgba(118, 118, 128, 0.24);
-  }
-
-  :root[data-theme='modern'] .segmented button[data-on='true'] {
-    background: #636366;
-  }
-}
-
 /*
  * Buttons are text in the accent colour, not chrome.
  *
@@ -3458,12 +3409,6 @@ button {
 
 :root[data-theme='modern'] .sheet__grip {
   background: rgba(60, 60, 67, 0.3);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='modern'] .sheet__grip {
-    background: rgba(235, 235, 245, 0.3);
-  }
 }
 
 /* --- the chassis --------------------------------------------------------- */
