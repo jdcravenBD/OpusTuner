@@ -3370,6 +3370,24 @@ button {
   color: var(--amber);
 }
 
+/*
+ * Dimmer on a dark screen, and only there.
+ *
+ * The amber is tuned for the needle: a small moving mark that has to be found
+ * instantly against near-black. A whole line of bold text at that brightness
+ * is the loudest thing in the panel, which is the opposite of what this row
+ * is meant to be. Mixed toward the face it sits on rather than given a second
+ * literal, so it stays the same hue and follows the palette -- including into
+ * the appearances that drain it.
+ *
+ * The light palettes need none of this: their amber is already a dark ink,
+ * chosen to be read against white.
+ */
+:root[data-theme='dark'] .promo__name,
+:root[data-theme='modern'][data-mode='dark'] .promo__name {
+  color: color-mix(in srgb, var(--amber) 68%, var(--surface));
+}
+
 .promo__desc {
   font-size: 12.5px;
   line-height: 1.35;
