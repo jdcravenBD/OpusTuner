@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckIcon, CloseIcon } from './Icons';
+import { CheckIcon, ChevronLeftIcon } from './Icons';
 import { useEscape } from '../hooks';
+import { useSettings } from '../state/store';
+import { SHOWCASE } from '../state/showcase';
 import {
   buyFullSet,
   getStore,
@@ -9,14 +11,19 @@ import {
   restoreFullSet,
   type Outcome,
 } from '../state/purchases';
-import { PRICE, TIER_ASSURANCES, TIER_FEATURES, TIER_NAME } from '../state/unlock';
+import { PRICE, TIER_HIGHLIGHTS, TIER_NAME, TIER_STATEMENT } from '../state/unlock';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   /**
-   * What the reader reached for, if anything. Named at the top so the screen
-   * answers the question they actually asked before it says anything else.
+   * What the reader reached for, if anything.
+   *
+   * Taken by this component and not used by it any more. The screen used to
+   * open with a line naming the control that was pressed, which was answering
+   * a question the reader had already answered for themselves — they know
+   * what they pressed. The three lines on the card cover every one of the ten
+   * ways in, which is the same job done once instead of ten times.
    */
   wanted?: string | null;
 }
@@ -27,13 +34,20 @@ const EXIT_MS = 200;
 /**
  * The showcase, and the only place the app ever asks for money.
  *
+ * **Always in the Modern style**, whichever style the app is in, and in the
+ * light or dark the reader chose. It is the one screen that is not the tuner:
+ * it is a page about a product, the platform has a well-worn look for pages
+ * about products, and borrowing it here costs nothing the app needs. The
+ * palette comes from the same token block the Modern theme uses -- see
+ * `.purchase` in the stylesheet, which is named alongside
+ * `:root[data-theme='modern']` so there is exactly one set of numbers.
+ *
  * A full screen rather than a panel, because a panel that covers most of the
- * app while leaving a strip of it visible reads as an interruption to get past.
- * This is the one thing on screen, it closes with a single bare glyph in the
- * corner, and everything on it is either what you get or what you are not
- * being signed up for.
+ * app while leaving a strip of it visible reads as an interruption to get
+ * past.
  */
-export function PurchaseScreen({ open, onClose, wanted }: Props) {
+export function PurchaseScreen({ open, onClose }: Props) {
+  const { themeMode } = useSettings();
   const [closing, setClosing] = useState(false);
   /** What is happening, so the line under the button can say it. */
   const [busy, setBusy] = useState<'buy' | 'restore' | null>(null);
@@ -99,130 +113,172 @@ export function PurchaseScreen({ open, onClose, wanted }: Props) {
   const host = document.getElementById('app') ?? document.body;
 
   return createPortal(
-    <div className="purchase" data-closing={closing} role="dialog" aria-modal="true" aria-label={TIER_NAME}>
-      {/* Bare glyph, no bounds — the screen is the thing, not the chrome. */}
-      <button className="purchase__close" onClick={onClose} aria-label="Close">
-        <CloseIcon size={24} />
+    <div
+      className="purchase"
+      /*
+       * The mode, and only the mode. The style is not read: this screen is
+       * Modern in both, so asking would be asking a question whose answer is
+       * thrown away.
+       */
+      data-mode={themeMode}
+      data-closing={closing}
+      role="dialog"
+      aria-modal="true"
+      aria-label={TIER_NAME}
+    >
+      <Gallery />
+
+      {/* Over the gallery, in the corner a back button lives in. */}
+      <button className="purchase__back" onClick={onClose} aria-label="Back">
+        <ChevronLeftIcon size={22} />
       </button>
 
-      <div className="purchase__scroll">
-        <div className="purchase__inner">
-          <header className="purchase__head">
-            <div className="purchase__eyebrow">One-time purchase</div>
-            <h1 className="purchase__title">{TIER_NAME}</h1>
-            <p className="purchase__lede">
-              {wanted ? (
-                <>
-                  <b>{wanted}</b>, and everything else the tuner can do.
-                </>
-              ) : (
-                <>Everything the tuner can do, unlocked for good.</>
-              )}
-            </p>
+      <div className="purchase__body">
+        {/*
+          * Two sentences, and the second is the one that matters.
+          *
+          * Every screen shaped like this one says some version of "cancel
+          * anytime", because every screen shaped like this one is selling a
+          * subscription. The reader arrives braced for that. Saying the
+          * opposite plainly, in the largest type on the page, answers it
+          * before the price is read rather than after.
+          */}
+        <p className="purchase__statement">
+          {TIER_STATEMENT[0]}
+          <br />
+          {TIER_STATEMENT[1]}
+        </p>
+
+        <section className="purchase__card">
+          <header className="purchase__card-head">
+            <h1 className="purchase__card-name">{TIER_NAME}</h1>
+            <div className="purchase__card-price">
+              {storePrice ?? PRICE}
+              {/* Quieter than the number, because it is the reassuring half
+                  rather than the surprising one. */}
+              <span className="purchase__lifetime">Lifetime</span>
+            </div>
           </header>
 
-          {/*
-            * The contents of the set, above the price rather than below it.
-            *
-            * A strip of screenshots stood here, answering a question nobody
-            * asks about a tuner. What a thing costs is only worth reading
-            * once you know what it buys, so the list came up and the pictures
-            * went.
-            */}
-          <section className="purchase__block purchase__block--gets">
-            <h2 className="purchase__h2">What you get</h2>
-            <ul className="purchase__gets">
-              {TIER_FEATURES.map((f) => (
-                <li className="purchase__get" key={f.title}>
-                  <div className="purchase__get-name">{f.title}</div>
-                  <div className="purchase__get-desc">{f.detail}</div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/*
-            * The price and the word "once" are the same size on purpose. The
-            * number is not the surprising part — that it is the only one ever
-            * is.
-            */}
-          <div className="purchase__price">
-            <span className="purchase__amount">{storePrice ?? PRICE}</span>
-            <span className="purchase__once">once</span>
-          </div>
+          <ul className="purchase__perks">
+            {TIER_HIGHLIGHTS.map((line) => (
+              <li className="purchase__perk" key={line}>
+                <CheckIcon size={13} />
+                {line}
+              </li>
+            ))}
+          </ul>
 
           <button
             className="purchase__buy"
             onClick={() => void run('buy')}
             disabled={busy !== null}
           >
-            {busy === 'buy' ? 'Contacting the App Store' + ELLIPSIS : `Unlock ${TIER_NAME}`}
+            {busy === 'buy' ? 'Contacting the App Store' + ELLIPSIS : `Purchase ${TIER_NAME}`}
           </button>
+        </section>
 
-          <div
-            className="purchase__status"
-            data-shown={result !== null}
-            data-good={result?.outcome === 'owned'}
-            role="status"
-          >
-            {statusLine(result)}
-          </div>
-
-          {/*
-            * The way back in for someone who has already paid: a new phone, a
-            * reinstall, a restored backup. Apple requires this for a
-            * non-consumable purchase and rejects without it (review guideline
-            * 3.1.1), and it has to be reachable without paying a second time.
-            */}
-          <button
-            className="purchase__restore"
-            onClick={() => void run('restore')}
-            disabled={busy !== null}
-          >
-            {busy === 'restore' ? 'Checking' + ELLIPSIS : 'Already bought it? Restore'}
-          </button>
-
-          {/*
-            * And what the payment does not come with, directly under the
-            * button that would take it — which is where the doubt is.
-            */}
-          <section className="purchase__block purchase__block--nots">
-            <h2 className="purchase__h2">What you don&rsquo;t</h2>
-            <ul className="purchase__nots">
-              {TIER_ASSURANCES.map((a) => (
-                <li className="purchase__not" key={a.title}>
-                  <div className="purchase__not-name">
-                    {a.title}
-                    {/* A tick, because every one of these is a thing you are
-                        being spared rather than a thing you are missing. */}
-                    <CheckIcon size={13} />
-                  </div>
-                  <div className="purchase__not-desc">{a.detail}</div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <p className="purchase__coda">
-            A tuner is a tool, not a service. It should not arrive with a monthly bill.
-          </p>
+        <div
+          className="purchase__status"
+          data-shown={result !== null}
+          data-good={result?.outcome === 'owned'}
+          role="status"
+        >
+          {statusLine(result)}
         </div>
+
+        {/*
+          * The way back in for someone who has already paid: a new phone, a
+          * reinstall, a restored backup. Apple requires this for a
+          * non-consumable purchase and rejects without it (review guideline
+          * 3.1.1), and it has to be reachable without paying a second time.
+          */}
+        <button
+          className="purchase__restore"
+          onClick={() => void run('restore')}
+          disabled={busy !== null}
+        >
+          {busy === 'restore' ? 'Checking' + ELLIPSIS : 'Already bought it? Restore'}
+        </button>
       </div>
     </div>,
     host,
   );
 }
 
-/** Written as a character rather than typed, so the source stays ASCII. */
-const ELLIPSIS = '\u2026';
-
 /**
- * What the line under the button says.
+ * The pictures, as a strip that snaps.
  *
- * A cancelled purchase is not a failure and must not be dressed as one — the
- * reader chose that, and telling them something went wrong when they simply
- * changed their mind reads as a nag. It says nothing at all instead.
+ * Scroll-snap rather than a carousel library or a transform driven from
+ * state: the browser already does momentum, rubber-banding at the ends and
+ * the snap itself, and every one of those is worse when it is reimplemented.
+ * The only thing React is told is which frame ended up under the finger, and
+ * that is only so the dots can say so.
  */
+function Gallery() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState(0);
+
+  useEffect(() => {
+    const strip = ref.current;
+    if (!strip) return;
+    const onScroll = () => {
+      // Round rather than floor: the frame the strip has settled *nearest* is
+      // the one being looked at, and a floor marks the new frame only once
+      // the old one is completely gone.
+      const next = Math.round(strip.scrollLeft / strip.clientWidth);
+      setAt((prev) => (prev === next ? prev : next));
+    };
+    strip.addEventListener('scroll', onScroll, { passive: true });
+    return () => strip.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <div className="purchase__gallery">
+      <div className="purchase__frames" ref={ref}>
+        {SHOWCASE.map((frame) => (
+          <div
+            className="purchase__frame"
+            key={frame.title}
+            data-empty={frame.src === null}
+            style={
+              frame.src
+                ? { backgroundImage: `url(${import.meta.env.BASE_URL}showcase/${frame.src})` }
+                : undefined
+            }
+            role="img"
+            aria-label={frame.title}
+          >
+            {/* Only while there is no picture — see state/showcase. */}
+            {!frame.src && <span className="purchase__frame-name">{frame.title}</span>}
+          </div>
+        ))}
+      </div>
+
+      {/*
+        * The page behind, brought up over the bottom of the picture.
+        *
+        * A picture that stops at an edge reads as pasted on; one that dissolves
+        * into the page reads as part of it. It also gives the dots a ground
+        * dark or light enough to be seen against, whatever the frame under
+        * them happens to be.
+        */}
+      <div className="purchase__veil" aria-hidden />
+
+      {SHOWCASE.length > 1 && (
+        <div className="purchase__dots" aria-hidden>
+          {SHOWCASE.map((frame, i) => (
+            <span className="purchase__dot" key={frame.title} data-on={i === at} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Written as a character rather than typed, so the source stays ASCII. */
+const ELLIPSIS = '…';
+
 /**
  * Adds the store's own words when there are any.
  *
@@ -236,6 +292,13 @@ function withReason(line: string): string {
   return reason ? `${line} (${reason})` : line;
 }
 
+/**
+ * What the line under the button says.
+ *
+ * A cancelled purchase is not a failure and must not be dressed as one — the
+ * reader chose that, and telling them something went wrong when they simply
+ * changed their mind reads as a nag. It falls back to the standing line.
+ */
 function statusLine(result: { outcome: Outcome; from: 'buy' | 'restore' } | null): string {
   if (!result) return 'One payment. It never becomes a subscription.';
   switch (result.outcome) {

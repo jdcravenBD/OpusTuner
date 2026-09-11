@@ -2735,12 +2735,17 @@ button {
 /* -------------------------------------------------------------- purchase -- */
 
 /*
- * The one screen that asks for money, and the only one that covers everything.
+ * The one screen that asks for money, and the only one that is not the tuner.
  *
- * A panel would have left a strip of the app showing above it, which reads as
- * an interruption to be got past. This is the whole surface, it scrolls, and
- * it closes with a single glyph in the corner that has no button drawn around
- * it — there is nothing else here to press by accident.
+ * **Always in the Modern style**, whichever style the app is wearing, in the
+ * light or dark the reader chose. It is a page about a product rather than an
+ * instrument, the platform has a well-worn look for pages about products, and
+ * borrowing it here costs the app nothing it needs. Its palette is not copied:
+ * `.purchase` is named alongside `:root[data-theme='modern']` in the token
+ * block further down, so there is one set of numbers wearing two hats.
+ *
+ * A full screen rather than a panel. A panel leaves a strip of the app showing
+ * above it, which reads as an interruption to be got past.
  */
 .purchase {
   position: absolute;
@@ -2748,15 +2753,8 @@ button {
   z-index: 75;
   display: flex;
   flex-direction: column;
-  /*
-   * The chassis, not a flat card. It was built flat once and looked like it
-   * belonged to a different program — every other surface in the app is
-   * moulded, and a screen that is not reads as foreign. Same gradient stack
-   * as .app, so it opens out of the app rather than covering it.
-   */
-  background:
-    radial-gradient(130% 62% at 50% -12%, var(--bg-glow) 0%, transparent 60%),
-    linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
+  background: var(--bg-0);
+  color: var(--text);
   /*
    * Two animations, because they want different curves. --ease-out is severe —
    * it is nine tenths of the way there in the first quarter of its duration,
@@ -2771,7 +2769,316 @@ button {
 }
 
 .purchase[data-closing='true'] {
-  animation: purchase-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: purchase-out 200ms var(--ease) forwards;
+}
+
+/* --- the pictures -------------------------------------------------------- */
+
+/*
+ * The top half, near enough.
+ *
+ * A fraction rather than a height, because it has to hold that proportion on
+ * a phone and on a tall window alike -- and a minimum, because below a certain
+ * size a picture stops being a picture and becomes a stripe.
+ */
+.purchase__gallery {
+  position: relative;
+  flex: 0 0 auto;
+  height: max(46%, 240px);
+  overflow: hidden;
+  /* Rounded at the bottom only: the top edge is the top of the screen. */
+  border-radius: 0 0 28px 28px;
+  background: var(--surface);
+}
+
+/*
+ * Scroll-snap, not a carousel.
+ *
+ * The browser already does momentum, the rubber band at both ends, and the
+ * snap itself, and all three are worse reimplemented. Nothing here is driven
+ * from React -- see Gallery, which listens only so the dots can keep up.
+ */
+.purchase__frames {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  /* Sideways only: a vertical drag here belongs to the page. */
+  overscroll-behavior-x: contain;
+}
+
+.purchase__frames::-webkit-scrollbar {
+  display: none;
+}
+
+.purchase__frame {
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  display: grid;
+  place-items: center;
+}
+
+/*
+ * A frame with no file yet, which is a state this will be in for a while.
+ *
+ * Drawn as a plain panel with its own name on it so a half-filled set reads
+ * as half filled rather than as four broken images. It is a div with a
+ * background rather than an <img> for the same reason: a missing background
+ * is nothing, a missing <img> is a torn-paper glyph and an alt string.
+ */
+.purchase__frame[data-empty='true'] {
+  background: var(--fill);
+}
+
+.purchase__frame-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-4);
+}
+
+/*
+ * The page, brought up over the bottom of the picture.
+ *
+ * A picture that stops at an edge reads as pasted on; one that dissolves into
+ * the page reads as part of it. It also gives the dots a ground to be seen
+ * against whatever the frame under them happens to be. The ramp is bent, for
+ * the reason written out at .sheet__fade--top.
+ */
+.purchase__veil {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44%;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    var(--bg-0) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    0deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.95) 30%,
+    rgba(0, 0, 0, 0.7) 52%,
+    rgba(0, 0, 0, 0.35) 74%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    0deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.95) 30%,
+    rgba(0, 0, 0, 0.7) 52%,
+    rgba(0, 0, 0, 0.35) 74%,
+    transparent 100%
+  );
+}
+
+.purchase__dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+/*
+ * The one you are on is a bar, the rest are dots.
+ *
+ * Size and not just opacity, because a row of equal dots at two opacities is
+ * a puzzle at a glance and a row with one long mark in it is not.
+ */
+.purchase__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--text-4);
+  transition:
+    width 220ms var(--ease),
+    background 220ms var(--ease);
+}
+
+.purchase__dot[data-on='true'] {
+  width: 20px;
+  background: var(--text-2);
+}
+
+/* --- everything under them ----------------------------------------------- */
+
+.purchase__back {
+  position: absolute;
+  top: max(14px, var(--safe-t));
+  left: 14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  /* Its own ground, because what is behind it is a photograph. */
+  background: var(--fill);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--text);
+}
+
+.purchase__back:active {
+  background: var(--surface-press);
+}
+
+.purchase__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  display: flex;
+  flex-direction: column;
+  padding: 0 18px calc(18px + var(--safe-b));
+}
+
+.purchase__body::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * The claim, in the largest type on the page.
+ *
+ * Two sentences on two lines, tight enough to read as one object. The second
+ * line is the one doing the work -- see TIER_STATEMENT.
+ */
+.purchase__statement {
+  margin: 18px 0 20px;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.18;
+  color: var(--text);
+}
+
+/* --- the card ------------------------------------------------------------ */
+
+.purchase__card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.purchase__card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.purchase__card-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.purchase__card-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* Quieter than the number: the reassuring half, not the surprising one. */
+.purchase__lifetime {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-4);
+}
+
+.purchase__perks {
+  margin: 14px 0 16px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.purchase__perk {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14.5px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+.purchase__perk svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+
+.purchase__buy {
+  height: 50px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition:
+    opacity var(--dur) var(--ease),
+    transform 110ms var(--ease);
+}
+
+.purchase__buy:active {
+  transform: scale(0.985);
+}
+
+.purchase__buy:disabled {
+  opacity: 0.5;
+}
+
+.purchase__status {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-4);
+  transition: color var(--dur) var(--ease);
+}
+
+.purchase__status[data-good='true'] {
+  color: var(--green);
+}
+
+.purchase__restore {
+  margin-top: auto;
+  padding: 16px 0 4px;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.purchase__restore:disabled {
+  opacity: 0.5;
 }
 
 @keyframes purchase-fade {
@@ -2782,406 +3089,15 @@ button {
 
 @keyframes purchase-rise {
   from {
-    transform: translateY(2.2%);
+    transform: translateY(14px);
   }
 }
 
 @keyframes purchase-out {
   to {
-    transform: translateY(1.5%);
     opacity: 0;
+    transform: translateY(8px);
   }
-}
-
-/*
- * The glyph has no bounds and the content scrolls under it, so the content has
- * to get out of its way. A short fade to the screen's own background does that
- * without drawing anything: at the top there is nothing to fade and it is
- * invisible, and further down the type dissolves before it reaches the corner
- * rather than colliding with it.
- */
-.purchase::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--safe-t) + 58px);
-  z-index: 1;
-  pointer-events: none;
-  /* --bg-1 because that is what the chassis gradient starts at. */
-  background: linear-gradient(180deg, var(--bg-1) 34%, transparent);
-}
-
-/* No bounds, as asked: a glyph and its hit area, nothing drawn. Sits above the
-   fade so it stays put while the screen moves under it. */
-.purchase__close {
-  position: absolute;
-  /*
-   * The screen is full-bleed — `inset: 0` on an absolutely positioned child
-   * resolves against the padding box, so it covers the safe area the rest of
-   * the app is padded away from. The background wants that; the button does
-   * not, and at 6px it sat under the clock and the battery on a handset run
-   * from the home screen. The floor keeps it off the very edge where the inset
-   * is reported as zero.
-   */
-  top: max(8px, calc(var(--safe-t) + 8px));
-  right: 6px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  color: var(--text-3);
-  transition: color var(--dur) var(--ease);
-}
-
-@media (hover: hover) {
-  .purchase__close:hover {
-    color: var(--text);
-  }
-}
-
-.purchase__close:active {
-  transform: scale(0.9);
-}
-
-.purchase__scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.purchase__scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.purchase__inner {
-  padding: calc(var(--safe-t) + 52px) 22px calc(28px + var(--safe-b));
-  max-width: 460px;
-  margin: 0 auto;
-}
-
-/* --- the top ------------------------------------------------------------- */
-
-.purchase__head {
-  text-align: center;
-}
-
-.purchase__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--green);
-}
-
-.purchase__title {
-  margin: 8px 0 0;
-  font-size: 34px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  color: var(--text);
-}
-
-.purchase__lede {
-  margin: 9px auto 0;
-  max-width: 32ch;
-  font-size: 14.5px;
-  line-height: 1.5;
-  color: var(--text-2);
-}
-
-.purchase__lede b {
-  color: var(--text);
-  font-weight: 700;
-}
-
-/* --- price and the button ------------------------------------------------ */
-
-/*
- * "once" is set as large as the number. The price is not the surprising part
- * of this screen; that it is the only one is.
- */
-.purchase__price {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 9px;
-  margin-top: 4px;
-}
-
-.purchase__amount {
-  /*
-   * The interface font, not the mono one every readout uses. In a monospace
-   * face the decimal point gets a whole character cell to itself and the price
-   * reads "$1 . 99" — which looks like a typesetting fault rather than a
-   * number. This is a price, not a meter.
-   */
-  font-family: var(--font-ui);
-  font-size: 42px;
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  color: var(--text);
-}
-
-.purchase__once {
-  font-size: 20px;
-  font-weight: 650;
-  color: var(--green);
-}
-
-.purchase__buy {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 52px;
-  margin-top: 16px;
-  border-radius: var(--r-md);
-  background: linear-gradient(180deg, #4cf39c, var(--green));
-  color: #04220f;
-  font-size: 16px;
-  font-weight: 750;
-  letter-spacing: 0.01em;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 2px 6px -1px rgba(0, 0, 0, 0.4),
-    0 0 30px -9px var(--green-glow);
-  transition: transform 110ms var(--ease);
-}
-
-.purchase__buy:active {
-  transform: translateY(1px) scale(0.995);
-}
-
-.purchase__status {
-  margin-top: 10px;
-  text-align: center;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--text-3);
-  transition: color var(--dur) var(--ease);
-}
-
-.purchase__status[data-shown='true'] {
-  color: var(--amber);
-}
-
-/* It worked, so it is not a warning. */
-.purchase__status[data-good='true'] {
-  color: var(--green);
-}
-
-/* Both buttons go quiet while either one is working, so a second press
-   cannot start a second transaction on top of the first. */
-.purchase__buy:disabled,
-.purchase__restore:disabled {
-  opacity: 0.55;
-}
-
-.purchase__buy:disabled {
-  transform: none;
-}
-
-/*
- * Set as plain underlined text rather than as a second button.
- *
- * Almost nobody needs it, and the two must not look like a choice between
- * equals — but it has to be *there*, and findable, or the app does not pass
- * review. Underlined because with no bounds around it there is nothing else
- * to say it can be pressed.
- */
-.purchase__restore {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-  padding: 6px 0;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-3);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color var(--dur) var(--ease);
-}
-
-.purchase__restore:active {
-  color: var(--text);
-}
-
-/* --- the two lists ------------------------------------------------------- */
-
-/*
- * One leads into the price and the other follows the button, so they want
- * different air above them rather than a shared margin.
- */
-.purchase__block--gets {
-  margin: 26px 0;
-}
-
-.purchase__block--nots {
-  margin-top: 34px;
-}
-
-.purchase__h2 {
-  margin: 0 0 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-4);
-}
-
-/* --- what you get -------------------------------------------------------- */
-
-/*
- * The contents of the set, hung off a single line.
- *
- * These were four raised cards, which is the language every list in the app
- * speaks -- and on the one screen with no chassis around it, four cards read
- * as four separate things being sold. The spine is the argument: it runs
- * unbroken from the first item to the last, and each one is a bead on it.
- */
-.purchase__gets {
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 3px 0 3px 24px;
-}
-
-/* Faded at both ends, so it reads as a run rather than as a bar with stops. */
-.purchase__gets::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    var(--green-line) 13%,
-    var(--green-line) 87%,
-    transparent
-  );
-}
-
-.purchase__get {
-  position: relative;
-}
-
-.purchase__get + .purchase__get {
-  margin-top: 17px;
-}
-
-/*
- * The bead, centred on the first line of the name rather than on the item:
- * an item is two lines of very different weight and its middle is nowhere in
- * particular.
- *
- * Opaque and wider than the spine, so it covers the line instead of needing a
- * ring of page color punched around it -- the page behind this is a gradient,
- * and a ring cut out of a gradient shows its seam.
- */
-.purchase__get::before {
-  content: '';
-  position: absolute;
-  left: -24px;
-  top: 6px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 9px -1px var(--green-glow);
-}
-
-.purchase__get-name {
-  font-size: 15px;
-  font-weight: 650;
-  line-height: 1.3;
-  letter-spacing: -0.005em;
-  color: var(--text);
-}
-
-.purchase__get-desc {
-  margin-top: 3px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--text-3);
-}
-
-/* --- what you do not ----------------------------------------------------- */
-
-/*
- * The reassurances, under the button, where the doubt is.
- *
- * Deliberately not the list above: no spine, no beads, no fill of any kind.
- * Hairlines between the rows and nothing around them, so this reads as a set
- * of plain statements rather than as four more things being sold. It is the
- * quieter half of the screen and it should look it.
- */
-.purchase__nots {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.purchase__not {
-  padding: 11px 1px;
-  border-top: 1px solid var(--border);
-}
-
-/* The lines go between the rows, not around the list. */
-.purchase__not:first-child {
-  padding-top: 1px;
-  border-top: 0;
-}
-
-.purchase__not:last-child {
-  padding-bottom: 1px;
-}
-
-/*
- * The refusals are the reassuring half, so they carry the color that means
- * "this is fine" everywhere else in the app -- and the tick that goes with it.
- *
- * The tick follows the words rather than leading them: it reads as a thing
- * being confirmed, not as a bullet in a list of what you are missing.
- */
-.purchase__not-name {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 14.5px;
-  font-weight: 650;
-  color: var(--green);
-}
-
-.purchase__not-name svg {
-  flex: 0 0 auto;
-  stroke-width: 3;
-}
-
-.purchase__not-desc {
-  margin-top: 2px;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--text-3);
-}
-
-.purchase__coda {
-  margin: 26px 0 0;
-  text-align: center;
-  font-size: 13px;
-  font-style: italic;
-  line-height: 1.55;
-  color: var(--text-3);
 }
 
 /* ---------------------------------------------------------------- modern -- */
@@ -3201,14 +3117,17 @@ button {
  * colours and its own structure, and splitting it would be pretending
  * otherwise.
  *
- * It is light, and only light. It followed the device's own light/dark setting
- * at first, on the reasoning that the idiom it borrows from has both and the
- * platform already owns that switch — but the app's theme picker is a list of
- * fixed choices, and one entry in it that silently means something else
- * depending on a setting elsewhere is a worse idea than a second entry would
- * be. Picking Modern on a phone in dark mode gave you a dark theme, which is
- * not what the name or the swatch promised. A dark counterpart can be its own
- * entry later if it is wanted.
+ * It has a light and a dark, carried on `data-mode` beside the theme rather
+ * than as a second theme, because they are one set of relationships read from
+ * two ends -- see the dark block at the bottom of this file. It followed the
+ * *device's* setting once, which was the mistake: the app's picker is a list
+ * of fixed choices, and an entry that silently means something else depending
+ * on a setting elsewhere is worse than a second entry. Picking Modern on a
+ * phone in dark mode gave you a dark theme, which is not what the name or the
+ * swatch promised. Now the app's own Mode row decides, like every other style.
+ *
+ * The purchase screen borrows this palette whatever style the app is in, which
+ * is why `.purchase` is named alongside the theme in the blocks below.
  *
  * **No Apple assets are used or required.** The type is the same system stack
  * the rest of the app already asks for, which resolves to the platform's own
@@ -3216,7 +3135,8 @@ button {
  * literal written here. Nothing is bundled that is not ours to bundle.
  */
 
-:root[data-theme='modern'] {
+:root[data-theme='modern'],
+.purchase {
   /*
    * Grouped background, and the cards that sit on it.
    *
@@ -4096,7 +4016,8 @@ button {
  * against white is too dense against black; these are the brighter pair of
  * each, which is again what the platform ships two of.
  */
-:root[data-theme='modern'][data-mode='dark'] {
+:root[data-theme='modern'][data-mode='dark'],
+.purchase[data-mode='dark'] {
   --bg-void: hsl(var(--h) calc(11% * var(--s)) 7%);
   --bg-0: hsl(var(--h) calc(11% * var(--s)) 7%);
   --bg-1: hsl(var(--h) calc(11% * var(--s)) 7%);

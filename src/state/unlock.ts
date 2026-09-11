@@ -46,49 +46,30 @@ export const FREE_CUSTOM_TUNINGS = 1;
 export const FREE_APPEARANCE = { themeStyle: 'default', themeMode: 'dark', themeColor: false };
 
 /**
- * The things this is *not*, which for a paid app is half of what anyone wants
- * to know before they will read the rest.
+ * The claim the purchase screen leads with, as two sentences.
  *
- * Stated as what it is rather than as a complaint about anyone else. Naming a
- * competitor in your own app reads as insecure, and it dates badly; saying
- * plainly that nothing here renews makes the same point and is the part a
- * reader can actually check.
+ * Every paywall in this shape says some version of "cancel anytime", because
+ * every paywall in this shape is a subscription. This one is not, and the
+ * useful thing to say is the one those apps cannot: there is nothing to
+ * cancel, and nothing that will come back next month. Kept here rather than
+ * in the component because it is a claim about the product, and a claim about
+ * the product has to stay true when the product changes.
  */
-export const TIER_ASSURANCES: { title: string; detail: string }[] = [
-  {
-    title: 'No subscription',
-    detail: 'It never renews, because there is nothing to renew.',
-  },
-  { title: 'No ads', detail: 'There have never been any, and there will not be.' },
-  { title: 'No account', detail: 'Nothing to sign up for. Nothing leaves your phone.' },
-  { title: 'Nothing expires', detail: 'Buy it once and it stays bought, on every device you own.' },
-];
+export const TIER_STATEMENT: [string, string] = ['Buy it once.', 'It stays bought.'];
 
-/** Everything the tier covers, in the order the purchase screen lists it. */
-export const TIER_FEATURES: { title: string; detail: string }[] = [
-  {
-    title: 'The chromatic tuner',
-    detail:
-      'Tune anything at all, one note at a time, with no instrument chosen and\n      nothing assumed about what you are holding.',
-  },
-  {
-    title: 'Every tuning',
-    detail:
-      'Drop, open, modal and cross tunings for guitar, bass, ukulele and banjo. Thirty-five beyond the standards.',
-  },
-  {
-    title: 'Unlimited custom tunings',
-    detail: 'Build and keep as many of your own as you like, not just the one.',
-  },
-  {
-    title: 'Every appearance',
-    detail:
-      'Light mode, the Modern style, and the hue that tints the chassis and the tuner screen alike.',
-  },
-  {
-    title: 'Hide the branding',
-    detail: 'Turn off the wordmark across the top and keep the screen to yourself.',
-  },
+/**
+ * The three lines on the card, which between them cover every locked control.
+ *
+ * There are ten places in the app that can open the purchase screen and there
+ * is no room for ten lines, so these are written as the three groups those
+ * ten fall into: what you can tune, what it can look like, and what you can
+ * take off the screen. Nobody arrives here having pressed something that none
+ * of the three describes.
+ */
+export const TIER_HIGHLIGHTS: string[] = [
+  'Every tuning, and the chromatic tuner',
+  'Every style, mode and display color',
+  'A screen with only what you use',
 ];
 
 /** True when this tuning needs the full set. */
