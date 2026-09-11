@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { loadSegmentFont } from './components/visuals/segments';
 import { isNative } from './platform';
+import { settingsStore } from './state/store';
 import { tuner } from './tuner/TunerController';
 import './styles/app.css';
 
@@ -17,6 +18,37 @@ loadSegmentFont();
 
 // Handy from the console while developing: __tuner.frame, __tuner.engine, …
 if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__tuner = tuner;
+
+/*
+ * Unlocks the paid tier while developing.
+ *
+ *   ?dev       every paid feature open
+ *   ?dev=off   locked again, as a first-time user sees it
+ *
+ * `?shots` already did this, but it also replaces the microphone with a
+ * synthetic note, which is right for photographing the app and wrong for using
+ * it. This is the entitlement on its own and nothing else.
+ *
+ * **It sticks.** `owned` is a stored setting like any other and survives
+ * leaving this URL, so a plain `/` afterwards keeps whichever answer was set
+ * last. That has already caused one round of "why is everything unlocked",
+ * which is why it says so on the way in and why the way back out is one word.
+ *
+ * Inline rather than a module of its own: it is one call, and the DEV guard
+ * means a production build drops the branch entirely.
+ */
+if (import.meta.env.DEV) {
+  const dev = new URLSearchParams(location.search).get('dev');
+  if (dev !== null) {
+    const owned = dev !== 'off';
+    settingsStore.set({ owned });
+    // eslint-disable-next-line no-console
+    console.log(
+      `[dev] full set ${owned ? 'unlocked' : 'locked'}. This is stored and sticks; ` +
+        `use ?dev=${owned ? 'off' : ''} to put it back.`,
+    );
+  }
+}
 
 /*
  * The App Store screenshot rig, which hands the tuner a synthetic instrument
