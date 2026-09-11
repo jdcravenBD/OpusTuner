@@ -2990,6 +2990,31 @@ button {
    */
   color-scheme: light;
 
+  /*
+   * The stroke that runs light at the top and dark at the bottom.
+   *
+   * Every raised thing in this theme is white on a near-white page, which is
+   * why a flat hairline reads as flat: one grey line all the way round says
+   * nothing about which way is up. This says it the way a real edge does --
+   * the top catches the light and stands proud of the page behind it, the
+   * bottom falls into its own shadow.
+   *
+   * The angle is 155deg rather than straight down so the two long edges are
+   * not the only ones doing the work: a round-cornered shape spends a lot of
+   * its outline on the corners, and off-axis puts the turn from light to dark
+   * across them instead of at the ends.
+   *
+   * Kept as one token because it is one idea. The rule that paints it is
+   * further down and is the same for everything that gets it.
+   */
+  --stroke-mixed: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(60, 60, 67, 0.08) 38%,
+    rgba(60, 60, 67, 0.16) 62%,
+    rgba(60, 60, 67, 0.34) 100%
+  );
+
   /* Corner radii, at the sizes a grouped list uses. */
   --r-xs: 6px;
   --r-sm: 8px;
@@ -3319,9 +3344,20 @@ button {
 
 /* --- the sheets ---------------------------------------------------------- */
 
+/*
+ * The panel, with a corner nothing else in the app has.
+ *
+ * Far rounder than the 13 the rest of the themes use, and it can afford to
+ * be: the top of this sheet is a header with a grip and a centred title, so
+ * the corners are eating empty space rather than anything that has to be
+ * read. It is also the one place the page behind stays visible, and the
+ * bigger the curve the more of it there is to see.
+ */
 :root[data-theme='modern'] .sheet {
   background: var(--bg-0);
   border-top: 0;
+  border-top-left-radius: 40px;
+  border-top-right-radius: 40px;
   box-shadow: var(--elev-3);
 }
 
@@ -3362,6 +3398,69 @@ button {
 }
 
 /*
+ * The mixed stroke, on everything raised.
+ *
+ * A gradient cannot be a border, so it is a layer the size of the element
+ * with the middle masked out: two mask layers, one clipped to the content box
+ * and one to the whole, composited so only the difference survives. That
+ * difference is the padding, which is the stroke -- and `padding` is
+ * therefore its weight.
+ *
+ * `border-radius: inherit` is what keeps it honest. Every element below has a
+ * different corner and three of them change with the layout, and this follows
+ * all of them without naming any.
+ *
+ * The prefixed pair is not optional: WebKit spells the composite `xor` and
+ * only accepts it against `-webkit-mask`. Written first so the standard
+ * properties win wherever they are understood.
+ */
+:root[data-theme='modern'] .icon-btn::after,
+:root[data-theme='modern'] .tuning-btn::after,
+:root[data-theme='modern'] .toggle::after,
+:root[data-theme='modern'] .string::after,
+:root[data-theme='modern'] .field::after,
+:root[data-theme='modern'] .row::after,
+:root[data-theme='modern'] .sheet__group::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--stroke-mixed);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  /* It sits over the content, so it must never take a tap. */
+  pointer-events: none;
+}
+
+/* The four that are not already positioned, so the stroke has something to
+   pin itself to. */
+:root[data-theme='modern'] .icon-btn,
+:root[data-theme='modern'] .tuning-btn,
+:root[data-theme='modern'] .toggle,
+:root[data-theme='modern'] .sheet__group {
+  position: relative;
+}
+
+/*
+ * The tuner screen loses its flat hairline to the stroke above.
+ *
+ * Left in place the two would sit on the same pixel, and the hairline is the
+ * heavier of them all the way round, so the gradient would have been drawn
+ * and then covered up.
+ */
+:root[data-theme='modern'] .field {
+  border: 0;
+}
+
+/*
  * The two controls the tuner stands on, as pills.
  *
  * The padding goes up with the radius and is not optional: at 52 pixels tall
@@ -3379,6 +3478,7 @@ button {
 }
 
 :root[data-theme='modern'] .icon-btn {
+  border-radius: 14px;
   color: var(--accent);
 }
 
@@ -3397,15 +3497,22 @@ button {
  */
 :root[data-theme='modern'] .string {
   border: 0;
-  border-radius: 9px;
+  border-radius: 14px;
   background: var(--surface);
   box-shadow: none;
   font-family: var(--font-ui);
   font-weight: 500;
 }
 
+/*
+ * The chosen string, lit rather than filled flat.
+ *
+ * Top-lit and the same way up as the stroke around it, which is the whole
+ * reason it is not one colour: a solid fill under a light-to-dark edge reads
+ * as a sticker on a bevel. Both ends are the accent, a shade either side.
+ */
 :root[data-theme='modern'] .string[data-active='true'] {
-  background: var(--accent);
+  background: linear-gradient(180deg, #3f9bff 0%, #0069e3 100%);
   border-color: transparent;
   color: #ffffff;
   box-shadow: none;
