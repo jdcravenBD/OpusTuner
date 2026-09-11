@@ -3,6 +3,7 @@ import { Sheet } from './Sheet';
 import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
+import { ScreensSection } from './ScreensSection';
 import { CheckIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
 import { TIER_NAME, isAppearanceLocked } from '../state/unlock';
@@ -365,13 +366,30 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           * the settings above already show, live, in the state they are
           * actually in.
           */}
-        <div className="about">
-          Easy as Tuning {appVersion} &middot; built {__BUILD_ID__}
-          <br />
-          Strobe readout set in 7-Segment by Jan Bobrowski, under the SIL Open Font
-          License.
-        </div>
       </Section>
+
+      {/*
+        * Under the last card rather than inside it.
+        *
+        * Small print is not a row: it is not pressable, it is not a setting,
+        * and in a style where a card means "these things belong together" it
+        * was the one line in the group that belonged to the page. The other
+        * styles draw no card at all, so this reads the same in them.
+        */}
+      <div className="about">
+        Easy as Tuning {appVersion} &middot; built {__BUILD_ID__}
+        <br />
+        Strobe readout set in 7-Segment by Jan Bobrowski, under the SIL Open Font
+        License.
+      </div>
+
+      {/*
+        * The screenshot rig, in dev and only when asked for.
+        *
+        * `false && <X />` in a production build, which is what lets the whole
+        * module fall out of the bundle — see the note on ScreensSection.
+        */}
+      {import.meta.env.DEV && <ScreensSection />}
       <PurchaseScreen open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </Sheet>
   );

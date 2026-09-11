@@ -51,6 +51,23 @@ if (import.meta.env.DEV) {
 }
 
 /*
+ * The screenshot *framing* rig, which is a different thing from the one below:
+ * it sizes the app to Apple's pixel counts and saves PNGs of it. Same stored
+ * sticky flag as the rest, for the same reason.
+ */
+if (import.meta.env.DEV) {
+  const screens = new URLSearchParams(location.search).get('screens');
+  if (screens !== null) {
+    try {
+      if (screens === 'off') localStorage.removeItem('easyastuning.screens');
+      else localStorage.setItem('easyastuning.screens', '1');
+    } catch {
+      /* private mode — the rig still works, it just won't be remembered */
+    }
+  }
+}
+
+/*
  * The App Store screenshot rig, which hands the tuner a synthetic instrument
  * so the pictures have a note in them. Imported dynamically inside a DEV
  * guard, so a production build drops the branch and never emits the chunk.

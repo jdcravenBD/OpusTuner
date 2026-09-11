@@ -156,7 +156,20 @@ export function useVisualCanvas(opts: Options): RefObject<HTMLCanvasElement | nu
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
     if (w <= 0 || h <= 0) return false;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    /*
+     * The screenshot rig scales the whole app with a transform, which
+     * re-rasterises type and vectors at the final size and can do nothing at
+     * all for a canvas: a backing store is a fixed number of pixels however
+     * it is painted. This is the factor it adds on top.
+     *
+     * Read off the window rather than imported, and that is the point --
+     * `src/screens.ts` is a dev-only module and importing it here would carry
+     * it into every production build to be asked a question whose answer is
+     * always 1. Undefined is the normal case and reads as 1. Capped, because
+     * the product of a 3x phone and a 3x frame is a canvas nothing needs.
+     */
+    const extra = (window as { __renderScale?: number }).__renderScale ?? 1;
+    const dpr = Math.min((window.devicePixelRatio || 1) * extra, 4);
     const s = sizeRef.current;
     if (s.w === w && s.h === h && s.dpr === dpr) return true;
     const next = { w, h, dpr };

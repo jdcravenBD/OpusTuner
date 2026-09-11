@@ -317,6 +317,21 @@ button {
   outline: none;
 }
 
+/*
+ * And the microphone picker.
+ *
+ * A <select> is one of the few controls the browser treats as focus-*visible*
+ * after a plain click, because clicking it opens a menu you are then expected
+ * to drive with the keyboard. The ring is correct by the letter of the spec
+ * and wrong here: it arrives on a tap, it is the app's in-tune green, and it
+ * stays lit over the open menu -- three ways of saying something that has not
+ * happened. The platform draws its own indication inside the menu, which is
+ * where the keyboard actually is.
+ */
+.select:focus-visible {
+  outline: none;
+}
+
 /* Every numeric readout in the app routes through this. */
 .mono {
   font-family: var(--font-mono);
@@ -1993,10 +2008,18 @@ button {
  * The clock a Recent row carries instead of a pin. Same slot, same size, so
  * the column of trailing marks stays a column -- but it is a label, not a
  * control, and it is drawn at the weight of one.
+ *
+ * `pointer-events: none` and no stacking of its own, which together are what
+ * make it a label rather than a small dead button: `.row__main::after` is a
+ * full-bleed hit area over the whole row, and `.row__pin` lifts itself above
+ * it so a real pin can be pressed. This one has nothing to press, so it gets
+ * out of the way and a tap on it picks the tuning like a tap anywhere else.
  */
 .row__pin--static {
+  z-index: auto;
   color: var(--text-4);
   cursor: default;
+  pointer-events: none;
 }
 
 .row__pin[data-on='true'] svg {
@@ -3270,6 +3293,40 @@ button {
     opacity: 0;
     transform: translateY(8px);
   }
+}
+
+/* ------------------------------------------------------------ screenshots -- */
+
+/*
+ * The app, framed at one of Apple's pixel counts. Dev only -- see src/screens.
+ *
+ * Laid out at the CSS size the target implies and then scaled, rather than
+ * sized in the target's pixels directly: a transform re-rasterises type and
+ * vectors at the final size, so the result is a real render at that
+ * resolution and not an enlargement of a smaller one. `--screens-scale` is
+ * `targetDpr / devicePixelRatio`, so what lands on the glass is the pixel
+ * count asked for whatever the display is doing.
+ *
+ * The page around it goes plain grey, and scrolls: the framed app is usually
+ * taller than the window it is being photographed in.
+ */
+:root[data-screens] body {
+  overflow: auto;
+  background: #6e6e73;
+}
+
+:root[data-screens] #app {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--screens-w);
+  height: var(--screens-h);
+  max-width: none;
+  transform: scale(var(--screens-scale));
+  transform-origin: top left;
+  /* No rounded corners or shadow: Apple wants the pixels, edge to edge. */
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* ---------------------------------------------------------------- modern -- */
