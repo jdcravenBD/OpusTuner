@@ -35,15 +35,19 @@ export const PRICE = '$1.99';
 export const FREE_CUSTOM_TUNINGS = 1;
 
 /**
- * The one appearance that costs nothing: the dark palette, undyed.
+ * The two appearance settings that cost something, and the free answer to each.
  *
- * Everything else on those three settings is paid, which is the same policy
- * the five-entry theme picker had — Basic was free and Dark, Light and Modern
- * were not — written as the axes it always really was. Naming the free answer
- * rather than listing the paid ones means a style or mode added later is paid
- * by default, which is the safe way round to be wrong.
+ * **Light and dark are not on this list, and that is the point.** A tuner gets
+ * used on a stage and in a bedroom, and charging for the one that does not
+ * burn a hole in your night vision is charging for the app being usable. The
+ * mode is free in both styles.
+ *
+ * What money buys is the *look*: the Modern style, and a palette dyed to a
+ * colour of your choosing. Naming the free answer rather than listing the paid
+ * ones means a style added later is paid by default, which is the safe way
+ * round to be wrong.
  */
-export const FREE_APPEARANCE = { themeStyle: 'default', themeMode: 'dark', themeColor: false };
+export const FREE_APPEARANCE = { themeStyle: 'default', themeColor: false };
 
 /**
  * The claim the purchase screen leads with, as two sentences.
@@ -68,7 +72,7 @@ export const TIER_STATEMENT: [string, string] = ['Buy it once.', 'It stays bough
  */
 export const TIER_HIGHLIGHTS: string[] = [
   'Every tuning, and the chromatic tuner',
-  'Every style, mode and display color',
+  'The Modern style, and a color of your own',
   'A screen with only what you use',
 ];
 

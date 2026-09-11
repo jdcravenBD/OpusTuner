@@ -2779,16 +2779,14 @@ button {
  *
  * A fraction rather than a height, because it has to hold that proportion on
  * a phone and on a tall window alike -- and a minimum, because below a certain
- * size a picture stops being a picture and becomes a stripe.
+ * size a picture stops being a picture and becomes a stripe. The top padding
+ * is the back button's own space, so a card never slides under it.
  */
 .purchase__gallery {
   position: relative;
   flex: 0 0 auto;
-  height: max(46%, 240px);
-  overflow: hidden;
-  /* Rounded at the bottom only: the top edge is the top of the screen. */
-  border-radius: 0 0 28px 28px;
-  background: var(--surface);
+  height: max(52%, 300px);
+  padding: 58px 0 24px;
 }
 
 /*
@@ -2797,29 +2795,59 @@ button {
  * The browser already does momentum, the rubber band at both ends, and the
  * snap itself, and all three are worse reimplemented. Nothing here is driven
  * from React -- see Gallery, which listens only so the dots can keep up.
+ *
+ * The strip is padded rather than the frames being full width, which is what
+ * leaves the next card showing at the edge. A row of cards where one exactly
+ * fills the screen does not read as a row at all; half of the next one is the
+ * entire invitation to push.
  */
 .purchase__frames {
+  /* Positioned so a card's offsetLeft is measured from the strip -- see the
+     measure() in Gallery, which is what the dots are driven from. */
+  position: relative;
   display: flex;
+  align-items: stretch;
+  gap: 12px;
   height: 100%;
+  padding: 0 calc(50% - var(--card-w) / 2);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
+  scroll-padding: 0 calc(50% - var(--card-w) / 2);
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   /* Sideways only: a vertical drag here belongs to the page. */
   overscroll-behavior-x: contain;
+  /*
+   * The card's width, derived from its height and the shape of the phone
+   * these were taken on. Named because the padding either side of the strip
+   * has to be half the leftover, and that is the only way to centre a card
+   * that is narrower than the screen.
+   */
+  --card-w: calc((100% - 58px) * 0.483);
 }
 
 .purchase__frames::-webkit-scrollbar {
   display: none;
 }
 
+/*
+ * One phone, at the shape it was photographed.
+ *
+ * `aspect-ratio` off the height rather than a width in pixels: the height is
+ * whatever is left over after the header and the card below, and the picture
+ * has to stay the shape of a phone whatever that comes to.
+ */
 .purchase__frame {
-  flex: 0 0 100%;
+  position: relative;
+  flex: 0 0 auto;
   height: 100%;
+  aspect-ratio: 1170 / 2423;
   scroll-snap-align: center;
   scroll-snap-stop: always;
+  border-radius: 22px;
+  overflow: hidden;
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -2846,40 +2874,23 @@ button {
 }
 
 /*
- * The page, brought up over the bottom of the picture.
+ * Light behind the strip.
  *
- * A picture that stops at an edge reads as pasted on; one that dissolves into
- * the page reads as part of it. It also gives the dots a ground to be seen
- * against whatever the frame under them happens to be. The ramp is bent, for
- * the reason written out at .sheet__fade--top.
+ * The only thing on this screen that is not flat, and it is not on any object
+ * -- it is behind all of them, a wash of the accent at an alpha you would
+ * struggle to name if you were asked to. It is there because a column of grey
+ * cards on a grey page is accurate and dead, and because the top of a screen
+ * that is asking for money can afford one degree of warmth.
  */
-.purchase__veil {
+.purchase__glow {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 44%;
+  inset: -10% -20% 12%;
+  z-index: -1;
   pointer-events: none;
-  background: linear-gradient(
-    0deg,
-    var(--bg-0) 0%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    0deg,
-    #000 0%,
-    rgba(0, 0, 0, 0.95) 30%,
-    rgba(0, 0, 0, 0.7) 52%,
-    rgba(0, 0, 0, 0.35) 74%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    0deg,
-    #000 0%,
-    rgba(0, 0, 0, 0.95) 30%,
-    rgba(0, 0, 0, 0.7) 52%,
-    rgba(0, 0, 0, 0.35) 74%,
-    transparent 100%
+  background: radial-gradient(
+    58% 50% at 50% 38%,
+    color-mix(in srgb, var(--accent) 13%, transparent) 0%,
+    transparent 72%
   );
 }
 
@@ -2887,7 +2898,7 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 16px;
+  bottom: 6px;
   display: flex;
   justify-content: center;
   gap: 6px;
@@ -2926,11 +2937,23 @@ button {
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  /* Its own ground, because what is behind it is a photograph. */
+  /* Its own ground, because what is behind it may be a photograph. */
   background: var(--fill);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   color: var(--text);
+}
+
+/*
+ * The screen's own ground, which is not quite one colour.
+ *
+ * The page is flat everywhere else in this style and should be; here it lifts
+ * a shade towards the top, under the pictures, and settles by the time it
+ * reaches the card. Two levels, again -- enough that the eye reads a top and
+ * a bottom, not enough to notice being told.
+ */
+.purchase {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg-0) 46%);
 }
 
 .purchase__back:active {
@@ -2969,12 +2992,20 @@ button {
 
 /* --- the card ------------------------------------------------------------ */
 
+/*
+ * The card, lit from the top like everything else in this style.
+ *
+ * Two levels between the ends of the gradient, which is barely a gradient at
+ * all -- the point is that the top edge of the card is the lightest thing in
+ * it, so the stroke around it has somewhere to come from.
+ */
 .purchase__card {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 16px;
   border-radius: 18px;
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 62%);
 }
 
 .purchase__card-head {
@@ -3035,9 +3066,10 @@ button {
 }
 
 .purchase__buy {
+  position: relative;
   height: 50px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-grad);
   color: #ffffff;
   font-size: 16px;
   font-weight: 600;
@@ -3199,6 +3231,14 @@ button {
    * would be throwing away the one signal it exists to give.
    */
   --accent: #007aff;
+  /*
+   * The accent as a face rather than a fill, for the things big enough to
+   * have one: a lit string, the button that takes the money. A flat colour
+   * under an edge that is brightest at one corner reads as a sticker on a
+   * bevel -- the note is at .string[data-active] and it applies to anything
+   * wearing the stroke.
+   */
+  --accent-grad: linear-gradient(180deg, #3f9bff 0%, #0069e3 100%);
 
   --select-ring: #007aff;
   --select-glow: rgba(0, 122, 255, 0.18);
@@ -3738,7 +3778,16 @@ button {
 :root[data-theme='modern'] .row::after,
 :root[data-theme='modern'] .chip::after,
 :root[data-theme='modern'] .search::after,
-:root[data-theme='modern'] .sheet__group::after {
+:root[data-theme='modern'] .sheet__group::after,
+/*
+ * And the purchase screen, which is in this style whatever style the app is
+ * in. Unscoped because `.purchase` carries the tokens itself -- see the
+ * selector lists in the palette blocks above.
+ */
+.purchase__frame::after,
+.purchase__card::after,
+.purchase__buy::after,
+.purchase__back::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -3846,7 +3895,7 @@ button {
  * as a sticker on a bevel. Both ends are the accent, a shade either side.
  */
 :root[data-theme='modern'] .string[data-active='true'] {
-  background: linear-gradient(180deg, #3f9bff 0%, #0069e3 100%);
+  background: var(--accent-grad);
   border-color: transparent;
   color: #ffffff;
   box-shadow: none;
@@ -4033,6 +4082,7 @@ button {
   --fill-quiet: rgba(118, 118, 128, 0.22);
 
   --accent: #0a84ff;
+  --accent-grad: linear-gradient(180deg, #4aa3ff 0%, #0a6fe6 100%);
   --select-ring: #0a84ff;
   --select-glow: rgba(10, 132, 255, 0.24);
 

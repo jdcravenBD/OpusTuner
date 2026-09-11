@@ -222,15 +222,52 @@ function Gallery() {
   useEffect(() => {
     const strip = ref.current;
     if (!strip) return;
-    const onScroll = () => {
-      // Round rather than floor: the frame the strip has settled *nearest* is
-      // the one being looked at, and a floor marks the new frame only once
-      // the old one is completely gone.
-      const next = Math.round(strip.scrollLeft / strip.clientWidth);
-      setAt((prev) => (prev === next ? prev : next));
+
+    /*
+     * Where the middle of each card sits along the strip.
+     *
+     * Measured once rather than divided out per scroll event, and measured at
+     * all rather than computed: a card is narrower than the screen, there is a
+     * gap between them and padding at both ends, so the old
+     * `scrollLeft / clientWidth` was not the index of anything -- it marked
+     * the fourth card when the strip was scrolled to the eighth.
+     */
+    let mids: number[] = [];
+    const measure = () => {
+      mids = Array.from(strip.children, (el) => {
+        const box = el as HTMLElement;
+        return box.offsetLeft + box.offsetWidth / 2;
+      });
     };
+
+    const onScroll = () => {
+      if (!mids.length) return;
+      // Content coordinates, the same space offsetLeft is in -- which is why
+      // the strip is positioned in the stylesheet.
+      const mid = strip.scrollLeft + strip.clientWidth / 2;
+      let best = 0;
+      for (let i = 1; i < mids.length; i++) {
+        if (Math.abs(mids[i] - mid) < Math.abs(mids[best] - mid)) best = i;
+      }
+      setAt((prev) => (prev === best ? prev : best));
+    };
+
+    measure();
     strip.addEventListener('scroll', onScroll, { passive: true });
-    return () => strip.removeEventListener('scroll', onScroll);
+    if (typeof ResizeObserver === 'undefined') {
+      return () => strip.removeEventListener('scroll', onScroll);
+    }
+    // The cards are sized off the strip's height, so a rotation moves every
+    // one of these.
+    const observer = new ResizeObserver(() => {
+      measure();
+      onScroll();
+    });
+    observer.observe(strip);
+    return () => {
+      strip.removeEventListener('scroll', onScroll);
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -255,15 +292,8 @@ function Gallery() {
         ))}
       </div>
 
-      {/*
-        * The page behind, brought up over the bottom of the picture.
-        *
-        * A picture that stops at an edge reads as pasted on; one that dissolves
-        * into the page reads as part of it. It also gives the dots a ground
-        * dark or light enough to be seen against, whatever the frame under
-        * them happens to be.
-        */}
-      <div className="purchase__veil" aria-hidden />
+      {/* Behind everything, and the only thing here that is not flat. */}
+      <div className="purchase__glow" aria-hidden />
 
       {SHOWCASE.length > 1 && (
         <div className="purchase__dots" aria-hidden>

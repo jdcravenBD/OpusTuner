@@ -194,22 +194,15 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             }
           />
         </Row>
+        {/* Free in both styles — see FREE_APPEARANCE for why. */}
         <Row name="Mode">
           <Segmented
             value={s.themeMode}
             options={[
               { value: 'dark' as ThemeMode, label: 'Dark' },
-              {
-                value: 'light' as ThemeMode,
-                label: 'Light',
-                locked: isAppearanceLocked('themeMode', 'light', s.owned),
-              },
+              { value: 'light' as ThemeMode, label: 'Light' },
             ]}
-            onChange={(v) =>
-              isAppearanceLocked('themeMode', v, s.owned)
-                ? setWanted('Light mode')
-                : set('themeMode', v)
-            }
+            onChange={(v) => set('themeMode', v)}
           />
         </Row>
         {/*
