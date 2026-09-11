@@ -28,6 +28,19 @@ import type { EngineError } from './audio/AudioEngine';
 
 export const APP_VERSION = __APP_VERSION__;
 
+/**
+ * How long the app must have been visible before the microphone watchdog will
+ * act, and how many times it will act before leaving well alone.
+ *
+ * Two seconds because nothing arrives while backgrounded, so the first check
+ * after a resume would otherwise read a stale clock and rebuild a graph that
+ * was about to be fine. Two attempts because the failure it exists for -- the
+ * audio session taken across an app switch -- is fixed by the first one; a
+ * third would only be the second one again.
+ */
+const GRACE_MS = 2000;
+const MAX_REMEDIES = 2;
+
 export default function App() {
   const settings = useSettings();
   const tuning = useCurrentTuning();
@@ -185,18 +198,64 @@ export default function App() {
   useEffect(() => {
     if (!isNative()) return;
     let visibleSince = document.visibilityState === 'visible' ? Date.now() : 0;
+    /*
+     * How many remedies have been tried since audio was last seen arriving.
+     *
+     * **The thing this counter exists to stop shipped once.** Without it the
+     * check is "not capturing, so restart", every second, for as long as the
+     * app is open -- and if restarting does not help, it never stops helping
+     * either. The microphone goes down and up about twice a second, which on
+     * the settings panel showed as a line of text under Microphone appearing
+     * and vanishing and bouncing everything below it. A watchdog that cannot
+     * give up is worse than no watchdog: a tuner that has quietly stopped
+     * hearing is a bad afternoon, and a tuner rebuilding its audio graph
+     * every second is a bad review.
+     */
+    let tried = 0;
+    /** In flight, so a slow remedy is not started twice. */
+    let busy = false;
+
     const onVisible = () => {
       visibleSince = document.visibilityState === 'visible' ? Date.now() : 0;
+      // Each trip to another app gets its own budget: coming back is the
+      // event this exists for, so it is the event that earns a fresh go.
+      tried = 0;
     };
     document.addEventListener('visibilitychange', onVisible);
 
     const id = setInterval(() => {
-      if (!visibleSince || Date.now() - visibleSince < 2000) return;
+      if (busy || !visibleSince || Date.now() - visibleSince < GRACE_MS) return;
       if (tuner.micState !== 'running') return;
-      if (tuner.engine.capturing) return;
-      // Stop first: start() would refuse an engine that still says running.
-      tuner.stopMic();
-      void startMic();
+      if (tuner.engine.capturing) {
+        // Alive. Whatever was wrong is not wrong now.
+        tried = 0;
+        return;
+      }
+      if (tried >= MAX_REMEDIES) return;
+      tried += 1;
+      busy = true;
+      // Each attempt gets the same grace the first one got, so a remedy is
+      // judged on whether it worked rather than on how fast it was.
+      visibleSince = Date.now();
+
+      /*
+       * Cheapest first. A context suspended out from under us runs no
+       * worklet, which looks identical to the session being taken away and
+       * is one call to fix; only if that is not it is the graph rebuilt.
+       */
+      void (async () => {
+        try {
+          if (tried === 1 && (await tuner.engine.resumeContext())) return;
+          // Stop first: start() would refuse an engine that still says running.
+          tuner.stopMic();
+          await startMic();
+        } catch {
+          /* startMic has already put the error on screen */
+        } finally {
+          busy = false;
+          visibleSince = Date.now();
+        }
+      })();
     }, 1000);
 
     return () => {

@@ -654,6 +654,34 @@ export class AudioEngine {
   }
 
   /**
+   * Try to wake a context that was suspended out from under us.
+   *
+   * The cheap half of recovering a dead graph, and the half worth trying
+   * first. A suspended context runs no worklet, so no chunks arrive and
+   * `capturing` goes false -- which looks exactly like the session having
+   * been taken away, and is not: everything is still wired up and one call
+   * fixes it. Tearing the graph down and building a new one also fixes it,
+   * at the cost of a new `getUserMedia` and a fresh context, and it is the
+   * wrong first answer to a question this cheap to ask.
+   *
+   * Returns whether the context is running afterwards. False covers both the
+   * resume being refused and there being no context at all, which the caller
+   * treats the same way: escalate.
+   */
+  async resumeContext(): Promise<boolean> {
+    const ctx = this.ctx;
+    if (!ctx) return false;
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch {
+        return false;
+      }
+    }
+    return ctx.state === 'running';
+  }
+
+  /**
    * Runs one detection pass over the most recent window. Safe to call at
    * display rate; returns the previous reading unchanged if not enough new
    * audio has arrived yet.
