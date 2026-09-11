@@ -2751,8 +2751,11 @@ button {
   position: absolute;
   inset: 0;
   z-index: 75;
-  display: flex;
-  flex-direction: column;
+  /* The screen itself scrolls, so the pictures go with the page. */
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--bg-0);
   color: var(--text);
   /*
@@ -2785,8 +2788,8 @@ button {
 .purchase__gallery {
   position: relative;
   flex: 0 0 auto;
-  height: max(52%, 300px);
-  padding: 58px 0 24px;
+  flex: 1 1 auto;
+  min-height: 210px;
 }
 
 /*
@@ -2804,28 +2807,46 @@ button {
 .purchase__frames {
   /* Positioned so a card's offsetLeft is measured from the strip -- see the
      measure() in Gallery, which is what the dots are driven from. */
-  position: relative;
+  /*
+   * Absolute, and that is what makes the cards have a width at all.
+   *
+   * A card is as tall as the strip and as wide as that height implies. Flex
+   * resolves a width before it stretches a height, so an `aspect-ratio` card
+   * in a flex row computes its width from a height it has not been given yet
+   * and comes out at zero -- which is exactly what the gallery rendered. Held
+   * off the gallery's edges instead, the strip has a height that is settled
+   * before anything inside it is measured, and `height: 100%` on a card is a
+   * real number the ratio can work from.
+   *
+   * The insets are the back button's room at the top and the dots' at the
+   * bottom.
+   */
+  position: absolute;
+  top: 58px;
+  right: 0;
+  bottom: 24px;
+  left: 0;
   display: flex;
   align-items: stretch;
   gap: 12px;
-  height: 100%;
-  padding: 0 calc(50% - var(--card-w) / 2);
+  /*
+   * Half the strip at each end, so the first card and the last one can both
+   * reach the middle. Not `50% - half a card`, which is what this was: a
+   * percentage in horizontal padding resolves against the *width*, and the
+   * card's width comes from its height -- so the sum was of two different
+   * axes and the first card sat eleven pixels right of centre until the snap
+   * happened to correct it. Gallery scrolls to the first card on mount, which
+   * is exact whatever the sizes turn out to be.
+   */
+  padding: 0 50%;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
-  scroll-padding: 0 calc(50% - var(--card-w) / 2);
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   /* Sideways only: a vertical drag here belongs to the page. */
   overscroll-behavior-x: contain;
-  /*
-   * The card's width, derived from its height and the shape of the phone
-   * these were taken on. Named because the padding either side of the strip
-   * has to be half the leftover, and that is the only way to centre a card
-   * that is narrower than the screen.
-   */
-  --card-w: calc((100% - 58px) * 0.483);
 }
 
 .purchase__frames::-webkit-scrollbar {
@@ -2835,9 +2856,9 @@ button {
 /*
  * One phone, at the shape it was photographed.
  *
- * `aspect-ratio` off the height rather than a width in pixels: the height is
- * whatever is left over after the header and the card below, and the picture
- * has to stay the shape of a phone whatever that comes to.
+ * As tall as the strip, and as wide as that makes it. The strip is taken out
+ * of flow precisely so this percentage has something definite to resolve
+ * against -- see the note there.
  */
 .purchase__frame {
   position: relative;
@@ -2960,19 +2981,17 @@ button {
   background: var(--surface-press);
 }
 
-.purchase__body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  display: flex;
-  flex-direction: column;
-  padding: 0 18px calc(18px + var(--safe-b));
+.purchase__page,
+.purchase__details {
+  padding-left: 18px;
+  padding-right: 18px;
 }
 
-.purchase__body::-webkit-scrollbar {
-  display: none;
+/* What the gallery is sized around: as tall as its own contents, no more. */
+.purchase__page {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /*
@@ -2982,8 +3001,8 @@ button {
  * line is the one doing the work -- see TIER_STATEMENT.
  */
 .purchase__statement {
-  margin: 18px 0 20px;
-  font-size: 27px;
+  margin: 14px 0 16px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.022em;
   line-height: 1.18;
@@ -3003,7 +3022,7 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 15px;
   border-radius: 18px;
   background: linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 62%);
 }
@@ -3043,12 +3062,12 @@ button {
 }
 
 .purchase__perks {
-  margin: 14px 0 16px;
+  margin: 12px 0 14px;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
 }
 
 .purchase__perk {
@@ -3060,14 +3079,21 @@ button {
   color: var(--text-2);
 }
 
+/*
+ * White ticks -- and in light, black ones.
+ *
+ * The same token, which is what makes it right rather than a compromise: a
+ * white tick on a near-white card is a tick nobody can see, so "white" only
+ * means white at the end of the scale where white is the ink.
+ */
 .purchase__perk svg {
   flex: 0 0 auto;
-  color: var(--green);
+  color: var(--text);
 }
 
 .purchase__buy {
   position: relative;
-  height: 50px;
+  height: 48px;
   border-radius: 999px;
   background: var(--accent-grad);
   color: #ffffff;
@@ -3088,7 +3114,7 @@ button {
 }
 
 .purchase__status {
-  margin-top: 12px;
+  margin-top: 10px;
   text-align: center;
   font-size: 12.5px;
   line-height: 1.45;
@@ -3101,8 +3127,7 @@ button {
 }
 
 .purchase__restore {
-  margin-top: auto;
-  padding: 16px 0 4px;
+  padding: 13px 0 2px;
   text-align: center;
   font-size: 13.5px;
   font-weight: 500;
@@ -3111,6 +3136,121 @@ button {
 
 .purchase__restore:disabled {
   opacity: 0.5;
+}
+
+/*
+ * The hint, which exists to be obeyed and then to go.
+ *
+ * `visibility` rides with the opacity so that once it has faded it is not a
+ * target for a screen reader either -- though it is aria-hidden in any case,
+ * being an instruction about a scrollbar rather than content.
+ */
+.purchase__hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 11px 0 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-4);
+  transition:
+    opacity 300ms var(--ease),
+    transform 300ms var(--ease),
+    visibility 300ms;
+}
+
+.purchase__hint[data-gone='true'] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+}
+
+/* --- the long version ---------------------------------------------------- */
+
+.purchase__details {
+  padding-top: 8px;
+  padding-bottom: calc(28px + var(--safe-b));
+}
+
+.purchase__group + .purchase__group {
+  margin-top: 26px;
+}
+
+/*
+ * The heading a grouped list wears: small, spaced, and outside the card
+ * rather than in it.
+ */
+.purchase__group-label {
+  margin: 0 0 7px;
+  padding: 0 16px;
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--text-4);
+}
+
+.purchase__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.purchase__row {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 44px;
+  padding: 11px 16px;
+}
+
+/* The inset hairline of a grouped list: short at the left, flush at the
+   right, and never under the last row. */
+.purchase__row + .purchase__row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--border);
+}
+
+.purchase__row-name {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.purchase__row-note {
+  flex: 0 1 auto;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-4);
+}
+
+.purchase::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * The first screenful, held to exactly one.
+ *
+ * The gallery takes what is left after the card rather than a share of the
+ * screen: the card is as tall as its own words, and a gallery sized as a
+ * percentage pushed the button off the bottom of a small phone. A floor under
+ * it, because below a certain size a picture stops being a picture.
+ */
+.purchase__first {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 @keyframes purchase-fade {

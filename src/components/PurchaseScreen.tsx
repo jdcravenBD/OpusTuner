@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckIcon, ChevronLeftIcon } from './Icons';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon } from './Icons';
 import { useEscape } from '../hooks';
 import { useSettings } from '../state/store';
 import { SHOWCASE } from '../state/showcase';
@@ -11,7 +11,13 @@ import {
   restoreFullSet,
   type Outcome,
 } from '../state/purchases';
-import { PRICE, TIER_HIGHLIGHTS, TIER_NAME, TIER_STATEMENT } from '../state/unlock';
+import {
+  PRICE,
+  TIER_DETAILS,
+  TIER_HIGHLIGHTS,
+  TIER_NAME,
+  TIER_STATEMENT,
+} from '../state/unlock';
 
 interface Props {
   open: boolean;
@@ -60,6 +66,9 @@ export function PurchaseScreen({ open, onClose }: Props) {
    * be reached — a number on the screen beats a gap where one should be.
    */
   const [storePrice, setStorePrice] = useState<string | null>(null);
+  /** True the moment the page moves, which is when the hint has done its job. */
+  const [moved, setMoved] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   /* Same shape as Sheet: adjusted during render so the screen is mounted on
      the commit `open` turns true, and starts its exit without a frame of
@@ -106,6 +115,22 @@ export function PurchaseScreen({ open, onClose }: Props) {
     if (outcome === 'owned') setTimeout(onClose, 900);
   };
 
+  /*
+   * The hint under the button only has to survive until it is taken.
+   *
+   * Watched on the first pixel rather than at some distance down, because the
+   * thing it is telling you is *that* the page scrolls -- once it has moved,
+   * you know, and a label still saying so is a label talking over you.
+   */
+  useEffect(() => {
+    const page = bodyRef.current;
+    if (!open || !page) return;
+    setMoved(page.scrollTop > 0);
+    const onScroll = () => setMoved(page.scrollTop > 0);
+    page.addEventListener('scroll', onScroll, { passive: true });
+    return () => page.removeEventListener('scroll', onScroll);
+  }, [open]);
+
   useEscape(open, onClose);
 
   if (!open && !closing) return null;
@@ -125,15 +150,27 @@ export function PurchaseScreen({ open, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label={TIER_NAME}
+      ref={bodyRef}
     >
-      <Gallery />
-
       {/* Over the gallery, in the corner a back button lives in. */}
       <button className="purchase__back" onClick={onClose} aria-label="Back">
         <ChevronLeftIcon size={22} />
       </button>
 
-      <div className="purchase__body">
+      {/*
+        * Everything down to the hint, held to exactly one screenful.
+        *
+        * The pictures take whatever is left after the card rather than a
+        * fixed share of the screen, which is the only way round that works:
+        * the card is as tall as its own words, and a gallery sized as a
+        * percentage pushed the button off the bottom of a small phone. This
+        * way the button is always on the first screen and the pictures are
+        * as big as the phone can afford.
+        */}
+      <div className="purchase__first">
+        <Gallery />
+
+        <div className="purchase__page">
         {/*
           * Two sentences, and the second is the one that matters.
           *
@@ -200,6 +237,37 @@ export function PurchaseScreen({ open, onClose }: Props) {
         >
           {busy === 'restore' ? 'Checking' + ELLIPSIS : 'Already bought it? Restore'}
         </button>
+
+          <div className="purchase__hint" data-gone={moved} aria-hidden>
+            Scroll for details
+            <ChevronDownIcon size={16} />
+          </div>
+        </div>
+      </div>
+
+      {/*
+        * The long version.
+        *
+        * A reader who scrolls past the button is looking for a reason to
+        * believe the four lines above it, and thirty of them counted out is a
+        * better answer than four of them said again. Written as a grouped
+        * list because that is what it is, and because this screen is in the
+        * style where a grouped list is the way a list looks.
+        */}
+      <div className="purchase__details">
+        {TIER_DETAILS.map((group) => (
+          <section className="purchase__group" key={group.label}>
+            <h2 className="purchase__group-label">{group.label}</h2>
+            <ul className="purchase__rows">
+              {group.rows.map(([name, note]) => (
+                <li className="purchase__row" key={name}>
+                  <span className="purchase__row-name">{name}</span>
+                  {note && <span className="purchase__row-note">{note}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     </div>,
     host,
@@ -253,6 +321,16 @@ function Gallery() {
     };
 
     measure();
+    /*
+     * Park on the first card.
+     *
+     * The strip is padded by half its own width at each end so that the first
+     * and last cards can both reach the middle, which means scroll position
+     * zero is not the first card -- it is the empty half-width before it.
+     * Doing it here rather than in CSS is what keeps the padding honest: no
+     * arithmetic that has to guess how wide a card turned out.
+     */
+    if (mids.length) strip.scrollLeft = mids[0] - strip.clientWidth / 2;
     strip.addEventListener('scroll', onScroll, { passive: true });
     if (typeof ResizeObserver === 'undefined') {
       return () => strip.removeEventListener('scroll', onScroll);

@@ -59,7 +59,7 @@ export const FREE_APPEARANCE = { themeStyle: 'default', themeColor: false };
  * in the component because it is a claim about the product, and a claim about
  * the product has to stay true when the product changes.
  */
-export const TIER_STATEMENT: [string, string] = ['Buy it once.', 'It stays bought.'];
+export const TIER_STATEMENT: [string, string] = ['Buy it once.', 'Keep it forever.'];
 
 /**
  * The three lines on the card, which between them cover every locked control.
@@ -71,9 +71,79 @@ export const TIER_STATEMENT: [string, string] = ['Buy it once.', 'It stays bough
  * of the three describes.
  */
 export const TIER_HIGHLIGHTS: string[] = [
-  'Every tuning, and the chromatic tuner',
-  'The Modern style, and a color of your own',
-  'A screen with only what you use',
+  'Every tuning, and unlimited custom ones',
+  'The Modern style, and the color slider',
+  "Toggle off the UI you don't need",
+  'Support my effort in spite of needless subscriptions',
+];
+
+/**
+ * The long version, under the fold on the purchase screen.
+ *
+ * Everything the app can do, named as plainly as it can be named. Length is
+ * the argument here: a reader who scrolls past the button is looking for a
+ * reason to believe the three lines above, and thirty of them counted out is
+ * a better answer than three of them restated.
+ *
+ * **Every number in here is checked against the code, not remembered.** The
+ * counts come from music/tunings, the ranges from the pickers in Settings,
+ * and they are the sort of thing that quietly stops being true -- the App
+ * Store description still says the chromatic tuner is free, a year after it
+ * stopped being.
+ */
+export interface TierDetail {
+  label: string;
+  rows: [name: string, note?: string][];
+}
+
+export const TIER_DETAILS: TierDetail[] = [
+  {
+    label: 'What the Full Set opens',
+    rows: [
+      ['The chromatic tuner', 'Any note at all'],
+      ['Thirty-five more tunings', 'Sixty-eight are built in'],
+      ['Unlimited custom tunings', 'One without'],
+      ['The Modern style', 'In light and dark'],
+      ['The display color', 'The whole spectrum'],
+      ['Hide the title'],
+      ['Hide the detail bar'],
+      ['Hide the note carousel'],
+      ['Hide the pitch indicator'],
+      ['Hide the tuner marks'],
+      ['Hide the tuner arrows'],
+    ],
+  },
+  {
+    label: 'In the app already',
+    rows: [
+      ['Two tuner screens', 'Field and Strobe'],
+      ['Auto string detect', 'It finds the string'],
+      ['Advance automatically', 'Once one lands'],
+      ['Reference pitch', '415 to 466 Hz'],
+      ['Capo', 'To the twelfth fret'],
+      ['In-tune window', '2 to 20 cents'],
+      ['Note names', 'Sharp, flat, solfege'],
+      ['Trail weight', 'Three weights'],
+      ['Chime when in tune'],
+      ['Vibration'],
+      ['Left-handed'],
+      ['Keep the screen awake'],
+      ['Choose the microphone'],
+      ['Five instrument families', 'And anything else'],
+    ],
+  },
+  {
+    label: 'And what it is not',
+    rows: [
+      ['No subscription', 'There is nothing to renew'],
+      ['No advertising', 'There never has been'],
+      ['No account', 'Nothing to sign up for'],
+      ['Nothing leaves your phone', 'No network calls'],
+      ['Works with no signal', 'All of it, all the time'],
+      ['Every device you own', 'On one Apple ID'],
+      ['No second payment', 'Not now, not later'],
+    ],
+  },
 ];
 
 /** True when this tuning needs the full set. */
