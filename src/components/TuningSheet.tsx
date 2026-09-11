@@ -151,7 +151,15 @@ export function TuningSheet({ open, onClose, naming }: Props) {
     }));
   };
 
-  const renderRow = (t: Tuning) => (
+  /*
+   * `recent` swaps the row's pin for the clock the section is headed with.
+   *
+   * A row under Recent is there because it was used, not because anyone asked
+   * for it, and a pin on it would be offering to fix in place something that
+   * is about to move on its own. The same row still carries its pin
+   * everywhere else it appears.
+   */
+  const row = (t: Tuning, recent: boolean) => (
     <TuningRow
       key={t.id}
       tuning={t}
@@ -160,11 +168,21 @@ export function TuningSheet({ open, onClose, naming }: Props) {
       picked={picked === t.id}
       locked={isTuningLocked(t, owned)}
       pinned={session.pinnedTuningIds.includes(t.id)}
+      recent={recent}
       onPick={() => pick(t)}
       onTogglePin={() => togglePin(t.id)}
       onEdit={t.custom ? () => setEditing(t) : undefined}
     />
   );
+
+  /*
+   * Both take exactly one argument, and that is not incidental.
+   * `list.map(renderRow)` hands its callback the index as a second argument,
+   * so a single two-argument renderer used as a map callback would have read
+   * that index as its flag and been `true` for every row but the first.
+   */
+  const renderRow = (t: Tuning) => row(t, false);
+  const renderRecent = (t: Tuning) => row(t, true);
 
   // Sliced as well as capped on write, so a list stored by an older build
   // still renders at the current length.
@@ -234,7 +252,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
           <>
             {recents.length > 0 && (
               <Section label="Recent" icon={<ClockIcon />}>
-                {recents.map(renderRow)}
+                {recents.map(renderRecent)}
               </Section>
             )}
             {pinned.length > 0 && (
@@ -372,6 +390,7 @@ function TuningRow({
   picked,
   locked,
   pinned,
+  recent,
   onPick,
   onTogglePin,
   onEdit,
@@ -382,6 +401,8 @@ function TuningRow({
   picked: boolean;
   locked: boolean;
   pinned: boolean;
+  /** Listed under Recent, where the slot carries a clock instead of a pin. */
+  recent?: boolean;
   onPick: () => void;
   onTogglePin: () => void;
   onEdit?: () => void;
@@ -410,6 +431,10 @@ function TuningRow({
       {locked ? (
         <span className="row__lock" aria-label="Locked">
           <LockIcon />
+        </span>
+      ) : recent ? (
+        <span className="row__pin row__pin--static" aria-hidden>
+          <ClockIcon />
         </span>
       ) : (
         <button

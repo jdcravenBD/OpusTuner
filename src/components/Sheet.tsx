@@ -30,6 +30,16 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
 
   /** True once the heading in the list has scrolled up out of sight. */
   const [scrolled, setScrolled] = useState(false);
+  /**
+   * True while the list has not moved at all.
+   *
+   * A second signal rather than a reuse of the one above, because the two
+   * things they drive start at different moments. The blur at the top has to
+   * be there the instant anything is under it, which includes the heading on
+   * its way out; the title in the bar must not arrive until that heading has
+   * gone, or the panel says its own name twice.
+   */
+  const [atTop, setAtTop] = useState(true);
 
   /*
    * Held on past `open` going false so the panel can slide back down rather
@@ -120,6 +130,17 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
    * nothing per frame — the observer only fires on the crossing.
    */
   useEffect(() => {
+    const body = bodyRef.current;
+    if (!open || !body) return;
+    // Same value, same state: React bails out of the re-render, so this is a
+    // comparison per scroll event and a render only on the crossing.
+    const onScroll = () => setAtTop(body.scrollTop <= 0);
+    onScroll();
+    body.addEventListener('scroll', onScroll, { passive: true });
+    return () => body.removeEventListener('scroll', onScroll);
+  }, [open]);
+
+  useEffect(() => {
     const heading = titleRef.current;
     const body = bodyRef.current;
     if (!open || !heading || !body) return;
@@ -144,6 +165,8 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
       <div
         className={tall ? 'sheet sheet--tall' : 'sheet'}
         data-closing={closing}
+        data-scrolled={scrolled}
+        data-at-top={atTop}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -160,7 +183,7 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
           * three were already here — the cross was a fourth way to do what the
           * grip above it is already advertising.
           */}
-        <div className="sheet__head sheet__handle" data-scrolled={scrolled}>
+        <div className="sheet__head sheet__handle">
           <div>{left}</div>
           <div className="sheet__title" aria-hidden>
             {title}

@@ -536,9 +536,19 @@ button {
   padding: 0 15px;
 }
 
-.icon-btn:hover {
-  color: var(--text);
-  border-color: var(--border-hi);
+/*
+ * Hover states, for pointers that can actually hover.
+ *
+ * Without the query a touch device keeps the last thing it touched in its
+ * hover state until something else is touched, because there is no pointer
+ * to leave and nothing to tell the element it has gone. A button that stays
+ * lit after it has been pressed reads as still doing something, or as stuck.
+ */
+@media (hover: hover) {
+  .icon-btn:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
+  }
 }
 
 .icon-btn:active {
@@ -574,8 +584,10 @@ button {
   transition: border-color var(--dur) var(--ease);
 }
 
-.status:hover {
-  border-color: var(--border-hi);
+@media (hover: hover) {
+  .status:hover {
+    border-color: var(--border-hi);
+  }
 }
 
 .status__seg {
@@ -900,9 +912,11 @@ button {
     transform var(--dur) var(--ease);
 }
 
-.visual-nav:hover {
-  color: var(--text-2);
-  opacity: 1;
+@media (hover: hover) {
+  .visual-nav:hover {
+    color: var(--text-2);
+    opacity: 1;
+  }
 }
 
 .visual-nav:active {
@@ -1219,8 +1233,10 @@ button {
     transform 110ms var(--ease);
 }
 
-.tuning-btn:hover {
-  border-color: var(--border-hi);
+@media (hover: hover) {
+  .tuning-btn:hover {
+    border-color: var(--border-hi);
+  }
 }
 
 .tuning-btn:active {
@@ -1441,9 +1457,15 @@ button {
    */
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 4px 10px 10px;
+  /*
+   * More room above the title than below it.
+   *
+   * The bar is empty until the heading in the list goes under it, so this
+   * padding is what stands between the grip and a title that arrives out of
+   * nowhere. Too little and it lands on top of the grip.
+   */
+  padding: 12px 10px 12px;
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--border);
 }
 
 /*
@@ -1472,7 +1494,7 @@ button {
     visibility 220ms;
 }
 
-.sheet__head[data-scrolled='true'] .sheet__title {
+.sheet[data-scrolled='true'] .sheet__title {
   opacity: 1;
   visibility: visible;
   transform: none;
@@ -1487,18 +1509,12 @@ button {
  */
 .sheet__bigtitle {
   /*
-   * The top margin is the height of the fade above it.
-   *
-   * The fade is always there, and at rest it has nothing to work on: it is
-   * the sheet's own colour painted over the sheet's own colour, and a blur of
-   * blank space. Start the heading below it and the first thing you read is
-   * never the thing being blurred -- which is the state the platform is in
-   * when a list has not been scrolled, reached without a second flag to keep
-   * in step with this one.
+   * Close to the top, which it can be because the fade above it is not on
+   * until something is scrolling under it -- see .sheet__fade--top.
    */
-  margin: 30px 0 10px;
+  margin: 6px 0 12px;
   padding: 0 2px;
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 750;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -1539,22 +1555,88 @@ button {
  * The mask is what makes the blur itself fade out. A backdrop-filter has no
  * gradient of its own: it is on or off over the whole element, and the only
  * way to give it an edge is to fade the element that carries it.
+ *
+ * Both the mask and the tint are written as a ramp rather than as two stops.
+ * A linear-gradient between two colours is linear in *value*, and the eye
+ * does not read light that way: an even ramp of numbers has a visible knee
+ * near the top and a long flat tail. The stops below bend it back, which is
+ * the whole difference between this reading as a soft edge and as a band with
+ * an edge of its own.
+ *
+ * And it is only on once something is under it. At rest this sits over blank
+ * page, and a blur of nothing is nothing -- but the heading now starts high
+ * enough to be inside it, so "nothing to blur" stopped being true. Fading it
+ * in on the first pixel of scroll is what keeps the heading crisp until it
+ * actually starts to leave.
  */
 .sheet__fade--top {
   top: 0;
-  height: 38px;
-  background: linear-gradient(180deg, var(--bg-0) 0%, transparent 100%);
-  -webkit-backdrop-filter: blur(7px);
-  backdrop-filter: blur(7px);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 100%);
+  height: 76px;
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+  background: linear-gradient(
+    180deg,
+    var(--bg-0) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.97) 22%,
+    rgba(0, 0, 0, 0.85) 40%,
+    rgba(0, 0, 0, 0.6) 58%,
+    rgba(0, 0, 0, 0.3) 76%,
+    rgba(0, 0, 0, 0.1) 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.97) 22%,
+    rgba(0, 0, 0, 0.85) 40%,
+    rgba(0, 0, 0, 0.6) 58%,
+    rgba(0, 0, 0, 0.3) 76%,
+    rgba(0, 0, 0, 0.1) 88%,
+    transparent 100%
+  );
 }
 
-/* The bottom edge has nothing sitting over it, so a fade is the whole job. */
+.sheet[data-at-top='false'] .sheet__fade--top {
+  opacity: 1;
+}
+
+/*
+ * The bottom edge has nothing sitting over it, so a fade is the whole job --
+ * and the same bent ramp, for the same reason.
+ */
 .sheet__fade--bottom {
   bottom: 0;
-  height: 46px;
-  background: linear-gradient(0deg, var(--bg-0) 18%, transparent 100%);
+  height: 92px;
+  background: linear-gradient(
+    0deg,
+    var(--bg-0) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    0deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.96) 26%,
+    rgba(0, 0, 0, 0.8) 46%,
+    rgba(0, 0, 0, 0.52) 64%,
+    rgba(0, 0, 0, 0.24) 82%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    0deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.96) 26%,
+    rgba(0, 0, 0, 0.8) 46%,
+    rgba(0, 0, 0, 0.52) 64%,
+    rgba(0, 0, 0, 0.24) 82%,
+    transparent 100%
+  );
 }
 
 .sheet__body {
@@ -1681,9 +1763,11 @@ button {
   color: var(--text-3);
 }
 
-.search__clear:hover {
-  color: var(--text);
-  background: var(--surface-hi);
+@media (hover: hover) {
+  .search__clear:hover {
+    color: var(--text);
+    background: var(--surface-hi);
+  }
 }
 
 /* ------------------------------------------------------------- chip rows -- */
@@ -1719,9 +1803,11 @@ button {
     border-color var(--dur) var(--ease);
 }
 
-.chip:hover {
-  border-color: var(--border-hi);
-  color: var(--text);
+@media (hover: hover) {
+  .chip:hover {
+    border-color: var(--border-hi);
+    color: var(--text);
+  }
 }
 
 .chip[data-on='true'] {
@@ -1754,8 +1840,10 @@ button {
   margin-top: 5px;
 }
 
-.row:hover {
-  border-color: var(--border-hi);
+@media (hover: hover) {
+  .row:hover {
+    border-color: var(--border-hi);
+  }
 }
 
 .row:active {
@@ -1861,9 +1949,11 @@ button {
     background var(--dur) var(--ease);
 }
 
-.row__pin:hover {
-  background: var(--surface-hi);
-  color: var(--text-2);
+@media (hover: hover) {
+  .row__pin:hover {
+    background: var(--surface-hi);
+    color: var(--text-2);
+  }
 }
 
 /*
@@ -1880,6 +1970,16 @@ button {
 
 .row__pin[data-on='true'] {
   color: var(--text);
+}
+
+/*
+ * The clock a Recent row carries instead of a pin. Same slot, same size, so
+ * the column of trailing marks stays a column -- but it is a label, not a
+ * control, and it is drawn at the weight of one.
+ */
+.row__pin--static {
+  color: var(--text-4);
+  cursor: default;
 }
 
 .row__pin[data-on='true'] svg {
@@ -1901,9 +2001,11 @@ button {
   transition: color var(--dur) var(--ease);
 }
 
-.row__badge:hover {
-  color: var(--text);
-  border-color: var(--border-hi);
+@media (hover: hover) {
+  .row__badge:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
+  }
 }
 
 /* -------------------------------------------------------------- settings -- */
@@ -2059,8 +2161,10 @@ button {
     box-shadow var(--dur) var(--ease);
 }
 
-.segmented button:hover {
-  color: var(--text-2);
+@media (hover: hover) {
+  .segmented button:hover {
+    color: var(--text-2);
+  }
 }
 
 /* The face this used to paint is the thumb's now; the ink is still the
@@ -2092,9 +2196,11 @@ button {
   transition: background var(--dur) var(--ease);
 }
 
-.stepper button:hover {
-  background: var(--surface-hi);
-  color: var(--text);
+@media (hover: hover) {
+  .stepper button:hover {
+    background: var(--surface-hi);
+    color: var(--text);
+  }
 }
 
 .stepper button[disabled] {
@@ -2275,8 +2381,10 @@ button {
     transform 110ms var(--ease);
 }
 
-.btn:hover {
-  border-color: var(--border-hi);
+@media (hover: hover) {
+  .btn:hover {
+    border-color: var(--border-hi);
+  }
 }
 
 .btn:active {
@@ -2368,8 +2476,10 @@ button {
   color: var(--text-2);
 }
 
-.editor__arrows button:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .editor__arrows button:hover {
+    color: var(--text);
+  }
 }
 
 .editor__hz {
@@ -2457,9 +2567,11 @@ button {
     color var(--dur) var(--ease);
 }
 
-.powergate__btn:hover {
-  color: var(--green);
-  box-shadow: var(--elev-2), var(--hi-strong), 0 0 0 9px var(--green-soft);
+@media (hover: hover) {
+  .powergate__btn:hover {
+    color: var(--green);
+    box-shadow: var(--elev-2), var(--hi-strong), 0 0 0 9px var(--green-soft);
+  }
 }
 
 .powergate__btn:active {
@@ -2563,8 +2675,10 @@ button {
   opacity: 0.45;
 }
 
-.row[data-locked='true']:hover {
-  opacity: 0.62;
+@media (hover: hover) {
+  .row[data-locked='true']:hover {
+    opacity: 0.62;
+  }
 }
 
 .row__lock {
@@ -2705,8 +2819,10 @@ button {
   transition: color var(--dur) var(--ease);
 }
 
-.purchase__close:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .purchase__close:hover {
+    color: var(--text);
+  }
 }
 
 .purchase__close:active {
@@ -3598,19 +3714,6 @@ button {
   border-top-left-radius: 40px;
   border-top-right-radius: 40px;
   box-shadow: var(--elev-3);
-}
-
-/*
- * No rule under the title.
- *
- * The app's sheets draw one because their header sits on the same surface as
- * the list and something has to separate them. Here the list is a column of
- * cards on a tinted page, which already reads as a different layer, so the
- * line is a mark doing nothing -- and this idiom does not draw marks that do
- * nothing.
- */
-:root[data-theme='modern'] .sheet__head {
-  border-bottom: 0;
 }
 
 :root[data-theme='modern'] .sheet__title {
