@@ -5,7 +5,7 @@ import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
 import { CheckIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
-import { TIER_NAME, isThemeLocked } from '../state/unlock';
+import { TIER_NAME, isAppearanceLocked } from '../state/unlock';
 import {
   DEFAULT_HUE,
   settingsStore,
@@ -14,6 +14,7 @@ import {
   useSettings,
   type Settings,
   type ThemeMode,
+  type ThemeStyle,
 } from '../state/store';
 import type { NoteNaming } from '../music/notes';
 
@@ -29,11 +30,13 @@ interface Props {
 export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVersion }: Props) {
   const s = useSettings();
   /*
-   * Themes with no hue of their own leave the picker nothing to set. The two
-   * colorless ones drain it; Modern never had one, being a fixed set of
-   * system colors rather than a tint of the app's.
+   * Modern is a fixed set of system colors rather than a tint of the app's,
+   * so neither the mode nor the hue is its to follow. Both rows below say so
+   * while it is the chosen style.
    */
-  const colorless = s.theme === 'plain' || s.theme === 'basic' || s.theme === 'modern';
+  const modern = s.themeStyle === 'modern';
+  /** Nothing for the hue slider to set: the palette has no color in it. */
+  const colorless = modern || !s.themeColor;
   /** Names what the reader reached for, and opens the showcase. */
   const [wanted, setWanted] = useState<string | null>(null);
   /** 'idle' before anyone asks, 'busy' while Apple is being asked. */
@@ -179,34 +182,74 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- visual */}
       <Section label="Visual">
-        {/*
-          On its own line since the fifth theme arrived. Five labels and a
-          word beside them do not fit across a phone, and what gives first is
-          the label: it was rendering as "Them" with the e cut off.
-        */}
-        <Row name="Theme" stack>
+        <Row name="Style">
           <Segmented
-            value={s.theme}
+            value={s.themeStyle}
             options={[
-              /* The ids read backwards; see THEMES in state/store. */
-              { value: 'plain' as ThemeMode, label: 'Basic' },
-              { value: 'basic' as ThemeMode, label: 'Plain' },
-              { value: 'dark' as ThemeMode, label: 'Dark', locked: isThemeLocked('dark', s.owned) },
+              { value: 'default' as ThemeStyle, label: 'Default' },
+              {
+                value: 'modern' as ThemeStyle,
+                label: 'Modern',
+                locked: isAppearanceLocked('themeStyle', 'modern', s.owned),
+              },
+            ]}
+            onChange={(v) =>
+              isAppearanceLocked('themeStyle', v, s.owned)
+                ? setWanted('The Modern style')
+                : set('themeStyle', v)
+            }
+          />
+        </Row>
+        {/*
+          Modern is light and only light — see the theme's own note in the
+          stylesheet. The row says so rather than accepting a press and
+          changing nothing, which is the failure this whole section was
+          rebuilt to stop: a control whose effect depends on a setting
+          somewhere else.
+        */}
+        <Row name="Mode" desc={modern ? 'Modern is light only.' : undefined}>
+          <Segmented
+            value={s.themeMode}
+            disabled={modern}
+            options={[
+              { value: 'dark' as ThemeMode, label: 'Dark' },
               {
                 value: 'light' as ThemeMode,
                 label: 'Light',
-                locked: isThemeLocked('light', s.owned),
-              },
-              {
-                value: 'modern' as ThemeMode,
-                label: 'Modern',
-                locked: isThemeLocked('modern', s.owned),
+                locked: isAppearanceLocked('themeMode', 'light', s.owned),
               },
             ]}
-            onChange={(v) => (isThemeLocked(v, s.owned) ? setWanted('Color themes') : set('theme', v))}
+            onChange={(v) =>
+              isAppearanceLocked('themeMode', v, s.owned)
+                ? setWanted('Light mode')
+                : set('themeMode', v)
+            }
           />
         </Row>
-        <Row name="Display color">
+        {/*
+          The switch turns the colour off altogether; the slider chooses which
+          colour it is when it is on. One row because they are one decision,
+          and the switch sits out on the right with every other switch in the
+          panel rather than becoming a third kind of control.
+        */}
+        <Row
+          name="Display color"
+          desc={modern ? 'The Modern style brings its own colors.' : undefined}
+          stack
+          aside={
+            <Switch
+              on={s.themeColor && !modern}
+              onChange={(v) =>
+                isAppearanceLocked('themeColor', v, s.owned)
+                  ? setWanted('Display color')
+                  : set('themeColor', v)
+              }
+              label="Display color"
+              locked={isAppearanceLocked('themeColor', true, s.owned)}
+              disabled={modern}
+            />
+          }
+        >
           <HueField
             value={s.hue}
             onChange={(v) => set('hue', v)}
@@ -408,6 +451,7 @@ function Row({
   desc,
   children,
   stack,
+  aside,
 }: {
   name: string;
   desc?: string;
@@ -420,13 +464,31 @@ function Row({
    * distance, which is three times the precision under a thumb.
    */
   stack?: boolean;
+  /**
+   * A second control, kept up on the name's line while `children` stack below.
+   *
+   * For a row that is one decision made with two controls: a switch for
+   * whether, out at the right with every other switch in the panel, and
+   * something wider underneath for which.
+   */
+  aside?: ReactNode;
 }) {
+  const main = (
+    <div className="setting__main">
+      <div className="setting__name">{name}</div>
+      {desc && <div className="setting__desc">{desc}</div>}
+    </div>
+  );
   return (
     <div className={stack ? 'setting setting--stack' : 'setting'}>
-      <div className="setting__main">
-        <div className="setting__name">{name}</div>
-        {desc && <div className="setting__desc">{desc}</div>}
-      </div>
+      {aside ? (
+        <div className="setting__head">
+          {main}
+          {aside}
+        </div>
+      ) : (
+        main
+      )}
       {children}
     </div>
   );
@@ -478,20 +540,24 @@ function Switch({
   onChange,
   label,
   locked,
+  disabled,
 }: {
   on: boolean;
   onChange: (value: boolean) => void;
   label: string;
   /** Still pressable — the press is what opens the showcase. */
   locked?: boolean;
+  /** Not pressable: there is nothing behind it to set. Unlike `locked`. */
+  disabled?: boolean;
 }) {
   return (
     <span className="switch-wrap">
-      {locked && <LockIcon size={13} />}
+      {locked && !disabled && <LockIcon size={13} />}
       <button
         className="switch"
         data-on={on}
         data-locked={locked}
+        disabled={disabled}
         role="switch"
         aria-checked={on}
         aria-label={label}
@@ -505,22 +571,26 @@ function Segmented<T extends string | number>({
   value,
   options,
   onChange,
+  disabled,
 }: {
   value: T;
   options: { value: T; label: string; locked?: boolean }[];
   onChange: (value: T) => void;
+  /** Nothing here applies right now — see the Mode row. */
+  disabled?: boolean;
 }) {
   return (
-    <div className="segmented" role="group">
+    <div className="segmented" role="group" data-disabled={disabled}>
       {options.map((o) => (
         <button
           key={String(o.value)}
           data-on={o.value === value}
-          data-locked={o.locked}
+          data-locked={o.locked && !disabled}
+          disabled={disabled}
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
         >
-          {o.locked && <LockIcon size={11} />}
+          {o.locked && !disabled && <LockIcon size={11} />}
           {o.label}
         </button>
       ))}

@@ -8,7 +8,7 @@ import {
   type Tuning,
 } from '../music/tunings';
 import { isTuningLocked } from '../state/unlock';
-import { useSession, useSettings, type ThemeMode } from '../state/store';
+import { useSession, useSettings, type ThemeMode, type ThemeStyle } from '../state/store';
 
 /**
  * Subscribes to the tuner's animation-frame stream.
@@ -75,14 +75,19 @@ export function useCurrentTuning(): Tuning {
 /* ----------------------------------------------------------------- theme -- */
 
 /**
- * Applies theme and hue to <html>, following the OS when set to "system".
+ * Applies the three appearance settings, and the hue, to <html>.
  *
  * The two hues are written as inline custom properties, which beats the
  * stylesheet's defaults for both light and dark without needing a copy per
  * theme. The browser chrome color is then read back off the resolved body
  * background rather than hard-coded, so it tracks any hue automatically.
  */
-export function useAppearance(mode: ThemeMode, hue: number): void {
+export function useAppearance(
+  style: ThemeStyle,
+  mode: ThemeMode,
+  colored: boolean,
+  hue: number,
+): void {
   useEffect(() => {
     const root = document.documentElement;
     // Two variables, one number. The tokens stay split so the screen *could*
@@ -94,33 +99,23 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
   useEffect(() => {
     const root = document.documentElement;
     /*
-     * `plain` rides on dark's tokens and drains the hue out of them in CSS, so
-     * it resolves to `dark` here and carries a flag of its own. Doing it as a
-     * palette of its own would mean maintaining a second copy of every
-     * lightness value to no end: the numbers are the same, the color is not.
+     * Modern is a palette *and* a structure, so it takes the data-theme slot
+     * outright rather than sitting on top of one of the two palettes. It is
+     * light and only light, which is why the mode is not consulted here: the
+     * setting is kept for when the style changes back, not applied now.
      */
+    root.dataset.theme = style === 'modern' ? 'modern' : mode;
     /*
-     * Both colourless themes drain the hue; one of them also takes the
-     * moulding off. They are not two sets of greys that happen to look
-     * similar, they are one palette with and without its boxes.
+     * Draining the colour is a flag rather than a palette of its own, because
+     * that is what it is: the same theme with `--s` at zero. A second set of
+     * lightness values that happened to match would be two things to keep in
+     * step for no gain — the numbers are the same, the colour is not.
      *
-     * `bare` is the id `basic`, which reads backwards and is deliberate:
-     * the two swapped display names and the stored ids did not follow, so
-     * that nobody's saved theme changed underneath them. THEMES in the
-     * store carries the same note.
+     * Modern is exempt because it has no hue to drain: every colour in it is
+     * a literal, so the flag would be a no-op that read as if it did something.
      */
-    const colorless = mode === 'plain' || mode === 'basic';
-    /*
-     * `modern` is the one theme that is a palette *and* a structure, so it is
-     * carried by data-theme alone rather than by a palette plus a flag. It
-     * also picks its own light or dark from the device, in CSS, which is why
-     * nothing here has to know which one it ended up in.
-     */
-    root.dataset.theme = colorless ? 'dark' : mode;
-    if (colorless) root.dataset.plain = 'true';
+    if (!colored && style !== 'modern') root.dataset.plain = 'true';
     else delete root.dataset.plain;
-    if (mode === 'basic') root.dataset.bare = 'true';
-    else delete root.dataset.bare;
 
     // Tints the browser's own chrome to match, so the app does not sit in a
     // band of someone else's color on a phone.
@@ -128,7 +123,7 @@ export function useAppearance(mode: ThemeMode, hue: number): void {
     if (chrome) {
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', chrome);
     }
-  }, [mode, hue]);
+  }, [style, mode, colored, hue]);
 }
 
 /* ------------------------------------------------------------- wake lock -- */

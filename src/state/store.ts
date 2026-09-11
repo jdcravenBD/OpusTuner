@@ -15,29 +15,26 @@ import { DEFAULT_VISUAL, VISUALS, type VisualId } from '../components/visuals/re
 /* ----------------------------------------------------------------- types -- */
 
 /**
- * Four themes, two of which are not palettes of their own.
+ * How the app is drawn, as three independent questions rather than one list.
  *
- * One is dark with every hue drained out of it and nothing else changed — same
- * lightness values, same moulding. The other is that with the moulding taken
- * off as well: no box around a settings row, a tuning, a corner button or a
- * string. The signal colors survive both; they mean something.
+ * There was a single `theme` here with five entries, and most of them were the
+ * same two or three answers combined: "Basic" was Dark with the colour drained
+ * out of it, "Plain" was that again with the boxes taken off, and Modern was
+ * the only one that was genuinely its own thing. A list like that grows by
+ * multiplication — every new axis doubles it — and it cannot say what it
+ * means: nothing in the word "Basic" tells you it is Dark underneath.
  *
- * Which id is which is the confusing part, and deliberately so — see THEMES.
+ * Split, they are: which visual language (`themeStyle`), light or dark
+ * (`themeMode`), and whether the palette is tinted at all (`themeColor`).
  */
-export type ThemeMode = 'plain' | 'basic' | 'dark' | 'light' | 'modern';
+export type ThemeStyle = 'default' | 'modern';
+export type ThemeMode = 'dark' | 'light';
 
-/*
- * Every theme on offer, in the order the picker shows them.
- *
- * **The two colourless ids read backwards on purpose.** `plain` is the one
- * with the boxes and is labelled "Basic"; `basic` is the one without them
- * and is labelled "Plain". The names were swapped and the ids were not,
- * because swapping the ids would have meant migrating every stored setting
- * and getting it wrong would silently change the theme under anyone already
- * using one. The labels live in SettingsSheet and the CSS flag is
- * `data-bare`, which is named for what it does instead.
- */
-export const THEMES: ThemeMode[] = ['plain', 'basic', 'dark', 'light', 'modern'];
+/** Both styles, in the order the picker shows them. */
+export const THEME_STYLES: ThemeStyle[] = ['default', 'modern'];
+
+/** Both modes, likewise. */
+export const THEME_MODES: ThemeMode[] = ['dark', 'light'];
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /**
@@ -75,7 +72,24 @@ export interface Settings {
   chimeOnTuned: boolean;
   haptics: boolean;
   keepAwake: boolean;
-  theme: ThemeMode;
+  /** Which visual language — see ThemeStyle. */
+  themeStyle: ThemeStyle;
+  /**
+   * Light or dark.
+   *
+   * Ignored while the style is Modern, which is light and only light. The
+   * setting is still kept rather than forced, so switching back to Default
+   * returns the mode that was chosen before.
+   */
+  themeMode: ThemeMode;
+  /**
+   * Whether the palette is tinted at all.
+   *
+   * Off drains every hue out of it and changes nothing else: same lightness
+   * values, same moulding, same gradients. Signal colours are literals and
+   * survive it, because green still has to mean in tune.
+   */
+  themeColor: boolean;
   /**
    * The one hue, 0–360. Drives every neutral in the chassis and on the tuner
    * screen alike.
@@ -151,7 +165,11 @@ export const DEFAULT_SETTINGS: Settings = {
   chimeOnTuned: false,
   haptics: false,
   keepAwake: true,
-  theme: 'plain',
+  // The free appearance, and the one the app has always opened in: the dark
+  // palette with no colour in it. See FREE_APPEARANCE in state/unlock.
+  themeStyle: 'default',
+  themeMode: 'dark',
+  themeColor: false,
   hue: DEFAULT_HUE,
   leftHanded: false,
   capo: 0,
@@ -186,12 +204,19 @@ export interface Store<T extends object> {
 function createStore<T extends object>(
   key: string,
   initial: T,
-  /** Runs once over the hydrated state — for values that were valid in an
-   *  older build and are not any more. */
-  migrate?: (state: T) => T,
+  /**
+   * Runs once over the hydrated state — for values that were valid in an
+   * older build and are not any more.
+   *
+   * Handed the raw stored object as well, which is the only way to read a
+   * setting that no longer exists: `hydrate` copies across the keys the
+   * current Settings has and drops everything else, so by the time it returns,
+   * a renamed or split setting is already gone.
+   */
+  migrate?: (state: T, stored: Readonly<Record<string, unknown>>) => T,
 ): Store<T> {
-  const hydrated = hydrate(key, initial);
-  let state: T = migrate ? migrate(hydrated) : hydrated;
+  const { state: hydrated, stored } = hydrate(key, initial);
+  let state: T = migrate ? migrate(hydrated, stored) : hydrated;
   const listeners = new Set<() => void>();
 
   const persist = () => {
@@ -256,27 +281,78 @@ function adoptLegacy(key: string): string | null {
   }
 }
 
-function hydrate<T extends object>(key: string, initial: T): T {
+function hydrate<T extends object>(
+  key: string,
+  initial: T,
+): { state: T; stored: Readonly<Record<string, unknown>> } {
   try {
     const raw = localStorage.getItem(key) ?? adoptLegacy(key);
-    if (!raw) return { ...initial };
+    if (!raw) return { state: { ...initial }, stored: {} };
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return { ...initial };
+    if (!parsed || typeof parsed !== 'object') return { state: { ...initial }, stored: {} };
     const merged = { ...initial } as Record<string, unknown>;
     for (const k of Object.keys(initial as object)) {
       if (parsed[k] !== undefined && parsed[k] !== null) merged[k] = parsed[k];
     }
-    return merged as T;
+    return { state: merged as T, stored: parsed as Record<string, unknown> };
   } catch {
-    return { ...initial };
+    return { state: { ...initial }, stored: {} };
+  }
+}
+
+/**
+ * The one `theme` setting, as the three that replaced it.
+ *
+ * Anyone who has used this app before has a `theme` in storage and none of the
+ * three keys below. Without this they would open the app to the default dark,
+ * whichever theme they had chosen, and a paid theme they had bought would look
+ * like it had been taken away.
+ *
+ * Two of the five map to the same answer, because that is what they were: both
+ * colourless themes were the dark palette with the hue drained, differing only
+ * in the moulding, and the one without it is gone. Modern keeps its style and
+ * is given Light, which is what it has always actually looked like, so the
+ * Mode row agrees with the screen.
+ */
+function appearanceFrom(
+  stored: Readonly<Record<string, unknown>>,
+  current: Settings,
+): Pick<Settings, 'themeStyle' | 'themeMode' | 'themeColor'> {
+  // Guarded the same way the tolerance below is: a stored value that is no
+  // longer on offer would leave the picker showing no selection at all.
+  const kept = {
+    themeStyle: THEME_STYLES.includes(current.themeStyle)
+      ? current.themeStyle
+      : DEFAULT_SETTINGS.themeStyle,
+    themeMode: THEME_MODES.includes(current.themeMode)
+      ? current.themeMode
+      : DEFAULT_SETTINGS.themeMode,
+    themeColor: current.themeColor,
+  };
+  // Already migrated and saved since: the three keys are the truth now, and
+  // whatever `theme` is still sitting beside them in storage is stale.
+  if (stored.themeStyle !== undefined) return kept;
+  switch (stored.theme) {
+    case 'plain':
+    case 'basic':
+      return { themeStyle: 'default', themeMode: 'dark', themeColor: false };
+    case 'dark':
+      return { themeStyle: 'default', themeMode: 'dark', themeColor: true };
+    case 'light':
+      return { themeStyle: 'default', themeMode: 'light', themeColor: true };
+    case 'modern':
+      return { themeStyle: 'modern', themeMode: 'light', themeColor: false };
+    default:
+      return kept;
   }
 }
 
 export const settingsStore = createStore<Settings>(
   'easyastuning.settings.v1',
   DEFAULT_SETTINGS,
-  (s) => ({
+  (s, stored) => ({
     ...s,
+    ...appearanceFrom(stored, s),
     // Someone who was last using a screen that has since been removed. Without
     // this the app falls back for *rendering* but the settings picker still
     // matches nothing, so it shows no selection at all.
@@ -289,10 +365,6 @@ export const settingsStore = createStore<Settings>(
     trailWidth: TRAIL_WIDTHS.includes(s.trailWidth)
       ? s.trailWidth
       : DEFAULT_SETTINGS.trailWidth,
-    // 'system', and later 'simple', were dropped from the picker; anyone still
-    // holding one would otherwise sit on a theme with no button, exactly as
-    // with the tolerance above.
-    theme: THEMES.includes(s.theme) ? s.theme : DEFAULT_SETTINGS.theme,
   }),
 );
 export const sessionStore = createStore<Session>('easyastuning.session.v1', DEFAULT_SESSION);

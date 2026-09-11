@@ -1781,6 +1781,20 @@ button {
   box-shadow: var(--hi);
 }
 
+/*
+ * The name line of a row, when a second control shares it.
+ *
+ * Only stacked rows need one: everywhere else the row is already a flex line
+ * and the control simply sits at the end of it. Here the children are stacked
+ * underneath, so the thing that stays up beside the name needs a line of its
+ * own to be at the end of. See Row's `aside`.
+ */
+.setting__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* Control on its own line, full width — see Row's `stack`. */
 .setting--stack {
   flex-direction: column;
@@ -1999,12 +2013,17 @@ button {
 }
 
 /* The label keeps what it needs and gives up the rest. */
-.setting:has(.slider-field--grow) .setting__main {
-  flex: 0 1 auto;
-}
-
-/* Nothing to set while the palette has no color in it. */
-.slider-field[data-disabled='true'] {
+/*
+ * Nothing to set: the palette has no color in it, or the style overrides the
+ * choice outright.
+ *
+ * Distinct from `data-locked`, which is a control that *would* work and has
+ * to stay pressable, because pressing it is what opens the purchase screen.
+ * These are not for sale; they simply do not apply right now.
+ */
+.slider-field[data-disabled='true'],
+.segmented[data-disabled='true'],
+.switch:disabled {
   opacity: 0.38;
   pointer-events: none;
 }
@@ -2865,122 +2884,6 @@ button {
   color: var(--text-3);
 }
 
-/* ------------------------------------------------------------------ bare -- */
-
-/*
- * The same app with the boxes taken off.
- *
- * The flag is `data-bare`, named for what it does rather than for the theme
- * that sets it. It used to be `data-basic`, which was fine until the two
- * colourless themes traded names: the selectors would then have said basic
- * while styling the one called Plain, and every future edit would have had
- * to remember that.
- *
- * Everything here is drawn as a machined instrument: every face moulded with
- * a lit top edge, an outline around it and a shadow beneath. Basic keeps all
- * of that for the tuner itself, where depth is doing work, and takes it away
- * from the furniture — a settings row, a tuning, the buttons in a corner.
- * Those are lists and controls, and a list does not need a box per item to be
- * a list.
- *
- * It rides on plain's palette rather than inventing one. Same lightness
- * values, same hue drained out; only the moulding differs.
- */
-
-/*
- * The border stays and turns transparent rather than being removed, so every
- * box keeps the pixel it already occupies and nothing shifts by a hair when
- * the theme changes. It is also what the rule below writes back into.
- *
- * States are excluded rather than overridden. A selected tuning and the one
- * under your finger both say so with a ring, and a later rule flattening them
- * would take the meaning with it — the same trap that once cost a chip its
- * white fill and left dark text on a dark background.
- */
-:root[data-bare='true'] .icon-btn,
-:root[data-bare='true'] .setting,
-:root[data-bare='true'] .row:not([data-selected='true']):not([data-picked='true']) {
-  background: none;
-  border: 1px solid transparent;
-  box-shadow: none;
-}
-
-/*
- * The panel comes up to meet them instead.
- *
- * A hairline between rows was the first answer to "what separates them now",
- * and it was the wrong one: it is a line, and lines are what this theme is
- * for getting rid of. Lifting the sheet well clear of the app behind it does
- * the same job with no marks at all, and the rows read as sitting on
- * something rather than as floating over the tuner.
- *
- * One point above the default sheet, which is 7.3 falling to 5, over an app
- * that is 3.5 behind it.
- *
- * Arrived at downwards. Twelve per cent read as a light-theme panel that had
- * wandered in; nine and a half was still announcing itself. With no box
- * around each row the sheet is the only thing saying "these are on a
- * surface", and it turns out that needs almost nothing: enough of a step to
- * see an edge, and no more.
- */
-:root[data-bare='true'] .sheet {
-  background: linear-gradient(180deg, hsl(0 0% 8.4%), hsl(0 0% 7.4%) 140px);
-}
-
-/* Pressed still reads as pressed; it just does it without a well to sink into. */
-:root[data-bare='true'] .icon-btn:active {
-  background: none;
-  box-shadow: none;
-  color: var(--text);
-}
-
-/*
- * The row along the bottom: the strings, the tuning button and Auto.
- *
- * The same idea as the settings rows, applied to the controls the tuner stands
- * on. No gradient, no moulding, and a face faint enough to read as where a key
- * is rather than as a key sitting on top of the case.
- *
- * A flat translucent fill rather than `opacity` on the element, and that is the
- * whole reason this is three rules instead of one: opacity would take the
- * lettering down with the face, and the lettering is the part that has to stay
- * exactly as legible as it was. Only the background moves.
- *
- * White at three percent because this theme is always dark — it forces
- * data-theme="dark" alongside — so there is no light palette for this to be
- * invisible against.
- */
-:root[data-bare='true'] .string:not([data-active='true']):not([data-tuned='true']),
-:root[data-bare='true'] .tuning-btn,
-:root[data-bare='true'] .toggle {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: transparent;
-  box-shadow: none;
-}
-
-/*
- * States lose the gradient as well, and nothing else.
- *
- * Only `background` is set here, so the ring, the scale and the green border
- * that say *selected* and *tuned* all survive untouched from their own rules
- * further up. Flattening those too is the trap that once left a chip with dark
- * text on a dark background: the fill is not decoration on these, it is the
- * only thing carrying the state.
- */
-:root[data-bare='true'] .string[data-active='true'] {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-:root[data-bare='true'] .string[data-tuned='true'],
-:root[data-bare='true'] .string[data-tuned='true'][data-active='true'] {
-  background: var(--green-soft);
-}
-
-/* Auto, switched on. The green border and the track say so; the face need not. */
-:root[data-bare='true'] .toggle[data-on='true'] {
-  border-color: var(--green-line);
-}
-
 /* ---------------------------------------------------------------- modern -- */
 
 /*
@@ -3109,7 +3012,13 @@ button {
 :root[data-theme='modern'] .stack {
   gap: 0;
   background: var(--surface);
-  border-radius: var(--r-md);
+  /*
+   * Rounder than the theme's own `--r-md`, and written out rather than
+   * raising that token: --r-md is on the controls inside these cards as
+   * well, and a card wants a softer corner than the stepper sitting in it.
+   * The two being the same number was a coincidence, not a relationship.
+   */
+  border-radius: 18px;
   overflow: hidden;
 }
 
@@ -3220,18 +3129,26 @@ button {
 
 /* --- tunings ------------------------------------------------------------- */
 
-/* The same card, holding the same kind of row. */
+/*
+ * A tuning is a pill, not a line in a card.
+ *
+ * The rest of this theme groups rows into one card with hairlines between
+ * them, which is what a list of *settings* is. A tuning is a thing you pick
+ * up, and it matches the tuning button at the bottom of the screen that opens
+ * this panel and then wears the answer — the same shape asking and answering.
+ */
 :root[data-theme='modern'] .row {
-  padding: 10px 16px;
+  padding: 10px 20px;
   min-height: 44px;
   border: 0;
-  border-radius: 0;
+  border-radius: 999px;
   background: var(--surface);
   box-shadow: none;
 }
 
+/* Separate objects now, so the hairline that joined them goes. */
 :root[data-theme='modern'] .row + .row {
-  border-top: 0.5px solid var(--border);
+  border-top: 0;
 }
 
 /*
@@ -3293,7 +3210,16 @@ button {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
 }
 
+/*
+ * On is green, and has to be said again here.
+ *
+ * `.switch[data-on='true']` sets it, but this theme's own `.switch` rule sets
+ * a background too and outweighs it — a class plus an attribute against a
+ * class, an attribute and `:root`. The state lost to the theme and every
+ * switch in the panel stayed grey when it was on.
+ */
 :root[data-theme='modern'] .switch[data-on='true'] {
+  background: var(--green);
   box-shadow: none;
 }
 
@@ -3433,6 +3359,23 @@ button {
   border: 0;
   background: var(--surface);
   box-shadow: none;
+}
+
+/*
+ * The two controls the tuner stands on, as pills.
+ *
+ * The padding goes up with the radius and is not optional: at 52 pixels tall
+ * a pill curves 26 in from each end, so text left at the old 14 would be
+ * sitting in the curve rather than beside it.
+ */
+:root[data-theme='modern'] .tuning-btn {
+  border-radius: 999px;
+  padding: 0 20px;
+}
+
+:root[data-theme='modern'] .toggle {
+  border-radius: 999px;
+  padding: 0 12px 0 20px;
 }
 
 :root[data-theme='modern'] .icon-btn {

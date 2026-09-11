@@ -34,8 +34,16 @@ export const PRICE = '$1.99';
 /** Custom tunings you can keep without the full set. */
 export const FREE_CUSTOM_TUNINGS = 1;
 
-/** Themes that need the tier. Plain, the colorless one, stays free. */
-export const PAID_THEMES = ['dark', 'light', 'modern'] as const;
+/**
+ * The one appearance that costs nothing: the dark palette, undyed.
+ *
+ * Everything else on those three settings is paid, which is the same policy
+ * the five-entry theme picker had — Basic was free and Dark, Light and Modern
+ * were not — written as the axes it always really was. Naming the free answer
+ * rather than listing the paid ones means a style or mode added later is paid
+ * by default, which is the safe way round to be wrong.
+ */
+export const FREE_APPEARANCE = { themeStyle: 'default', themeMode: 'dark', themeColor: false };
 
 /**
  * The things this is *not*, which for a paid app is half of what anyone wants
@@ -73,8 +81,9 @@ export const TIER_FEATURES: { title: string; detail: string }[] = [
     detail: 'Build and keep as many of your own as you like, not just the one.',
   },
   {
-    title: 'Color themes',
-    detail: 'Dark and Light, and the hue that tints the chassis and the tuner screen with them.',
+    title: 'Every appearance',
+    detail:
+      'Light mode, the Modern style, and the hue that tints the chassis and the tuner screen alike.',
   },
   {
     title: 'Hide the branding',
@@ -100,7 +109,11 @@ export function customTuningLimitReached(owned: boolean, existing: number): bool
   return !owned && existing >= FREE_CUSTOM_TUNINGS;
 }
 
-/** True when this theme needs the full set. */
-export function isThemeLocked(theme: string, owned: boolean): boolean {
-  return !owned && (PAID_THEMES as readonly string[]).includes(theme);
+/** True when this appearance choice needs the full set. */
+export function isAppearanceLocked(
+  setting: keyof typeof FREE_APPEARANCE,
+  value: string | boolean,
+  owned: boolean,
+): boolean {
+  return !owned && value !== FREE_APPEARANCE[setting];
 }
