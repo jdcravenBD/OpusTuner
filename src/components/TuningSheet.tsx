@@ -36,6 +36,21 @@ const FILTERS: { id: Filter; label: string }[] = [
  */
 const CONFIRM_MS = 190;
 
+/**
+ * The instrument sections, in the order the All tab lists them.
+ *
+ * Not INSTRUMENTS' own order, and deliberately: the filter chips run along a
+ * row where Misc belongs at the end with the leftovers, while the All tab is
+ * a list you scroll, and there the chromatic tuner wants to be near the top
+ * rather than eleven sections down. Above Guitar, not above Popular -- it is
+ * a thing to reach for when the list has failed you, not the first thing to
+ * offer.
+ */
+const SECTION_INSTRUMENTS = [
+  ...INSTRUMENTS.filter((i) => i.id === 'misc'),
+  ...INSTRUMENTS.filter((i) => i.id !== 'misc' && i.id !== 'custom'),
+];
+
 export function TuningSheet({ open, onClose, naming }: Props) {
   const session = useSession();
   const { owned } = useSettings();
@@ -127,10 +142,6 @@ export function TuningSheet({ open, onClose, naming }: Props) {
     [],
   );
 
-  // Chromatic is pinned to the top rather than buried under "Other" — it is
-  // the mode people reach for when their instrument isn't in the list at all.
-  const chromatic = all.find((t) => t.chromatic);
-
   const deleteCustom = (id: string) => {
     sessionStore.set((s) => ({
       customTunings: s.customTunings.filter((t) => t.id !== id),
@@ -155,17 +166,15 @@ export function TuningSheet({ open, onClose, naming }: Props) {
     />
   );
 
-  // Chromatic is already pinned above, so keep it out of the other groups
-  // rather than listing the same row three times.
   // Sliced as well as capped on write, so a list stored by an older build
   // still renders at the current length.
   const recents = session.recentTuningIds
     .map((id) => byId.get(id))
-    .filter((t): t is Tuning => !!t && !t.chromatic)
+    .filter((t): t is Tuning => !!t)
     .slice(0, MAX_RECENT);
   const pinned = session.pinnedTuningIds
     .map((id) => byId.get(id))
-    .filter((t): t is Tuning => !!t && !t.chromatic);
+    .filter((t): t is Tuning => !!t);
 
   return (
     <>
@@ -207,10 +216,6 @@ export function TuningSheet({ open, onClose, naming }: Props) {
           ))}
         </div>
 
-        {!searchResults && chromatic && (
-          <div className="sheet__section">{renderRow(chromatic)}</div>
-        )}
-
         {searchResults ? (
           searchResults.length ? (
             <Section
@@ -240,10 +245,8 @@ export function TuningSheet({ open, onClose, naming }: Props) {
             <Section label="Popular">
               {all.filter((t) => t.popular && !t.chromatic).map(renderRow)}
             </Section>
-            {INSTRUMENTS.filter((i) => i.id !== 'custom').map((inst) => {
-              const items = all.filter(
-                (t) => t.instrument === inst.id && !t.custom && !t.chromatic,
-              );
+            {SECTION_INSTRUMENTS.map((inst) => {
+              const items = all.filter((t) => t.instrument === inst.id && !t.custom);
               if (!items.length) return null;
               return (
                 <Section key={inst.id} label={inst.name}>
@@ -267,7 +270,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
           />
         ) : (
           <Section label={INSTRUMENTS.find((i) => i.id === filter)?.name ?? ''}>
-            {all.filter((t) => t.instrument === filter && !t.chromatic).map(renderRow)}
+            {all.filter((t) => t.instrument === filter).map(renderRow)}
           </Section>
         )}
       </Sheet>

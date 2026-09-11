@@ -2962,10 +2962,22 @@ button {
  */
 
 :root[data-theme='modern'] {
-  /* Grouped background, and the cards that sit on it. */
-  --bg-void: #f2f2f7;
-  --bg-0: #f2f2f7;
-  --bg-1: #f2f2f7;
+  /*
+   * Grouped background, and the cards that sit on it.
+   *
+   * The page came down off the platform's own #f2f2f7 when the faces did, and
+   * had to: the two move together or the gap between them closes. A face has
+   * to sit above the page it is on *and* below the rim that lights it, and
+   * there are only so many levels between white and a grey anyone would call
+   * a background -- so the way to give the rim more room is to lower both
+   * ends, not to squeeze the middle.
+   *
+   * Eleven levels page to face, ten face to rim. Even steps, and each one
+   * visible on a phone in daylight, which is the only test that counts.
+   */
+  --bg-void: #e9e9ee;
+  --bg-0: #e9e9ee;
+  --bg-1: #e9e9ee;
   --bg-glow: transparent;
 
   /*
@@ -2978,12 +2990,13 @@ button {
    * Four levels down off white is enough to give the rim somewhere to go and
    * little enough that nothing reads as grey.
    */
-  --surface: #f8f8fa;
+  --surface: #f5f5f8;
   --surface-hi: #ffffff;
   --surface-press: #d1d1d6;
-  --surface-raised-a: #f8f8fa;
-  --surface-raised-b: #f8f8fa;
-  --surface-sunk: #e9e9ea;
+  --surface-raised-a: #f5f5f8;
+  --surface-raised-b: #f5f5f8;
+  /* Below the page as well as below the face -- a well is a hole in both. */
+  --surface-sunk: #e0e0e6;
 
   /*
    * The accent. Blue is what a control that does something is drawn in here,
@@ -3623,13 +3636,20 @@ button {
   transform: scale(1.08);
 }
 
+/*
+ * Tuned, lit the same way the chosen one is.
+ *
+ * Both greens are gradients for the same reason the blue is: they sit under
+ * an edge that is brightest at one corner, and a flat fill under a lit edge
+ * reads as a sticker stuck on a bevel rather than as the face of the thing.
+ */
 :root[data-theme='modern'] .string[data-tuned='true'] {
-  background: var(--green-wash);
+  background: linear-gradient(180deg, rgba(52, 199, 89, 0.22) 0%, rgba(52, 199, 89, 0.1) 100%);
   border-color: transparent;
 }
 
 :root[data-theme='modern'] .string[data-tuned='true'][data-active='true'] {
-  background: var(--green);
+  background: linear-gradient(180deg, #57d477 0%, #22a84c 100%);
   border-color: transparent;
   color: #ffffff;
   box-shadow: none;
@@ -3642,11 +3662,20 @@ button {
 }
 
 /* Instrument lettering has no place here; the small print is just small. */
+/*
+ * The detail bar, sunk into the page rather than sitting on it.
+ *
+ * The one thing up here that is read rather than pressed, and the only one
+ * that should not look raised: everything else in this theme is a face with a
+ * lit top corner, so a strip that goes the other way -- darker than its
+ * ground, with the light falling *in* at the top -- says "this is a slot,
+ * not a button" without needing a border to say it.
+ */
 :root[data-theme='modern'] .status,
 :root[data-theme='modern'] .status--off {
   border: 0;
-  background: none;
-  box-shadow: none;
+  background: rgba(118, 118, 128, 0.16);
+  box-shadow: inset 0 1px 2px rgba(60, 60, 67, 0.16);
 }
 
 :root[data-theme='modern'] .verdict {

@@ -85,7 +85,7 @@ export function CustomTuningEditor({
       <div className="sheet__section">
         <div className="sheet__label">Category</div>
         <div className="chips" style={{ margin: 0, padding: '0 0 4px' }}>
-          {INSTRUMENTS.filter((i) => i.id !== 'custom').map((i) => (
+          {INSTRUMENTS.filter((i) => i.id !== 'custom' && i.id !== 'misc').map((i) => (
             <button
               key={i.id}
               className="chip"

@@ -14,6 +14,7 @@ export type InstrumentId =
   | 'banjo'
   | 'orchestral'
   | 'other'
+  | 'misc'
   | 'custom';
 
 export interface Instrument {
@@ -46,6 +47,16 @@ export const INSTRUMENTS: Instrument[] = [
   { id: 'banjo', name: 'Banjo', short: 'Banjo' },
   { id: 'orchestral', name: 'Orchestral', short: 'Strings' },
   { id: 'other', name: 'Other', short: 'Other' },
+  /*
+   * Not an instrument, which is the point: it holds the one entry that is a
+   * mode rather than a tuning. "Other" already means "an instrument we have
+   * not listed", and the chromatic tuner is not an instrument at all.
+   *
+   * Last of the real ids and before 'custom', which is the order the filter
+   * chips run in. The All tab lists the sections in a different order -- see
+   * SECTION_INSTRUMENTS in TuningSheet.
+   */
+  { id: 'misc', name: 'Misc', short: 'Misc' },
   { id: 'custom', name: 'My tunings', short: 'Custom' },
 ];
 
@@ -207,7 +218,7 @@ export const FREE_TUNING_IDS: ReadonlySet<string> = new Set([
 export const CHROMATIC_TUNING: Tuning = {
   id: 'chromatic',
   name: 'Chromatic',
-  instrument: 'other',
+  instrument: 'misc',
   strings: [],
   chromatic: true,
   popular: true,
