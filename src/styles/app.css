@@ -3310,11 +3310,48 @@ button {
  * The page around it goes plain grey, and scrolls: the framed app is usually
  * taller than the window it is being photographed in.
  */
+:root[data-screens],
 :root[data-screens] body {
-  overflow: auto;
+  /*
+   * The page scrolls here, and everywhere else it must not.
+   *
+   * The app is normally a fixed-height box with nothing outside it, and these
+   * are `100dvh; overflow: hidden` to keep a phone from rubber-banding the
+   * tuner. A framed app is taller than the window on any desktop -- 2688
+   * device pixels is more than a 1080p screen has -- so it has to be
+   * scrollable, or the tiled capture has nothing to scroll through.
+   */
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+:root[data-screens] body {
   background: #6e6e73;
 }
 
+/*
+ * #root becomes the app's scaled footprint.
+ *
+ * A transform does not change layout: the app would still occupy its
+ * *unscaled* box, and the page would have nothing to scroll past the first
+ * 896 pixels. Sizing the wrapper to what the scale produces is what puts the
+ * whole frame into the document.
+ */
+:root[data-screens] #root {
+  position: relative;
+  width: calc(var(--screens-w) * var(--screens-scale));
+  height: calc(var(--screens-h) * var(--screens-scale));
+  min-height: 0;
+  overflow: visible;
+}
+
+/*
+ * The frame itself, laid out at the CSS size the target implies and then
+ * scaled -- a transform re-rasterises type and vectors at the final size, so
+ * the result is a real render at that resolution and not an enlargement of a
+ * smaller one.
+ */
 :root[data-screens] #app {
   position: absolute;
   top: 0;

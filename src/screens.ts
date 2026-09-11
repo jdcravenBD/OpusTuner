@@ -102,6 +102,23 @@ export function setScreenSize(size: ScreenSize | null): void {
   emit();
 }
 
+/*
+ * Chrome's page zoom moves the device pixel ratio, and the scale is a ratio
+ * *of* it -- so a frame set at 100% and then looked at at 50% was quietly no
+ * longer the size it claimed. It reported 1242 and delivered 621, and the
+ * capture upscaled the difference. Zoom fires a resize; recomputing there
+ * keeps the number on the glass true whatever the window is doing, and makes
+ * zooming out useless for fitting the frame in, which it should be.
+ */
+let lastDpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio;
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    if (!current || window.devicePixelRatio === lastDpr) return;
+    lastDpr = window.devicePixelRatio;
+    apply();
+  });
+}
+
 /**
  * Writes the frame onto the document, or takes it off again.
  *
@@ -171,14 +188,27 @@ export async function allowCapture(): Promise<boolean> {
   }
 }
 
+/** Two frames of grace, so a scroll has actually landed before it is grabbed. */
+function settle(): Promise<void> {
+  return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+}
+
 /**
- * One frame, cropped to the app, saved as a PNG.
+ * The app, saved as a PNG at exactly the size Apple asks for.
  *
- * The crop is the app's rectangle in device pixels, which is the coordinate
- * space the captured frame is already in — so when the sizing above has done
- * its job the crop is exactly the target and the copy is one-to-one. The
- * final canvas is the target size regardless, because a screenshot Apple
- * rejects for being a pixel short is worse than one that was resampled.
+ * **Tiled, because a screen is smaller than a screenshot.** 2688 device pixels
+ * is more rows than a 1080p display has, and a tab capture only ever contains
+ * what is actually on the glass -- so the honest choice is between scrolling
+ * through the frame at full resolution and shrinking the frame until it fits,
+ * which is the same as throwing the resolution away. This scrolls: a grab per
+ * viewport-full, each drawn into the right place on one canvas at the target
+ * size, and the scroll put back afterwards.
+ *
+ * The seam to know about is time, not geometry. The tiles are separate
+ * moments, so anything moving between them -- a needle, a strobe band --
+ * lands in a slightly different place in each strip. They are taken as fast
+ * as two animation frames allow, which is enough for the field's trail and
+ * not necessarily for the strobe.
  */
 export async function capture(): Promise<string> {
   if (!current) return 'Pick a size first.';
@@ -187,27 +217,71 @@ export async function capture(): Promise<string> {
   const app = document.getElementById('app');
   if (!app || !stream) return 'Nothing to capture.';
 
-  const track = stream.getVideoTracks()[0];
-  const bitmap = await new ImageCapture(track).grabFrame();
-
-  const dpr = window.devicePixelRatio || 1;
-  const box = app.getBoundingClientRect();
-  // The frame is the whole tab; the viewport tells us how its pixels map back
-  // to ours. They agree on most machines and disagree on a scaled display.
-  const ratio = bitmap.width / (window.innerWidth * dpr);
-  const sx = Math.round(box.left * dpr * ratio);
-  const sy = Math.round(box.top * dpr * ratio);
-  const sw = Math.round(box.width * dpr * ratio);
-  const sh = Math.round(box.height * dpr * ratio);
-
   const [tw, th] = current.device;
   const canvas = document.createElement('canvas');
   canvas.width = tw;
   canvas.height = th;
   const ctx = canvas.getContext('2d');
   if (!ctx) return 'No canvas context.';
-  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, tw, th);
-  bitmap.close();
+
+  const track = stream.getVideoTracks()[0];
+  const grabber = new ImageCapture(track);
+  const scroller = document.scrollingElement ?? document.documentElement;
+  const wasX = scroller.scrollLeft;
+  const wasY = scroller.scrollTop;
+
+  const dpr = window.devicePixelRatio || 1;
+  // How much of the frame one viewport can hold, in the target's own pixels.
+  const stepX = Math.floor(window.innerWidth * dpr) - 2;
+  const stepY = Math.floor(window.innerHeight * dpr) - 2;
+  let tiles = 0;
+
+  try {
+    for (let y = 0; y < th; y += stepY) {
+      for (let x = 0; x < tw; x += stepX) {
+        // Where the frame's (x, y) has to sit for this tile to be on screen.
+        scroller.scrollLeft = x / dpr;
+        scroller.scrollTop = y / dpr;
+        await settle();
+
+        const bitmap = await grabber.grabFrame();
+        // The frame is the tab; the viewport says how its pixels map to ours.
+        // They agree unless the browser is capturing at a different scale.
+        const ratio = bitmap.width / (window.innerWidth * dpr);
+        const box = app.getBoundingClientRect();
+
+        // The slice of the app that is on screen right now, in device pixels
+        // of the captured frame.
+        const left = Math.max(0, box.left);
+        const top = Math.max(0, box.top);
+        const right = Math.min(window.innerWidth, box.right);
+        const bottom = Math.min(window.innerHeight, box.bottom);
+        const w = Math.round((right - left) * dpr * ratio);
+        const h = Math.round((bottom - top) * dpr * ratio);
+        if (w > 0 && h > 0) {
+          ctx.drawImage(
+            bitmap,
+            Math.round(left * dpr * ratio),
+            Math.round(top * dpr * ratio),
+            w,
+            h,
+            // ...and where that slice belongs in the finished image.
+            Math.round((left - box.left) * dpr),
+            Math.round((top - box.top) * dpr),
+            Math.round((right - left) * dpr),
+            Math.round((bottom - top) * dpr),
+          );
+          tiles += 1;
+        }
+        bitmap.close();
+      }
+    }
+  } finally {
+    scroller.scrollLeft = wasX;
+    scroller.scrollTop = wasY;
+  }
+
+  if (!tiles) return 'The frame was not on screen.';
 
   const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
   if (!blob) return 'Could not encode the image.';
@@ -221,8 +295,7 @@ export async function capture(): Promise<string> {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-  const exact = sw === tw && sh === th;
-  return `${name} — ${tw}x${th}${exact ? '' : ` (resampled from ${sw}x${sh})`}`;
+  return `${name} — ${tw}x${th}, ${tiles} tile${tiles === 1 ? '' : 's'}`;
 }
 
 /* --------------------------------------------------------------- shortcut -- */

@@ -64,6 +64,16 @@ if (import.meta.env.DEV) {
     } catch {
       /* private mode — the rig still works, it just won't be remembered */
     }
+    /*
+     * And everything open, because every screenshot is of the paid app.
+     *
+     * Not a separate decision from framing it: the point of the rig is to
+     * photograph what the store is selling, and half the features being
+     * behind a lock would make that impossible without a second flag to
+     * remember to set. `?shots` has always done the same. It sticks, like
+     * every other entitlement written here.
+     */
+    if (screens !== 'off') settingsStore.set({ owned: true });
   }
 }
 
