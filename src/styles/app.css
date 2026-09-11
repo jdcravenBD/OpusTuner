@@ -3883,7 +3883,12 @@ button {
 
 :root[data-theme='modern'] .toggle {
   border-radius: 999px;
-  padding: 0 12px 0 20px;
+  /*
+   * Even, like the app's own. This was 20 and 12 -- the pill wanted more room
+   * than the moulded button, and only one end of it got any, which put the
+   * word and its switch four pixels right of centre.
+   */
+  padding: 0 16px;
 }
 
 :root[data-theme='modern'] .icon-btn {
@@ -4142,19 +4147,26 @@ button {
   color-scheme: dark;
 
   /*
-   * The lit edge, at the weight a dark face can take.
+   * The lit edge, at the same distance from its face as in the light.
    *
-   * Same direction, same corner-to-corner run, a third of the strength. On a
-   * near-white face the rim is white against something a few levels below it;
-   * on a near-black one white at full strength would not be an edge catching
-   * the light, it would be a drawn outline -- the exact thing this replaced.
+   * Not the same alphas, which is the mistake this replaces: the alpha *is*
+   * the distance only when there is no headroom above the face. In the light
+   * the face is fifteen levels below white, so an opaque white rim is fifteen
+   * levels brighter and no more. In the dark the face is two hundred and
+   * twenty-three levels below white, so the same alpha is a rim seventy-six
+   * levels brighter -- five times the step, which is why it read as a drawn
+   * outline rather than an edge catching the light.
+   *
+   * These are the light theme's four stops solved for the same *level*
+   * differences over a face at 12.5%: +15, +10, +4.5, +1.5, which is
+   * 15/223, 10/223 and so on. Small numbers, and they have to be.
    */
   --stroke-mixed: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.34) 0%,
-    rgba(255, 255, 255, 0.2) 34%,
-    rgba(255, 255, 255, 0.09) 66%,
-    rgba(255, 255, 255, 0.03) 100%
+    rgba(255, 255, 255, 0.067) 0%,
+    rgba(255, 255, 255, 0.045) 34%,
+    rgba(255, 255, 255, 0.02) 66%,
+    rgba(255, 255, 255, 0.007) 100%
   );
 }
 
