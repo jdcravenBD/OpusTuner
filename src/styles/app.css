@@ -1446,11 +1446,115 @@ button {
   border-bottom: 1px solid var(--border);
 }
 
+/*
+ * The compact title, which is not there until it is needed.
+ *
+ * It starts invisible and arrives as the heading in the list goes under the
+ * bar -- the swap a platform settings app does, and the reason it does it:
+ * with the heading on screen the bar would be saying the same word twice, and
+ * once the heading has gone there is nothing up there to say where you are.
+ *
+ * `visibility` rides along with the opacity so the hidden copy is not a
+ * target for a screen reader or a find-on-page. The element is aria-hidden in
+ * any case -- the dialog is labelled, and the heading below is a real h2.
+ */
 .sheet__title {
   text-align: center;
   font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.01em;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(5px);
+  transition:
+    opacity 220ms var(--ease),
+    transform 220ms var(--ease),
+    visibility 220ms;
+}
+
+.sheet__head[data-scrolled='true'] .sheet__title {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+/*
+ * The heading the panel opens with, in the list rather than in the bar.
+ *
+ * Bigger than anything else in the sheet on purpose: it is the one line that
+ * says what you opened, and it is allowed to take the room because it is also
+ * the first thing to scroll away.
+ */
+.sheet__bigtitle {
+  /*
+   * The top margin is the height of the fade above it.
+   *
+   * The fade is always there, and at rest it has nothing to work on: it is
+   * the sheet's own colour painted over the sheet's own colour, and a blur of
+   * blank space. Start the heading below it and the first thing you read is
+   * never the thing being blurred -- which is the state the platform is in
+   * when a list has not been scrolled, reached without a second flag to keep
+   * in step with this one.
+   */
+  margin: 30px 0 10px;
+  padding: 0 2px;
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+/*
+ * The scrolling region and its two edges.
+ *
+ * A wrapper rather than pseudo-elements on the list itself: these have to
+ * stay still while the content moves under them, and the only thing in a
+ * scrolling box that stays still is something outside it.
+ */
+.sheet__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet__fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/*
+ * The top edge: blurred as well as faded.
+ *
+ * The fade alone leaves legible text under a title sitting over it, at
+ * whatever contrast the fade has reached -- and text through text is the one
+ * thing the eye refuses to ignore. Blur takes the letterforms apart, so what
+ * is left reads as material rather than as words.
+ *
+ * The mask is what makes the blur itself fade out. A backdrop-filter has no
+ * gradient of its own: it is on or off over the whole element, and the only
+ * way to give it an edge is to fade the element that carries it.
+ */
+.sheet__fade--top {
+  top: 0;
+  height: 38px;
+  background: linear-gradient(180deg, var(--bg-0) 0%, transparent 100%);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 100%);
+}
+
+/* The bottom edge has nothing sitting over it, so a fade is the whole job. */
+.sheet__fade--bottom {
+  bottom: 0;
+  height: 46px;
+  background: linear-gradient(0deg, var(--bg-0) 18%, transparent 100%);
 }
 
 .sheet__body {
@@ -1507,8 +1611,18 @@ button {
 
 /* ---------------------------------------------------------------- search -- */
 
+/*
+ * Flex, for a reason that is invisible until it is not.
+ *
+ * The input is inline-level by default, so the wrapper's height was a line
+ * box -- the field plus the few pixels a line reserves under the baseline for
+ * descenders. Nothing showed while the wrapper had no fill of its own, but it
+ * put the wrapper's centre below the field's, and anything centred against
+ * the wrapper inherited the error.
+ */
 .search {
   position: relative;
+  display: flex;
   margin: 14px 0 6px;
 }
 
@@ -1537,10 +1651,18 @@ button {
   border-color: var(--green-line);
 }
 
+/*
+ * `flex`, so the box is the glyph and nothing else.
+ *
+ * As an inline box it was a line box: the icon sat on the baseline with the
+ * descender space still reserved underneath it, so centring the *box* left
+ * the glyph riding high by half of that space. This is the whole of that bug.
+ */
 .search__icon {
   position: absolute;
   left: 12px;
   top: 50%;
+  display: flex;
   transform: translateY(-50%);
   color: var(--text-4);
   pointer-events: none;
@@ -2990,11 +3112,11 @@ button {
    * Four levels down off white is enough to give the rim somewhere to go and
    * little enough that nothing reads as grey.
    */
-  --surface: #f5f5f8;
+  --surface: #f0f0f4;
   --surface-hi: #ffffff;
   --surface-press: #d1d1d6;
-  --surface-raised-a: #f5f5f8;
-  --surface-raised-b: #f5f5f8;
+  --surface-raised-a: #f0f0f4;
+  --surface-raised-b: #f0f0f4;
   /* Below the page as well as below the face -- a well is a hole in both. */
   --surface-sunk: #e0e0e6;
 
@@ -3251,10 +3373,23 @@ button {
  * it the way a list does. The wash stays because it survives being scrolled
  * past at speed, which a single tick at the right-hand edge does not.
  */
+/*
+ * The chosen tuning, in a green with some ground under it.
+ *
+ * The system green is a signal colour, built to be seen against anything at
+ * small sizes, and a whole row of it is more light than a row of text wants
+ * to sit on. This is the same hue taken down and slightly out, so the row
+ * still reads as the chosen one at a glance down the list and the name on it
+ * still reads as a name.
+ */
 :root[data-theme='modern'] .row[data-selected='true'] {
-  background-image: linear-gradient(var(--green-wash), var(--green-wash));
+  background-image: linear-gradient(rgba(30, 126, 62, 0.17), rgba(30, 126, 62, 0.17));
   border-color: transparent;
   box-shadow: none;
+}
+
+:root[data-theme='modern'] .row[data-selected='true'] .row__name {
+  color: #1b7038;
 }
 
 :root[data-theme='modern'] .row__name {
@@ -3537,6 +3672,8 @@ button {
 :root[data-theme='modern'] .string::after,
 :root[data-theme='modern'] .field::after,
 :root[data-theme='modern'] .row::after,
+:root[data-theme='modern'] .chip::after,
+:root[data-theme='modern'] .search::after,
 :root[data-theme='modern'] .sheet__group::after {
   content: '';
   position: absolute;
@@ -3562,8 +3699,19 @@ button {
 :root[data-theme='modern'] .icon-btn,
 :root[data-theme='modern'] .tuning-btn,
 :root[data-theme='modern'] .toggle,
+:root[data-theme='modern'] .chip,
 :root[data-theme='modern'] .sheet__group {
   position: relative;
+}
+
+/*
+ * The search field wears its stroke on the wrapper, because an input cannot
+ * have one: replaced elements have no pseudo-elements to give. The wrapper is
+ * exactly the field's box -- it is a flex container with the input as its
+ * only item -- so it needs the same corner for the stroke to inherit.
+ */
+:root[data-theme='modern'] .search {
+  border-radius: 999px;
 }
 
 /*
@@ -3674,8 +3822,8 @@ button {
 :root[data-theme='modern'] .status,
 :root[data-theme='modern'] .status--off {
   border: 0;
-  background: rgba(118, 118, 128, 0.16);
-  box-shadow: inset 0 1px 2px rgba(60, 60, 67, 0.16);
+  background: rgba(118, 118, 128, 0.1);
+  box-shadow: inset 0 1px 2px rgba(60, 60, 67, 0.11);
 }
 
 :root[data-theme='modern'] .verdict {

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useEscape } from '../hooks';
 import { useSheetGestures } from '../hooks/drag';
-import { CloseIcon } from './Icons';
 
 interface Props {
   open: boolean;
@@ -11,7 +10,7 @@ interface Props {
   children: ReactNode;
   /** Optional control in the top-left slot (e.g. a back arrow). */
   left?: ReactNode;
-  /** Optional control in the top-right slot, replacing the close button. */
+  /** Optional control in the top-right slot, e.g. a Save button. */
   right?: ReactNode;
   /**
    * Hold the sheet at full height regardless of content, so a list that
@@ -27,6 +26,10 @@ export const SHEET_EXIT_MS = 210;
 export function Sheet({ open, title, onClose, children, left, right, tall }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  /** True once the heading in the list has scrolled up out of sight. */
+  const [scrolled, setScrolled] = useState(false);
 
   /*
    * Held on past `open` going false so the panel can slide back down rather
@@ -107,6 +110,27 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
     return () => cancelAnimationFrame(id);
   }, [open]);
 
+  /*
+   * Hand the title to the bar when the heading in the list goes under it.
+   *
+   * Watched rather than measured: a scroll handler would need a pixel to
+   * compare against, and that pixel is the height of a heading whose type
+   * size, margins and font are all free to change. Asking the heading itself
+   * when it has left the scrolling box needs none of that, and it costs
+   * nothing per frame — the observer only fires on the crossing.
+   */
+  useEffect(() => {
+    const heading = titleRef.current;
+    const body = bodyRef.current;
+    if (!open || !heading || !body) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolled(!entry.isIntersecting),
+      { root: body, threshold: 0 },
+    );
+    observer.observe(heading);
+    return () => observer.disconnect();
+  }, [open]);
+
   if (!open && !closing) return null;
 
   // Rendered into the app element rather than <body>: on a wide window the app
@@ -128,19 +152,43 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
       >
         {/* Grip and header double as the sheet's grab handle — see useSheetGestures. */}
         <div className="sheet__grip sheet__handle" />
-        <div className="sheet__head sheet__handle">
+        {/*
+          * The bar carries the title only once the big one has gone.
+          *
+          * There is no close button any more: a sheet is dismissed by pulling
+          * it down, by pressing the page behind it, or by Escape, and all
+          * three were already here — the cross was a fourth way to do what the
+          * grip above it is already advertising.
+          */}
+        <div className="sheet__head sheet__handle" data-scrolled={scrolled}>
           <div>{left}</div>
-          <div className="sheet__title">{title}</div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            {right ?? (
-              <button className="icon-btn" onClick={onClose} aria-label="Close">
-                <CloseIcon />
-              </button>
-            )}
+          <div className="sheet__title" aria-hidden>
+            {title}
           </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>{right}</div>
         </div>
-        <div className="sheet__body" ref={bodyRef}>
-          {children}
+        <div className="sheet__scroll">
+          <div className="sheet__body" ref={bodyRef}>
+            {/*
+              * The title as a heading in the list, which is where it starts.
+              * The bar's copy fades in as this one leaves, and the swap is
+              * driven by this element rather than by a scroll distance, so
+              * there is no number to keep in step with the type size.
+              */}
+            <h2 className="sheet__bigtitle" ref={titleRef}>
+              {title}
+            </h2>
+            {children}
+          </div>
+          {/*
+            * The two edges of a scrolling list, and they are not the same
+            * shape. Content passing under the bar is blurred as well as
+            * faded, which is what stops a line of text reading through the
+            * title sitting over it; at the bottom there is nothing over the
+            * content, so a fade is the whole of it.
+            */}
+          <div className="sheet__fade sheet__fade--top" aria-hidden />
+          <div className="sheet__fade sheet__fade--bottom" aria-hidden />
         </div>
       </div>
     </>,
