@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Sheet, SHEET_EXIT_MS } from './Sheet';
 import { CustomTuningEditor } from './CustomTuningEditor';
-import { ClockIcon, CloseIcon, LockIcon, PlusIcon, SearchIcon, StarIcon } from './Icons';
+import { ClockIcon, CloseIcon, LockIcon, PinIcon, PlusIcon, SearchIcon } from './Icons';
 import { PurchaseScreen } from './PurchaseScreen';
 import { customTuningLimitReached, isTuningLocked } from '../state/unlock';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
@@ -11,7 +11,7 @@ import {
   markTuningUsed,
   selectTuning,
   sessionStore,
-  toggleFavorite,
+  togglePin,
   useSession,
   useSettings,
 } from '../state/store';
@@ -134,7 +134,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
   const deleteCustom = (id: string) => {
     sessionStore.set((s) => ({
       customTunings: s.customTunings.filter((t) => t.id !== id),
-      favoriteTuningIds: s.favoriteTuningIds.filter((f) => f !== id),
+      pinnedTuningIds: s.pinnedTuningIds.filter((p) => p !== id),
       recentTuningIds: s.recentTuningIds.filter((r) => r !== id),
       tuningId: s.tuningId === id ? 'guitar-standard' : s.tuningId,
     }));
@@ -148,9 +148,9 @@ export function TuningSheet({ open, onClose, naming }: Props) {
       selected={t.id === session.tuningId}
       picked={picked === t.id}
       locked={isTuningLocked(t, owned)}
-      favorite={session.favoriteTuningIds.includes(t.id)}
+      pinned={session.pinnedTuningIds.includes(t.id)}
       onPick={() => pick(t)}
-      onToggleFavorite={() => toggleFavorite(t.id)}
+      onTogglePin={() => togglePin(t.id)}
       onEdit={t.custom ? () => setEditing(t) : undefined}
     />
   );
@@ -163,7 +163,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
     .map((id) => byId.get(id))
     .filter((t): t is Tuning => !!t && !t.chromatic)
     .slice(0, MAX_RECENT);
-  const favorites = session.favoriteTuningIds
+  const pinned = session.pinnedTuningIds
     .map((id) => byId.get(id))
     .filter((t): t is Tuning => !!t && !t.chromatic);
 
@@ -232,9 +232,9 @@ export function TuningSheet({ open, onClose, naming }: Props) {
                 {recents.map(renderRow)}
               </Section>
             )}
-            {favorites.length > 0 && (
-              <Section label="Favourites" icon={<StarIcon size={13} filled />}>
-                {favorites.map(renderRow)}
+            {pinned.length > 0 && (
+              <Section label="Pinned" icon={<PinIcon size={13} filled />}>
+                {pinned.map(renderRow)}
               </Section>
             )}
             <Section label="Popular">
@@ -368,9 +368,9 @@ function TuningRow({
   selected,
   picked,
   locked,
-  favorite,
+  pinned,
   onPick,
-  onToggleFavorite,
+  onTogglePin,
   onEdit,
 }: {
   tuning: Tuning;
@@ -378,9 +378,9 @@ function TuningRow({
   selected: boolean;
   picked: boolean;
   locked: boolean;
-  favorite: boolean;
+  pinned: boolean;
   onPick: () => void;
-  onToggleFavorite: () => void;
+  onTogglePin: () => void;
   onEdit?: () => void;
 }) {
   const preview = tuning.chromatic
@@ -402,7 +402,7 @@ function TuningRow({
           Edit
         </button>
       )}
-      {/* Favouriting something you cannot select is a control with nothing
+      {/* Pinning something you cannot select is a control with nothing
           behind it, so the lock takes the slot rather than sitting beside it. */}
       {locked ? (
         <span className="row__lock" aria-label="Locked">
@@ -410,13 +410,13 @@ function TuningRow({
         </span>
       ) : (
         <button
-          className="row__star"
-          data-on={favorite}
-          onClick={onToggleFavorite}
-          aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-          aria-pressed={favorite}
+          className="row__pin"
+          data-on={pinned}
+          onClick={onTogglePin}
+          aria-label={pinned ? 'Unpin' : 'Pin'}
+          aria-pressed={pinned}
         >
-          <StarIcon filled={favorite} />
+          <PinIcon filled={pinned} />
         </button>
       )}
     </div>

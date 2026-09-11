@@ -149,7 +149,8 @@ export interface Settings {
 export interface Session {
   tuningId: string;
   recentTuningIds: string[];
-  favoriteTuningIds: string[];
+  /** Tunings kept at the top of the list, under their own heading. */
+  pinnedTuningIds: string[];
   customTunings: Tuning[];
   /** Set once, shown never again — gates the first-run mic explainer. */
   onboarded: boolean;
@@ -187,7 +188,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const DEFAULT_SESSION: Session = {
   tuningId: DEFAULT_TUNING_ID,
   recentTuningIds: [DEFAULT_TUNING_ID],
-  favoriteTuningIds: [],
+  pinnedTuningIds: [],
   customTunings: [],
   onboarded: false,
 };
@@ -367,7 +368,21 @@ export const settingsStore = createStore<Settings>(
       : DEFAULT_SETTINGS.trailWidth,
   }),
 );
-export const sessionStore = createStore<Session>('easyastuning.session.v1', DEFAULT_SESSION);
+export const sessionStore = createStore<Session>(
+  'easyastuning.session.v1',
+  DEFAULT_SESSION,
+  /*
+   * Favourites became pins, and the stored key followed.
+   *
+   * Renaming it without this would quietly empty the list for everyone who
+   * has one, which is the sort of loss nobody reports as a bug because it
+   * looks like they never set it.
+   */
+  (s, stored) => {
+    if (stored.pinnedTuningIds !== undefined || !Array.isArray(stored.favoriteTuningIds)) return s;
+    return { ...s, pinnedTuningIds: stored.favoriteTuningIds as string[] };
+  },
+);
 
 /* ----------------------------------------------------------------- hooks -- */
 
@@ -409,10 +424,10 @@ export function markTuningUsed(id: string): void {
   }));
 }
 
-export function toggleFavorite(id: string): void {
+export function togglePin(id: string): void {
   sessionStore.set((s) => ({
-    favoriteTuningIds: s.favoriteTuningIds.includes(id)
-      ? s.favoriteTuningIds.filter((t) => t !== id)
-      : [...s.favoriteTuningIds, id],
+    pinnedTuningIds: s.pinnedTuningIds.includes(id)
+      ? s.pinnedTuningIds.filter((t) => t !== id)
+      : [...s.pinnedTuningIds, id],
   }));
 }

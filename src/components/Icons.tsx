@@ -68,9 +68,17 @@ export const SearchIcon = ({ size = 18 }: IconProps) => (
   </svg>
 );
 
-export const StarIcon = ({ size = 19, filled = false }: IconProps & { filled?: boolean }) => (
+/**
+ * A pushpin, drawn head-on rather than at the tilt the platform uses.
+ *
+ * Tilted reads better at 40 pixels and worse at 13, which is the size this is
+ * actually used at: the diagonal puts the head and the point on different
+ * pixel rows and both go soft. Square to the grid, the cap is one crisp line.
+ */
+export const PinIcon = ({ size = 19, filled = false }: IconProps & { filled?: boolean }) => (
   <svg {...base(size)} fill={filled ? 'currentColor' : 'none'} strokeWidth={1.8}>
-    <path d="M12 3.6l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.88l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85z" />
+    <path d="M9.6 3.4h4.8v5.9l2.6 2.9H7l2.6-2.9z" />
+    <path d="M12 12.2v8.4" />
   </svg>
 );
 

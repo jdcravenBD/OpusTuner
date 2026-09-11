@@ -1696,7 +1696,7 @@ button {
 
 /* Lifted clear of that overlay so they keep their own presses. */
 .row__badge,
-.row__star {
+.row__pin {
   position: relative;
   z-index: 1;
 }
@@ -1726,7 +1726,7 @@ button {
   text-overflow: ellipsis;
 }
 
-.row__star {
+.row__pin {
   flex: 0 0 auto;
   width: 32px;
   height: 32px;
@@ -1739,12 +1739,12 @@ button {
     background var(--dur) var(--ease);
 }
 
-.row__star:hover {
+.row__pin:hover {
   background: var(--surface-hi);
   color: var(--text-2);
 }
 
-.row__star[data-on='true'] {
+.row__pin[data-on='true'] {
   color: var(--amber);
 }
 
