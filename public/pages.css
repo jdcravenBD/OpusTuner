@@ -1,0 +1,290 @@
+/*
+ * The two pages Apple links to, in the app's own Modern style.
+ *
+ * They are plain files rather than part of the app: Vite copies public/
+ * verbatim, so they cannot reach the hashed bundle and everything they need
+ * has to be here. That makes this a copy of a palette, which is the one thing
+ * the stylesheet inside the app never has to be -- so the numbers below are
+ * written out with where they came from, and if the theme moves these have to
+ * be moved by hand.
+ *
+ * Dark, and only dark. Inside the app the mode is the reader's choice; out
+ * here there is nobody to have made it, and a policy page that changes colour
+ * with the visitor's laptop is a page with two appearances to keep right for
+ * no gain.
+ *
+ * Shared by both pages so they cannot drift apart.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* The Modern dark palette, with the hue drained -- the app's own default. */
+  --bg: #121212;
+  --surface: #202020;
+  --surface-hi: #292929;
+  --fill: rgba(118, 118, 128, 0.28);
+
+  --accent: #0a84ff;
+  --accent-grad: linear-gradient(180deg, #4aa3ff 0%, #0a6fe6 100%);
+  --green: #30d158;
+
+  --border: rgba(235, 235, 245, 0.16);
+  --text: #ffffff;
+  --text-2: rgba(235, 235, 245, 0.6);
+  --text-4: rgba(235, 235, 245, 0.4);
+
+  /*
+   * The lit edge, corner to corner. All highlight and no outline: white at the
+   * top-left fading to nothing at the bottom-right, so the light has a
+   * direction and the far side stops rather than turning into a drawn line.
+   *
+   * The alphas are small because the alpha is not the brightness -- a face
+   * twelve percent up from black has two hundred and twenty-three levels of
+   * headroom above it, so an opaque white rim would be five times the step it
+   * is in light mode. These are solved for the same *level* difference: +15,
+   * +10, +4.5, +1.5.
+   */
+  --stroke: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.067) 0%,
+    rgba(255, 255, 255, 0.045) 34%,
+    rgba(255, 255, 255, 0.02) 66%,
+    rgba(255, 255, 255, 0.007) 100%
+  );
+
+  --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 18px calc(64px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+/*
+ * Light behind the top, and the only thing on the page that is not flat.
+ *
+ * A wash of the accent at an alpha you would struggle to name if you were
+ * asked to. A column of grey cards on a grey page is accurate and dead.
+ */
+.glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 60% at 50% 0%,
+    rgba(10, 132, 255, 0.13) 0%,
+    transparent 72%
+  );
+}
+
+/* --- the way back ---------------------------------------------------------- */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 22px 0 0;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.back svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* --- the claim ------------------------------------------------------------- */
+
+.eyebrow {
+  margin: 30px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-4);
+}
+
+/*
+ * Two sentences on two lines, tight enough to read as one object, and the
+ * largest type on the page. Same as the purchase screen, for the same reason:
+ * the thing a visitor came to find out should be answered before anything
+ * else is read, not after.
+ */
+h1 {
+  margin: 6px 0 10px;
+  /*
+   * Clamped, so it stays two lines on a small phone. The whole effect of a
+   * two-line claim is that it reads as one object; a third line from a wrap
+   * is the sentence coming apart, and it is exactly the narrow screens where
+   * there is least room to lose.
+   */
+  font-size: clamp(24px, 7.5vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.18;
+  color: var(--text);
+}
+
+.meta {
+  margin: 0 0 26px;
+  font-size: 13px;
+  color: var(--text-4);
+}
+
+/* --- cards ----------------------------------------------------------------- */
+
+/*
+ * The heading a grouped list wears: small, outside the card rather than in it.
+ */
+h2 {
+  margin: 30px 0 7px;
+  padding: 0 16px;
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--text-4);
+}
+
+.card,
+.rows {
+  position: relative;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 62%);
+}
+
+.card {
+  padding: 16px;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+/*
+ * The lit edge, as a layer the size of the card with the middle masked out.
+ *
+ * A gradient cannot be a border. Two mask layers, one clipped to the content
+ * box and one to the whole, composited so only the difference survives -- and
+ * that difference is the padding, which is therefore the stroke's weight.
+ */
+.card::after,
+.rows::after,
+.cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--stroke);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.card p + p {
+  margin-top: 12px;
+}
+
+.card strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --- rows ------------------------------------------------------------------ */
+
+.rows li {
+  position: relative;
+  padding: 13px 16px;
+  color: var(--text-2);
+}
+
+/* The inset hairline of a grouped list: short at the left, flush at the right,
+   and never under the last row. */
+.rows li + li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--border);
+}
+
+/* --- the button ------------------------------------------------------------ */
+
+.cta {
+  position: relative;
+  display: block;
+  margin-top: 16px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  background: var(--accent-grad);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* --- odds and ends --------------------------------------------------------- */
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+footer {
+  margin-top: 34px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-4);
+}
+
+footer a {
+  color: var(--text-2);
+}
