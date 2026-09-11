@@ -1,7 +1,7 @@
 {
   "name": "easy-as-tuning",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Easy as Tuning - a precision chromatic & instrument tuner for guitar, bass, ukulele, banjo and orchestral strings.",
   "scripts": {
