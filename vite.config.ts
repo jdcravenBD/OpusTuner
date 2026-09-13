@@ -136,6 +136,33 @@ export default defineConfig(({ mode }) => ({
      * one from this same field, so `npm version` moves all of them.
      */
     __APP_VERSION__: JSON.stringify(pkg.version),
+
+    /*
+     * Which build this is, as a word, in the corner of the screen.
+     *
+     * A handset in your hand looks the same whatever is in it, and "is this
+     * the one with the change in it" is otherwise unanswerable across a room.
+     * A word rather than a number because it is a *name*, not an ordinal:
+     * nothing is implied about order or progress, and two of them are never
+     * confusable at a glance the way 4 and 5 are.
+     *
+     * Change it whenever a build is handed over. Empty in every other build,
+     * which makes the JSX guarding on it a constant false that Rollup folds
+     * away -- so it cannot reach the store. Verified by grepping the bundle.
+     *
+     * It is deliberately not `import.meta.env.DEV`: `npm run phone` is a
+     * production build on purpose, so the phone sees the same bundle the store
+     * gets, and DEV is false there too.
+     */
+    __BUILD_WORD__: JSON.stringify(mode === 'phone' ? 'juniper' : ''),
+
+    /*
+     * True only in `npm run phone`, the build served over HTTPS on the LAN for
+     * a handset to point at. Same reasoning as above, and the same guarantee:
+     * `npm run build` is what Codemagic runs and what `cap sync` copies, and
+     * there this is the constant false.
+     */
+    __PHONE_BUILD__: mode === 'phone',
   },
 
   build: {

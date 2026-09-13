@@ -326,6 +326,40 @@ export default function App() {
       data-wide-row={targets.length > 8}
     >
       {debugRequested() && <DebugHud />}
+      {/*
+        Which build you are holding, as a word — see __BUILD_WORD__ in
+        vite.config.ts. `npm run phone` only: it is '' in every other build, so
+        this is a constant false that Rollup folds away, verified by grepping
+        the bundle. Styled inline rather than from app.css deliberately, since
+        a class in the stylesheet would ship whether or not anything wore it.
+
+        Bottom left, because the wordmark runs the full width of the top edge;
+        the app already reserves a band under the tuning row for the home
+        indicator and draws nothing in it. pointer-events: none because it sits
+        over a real target.
+      */}
+      {__BUILD_WORD__ ? (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 2px)',
+            left: 4,
+            zIndex: 70,
+            padding: '1px 4px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            letterSpacing: '0.04em',
+            lineHeight: 1.3,
+            color: 'var(--accent)',
+            background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
+            borderRadius: 'var(--r-xs, 6px)',
+            opacity: 0.75,
+            pointerEvents: 'none',
+          }}
+        >
+          {__BUILD_WORD__}
+        </span>
+      ) : null}
       <header className="topbar">
         {/* Always rendered. Hiding it takes it out of sight but not out of the
             layout, so nothing below shifts when it is turned off. */}

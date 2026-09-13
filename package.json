@@ -11,7 +11,7 @@
     "test": "esbuild test/pitch.test.ts --bundle --format=esm --platform=node --outfile=test/.build/pitch.test.mjs --log-level=warning && node test/.build/pitch.test.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
-    "phone": "npm run build && vite preview --host --mode https",
+    "phone": "tsc --noEmit && vite build --mode phone && vite preview --host --mode https",
     "icons": "node scripts/generate-icons.mjs",
     "icon:app": "node scripts/install-app-icon.mjs",
     "shots:fit": "node scripts/fit-screenshot.mjs",

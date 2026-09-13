@@ -78,6 +78,27 @@ if (import.meta.env.DEV) {
 }
 
 /*
+ * The LAN test build is the paid app.
+ *
+ * `npm run phone` exists to put a real handset in front of a real build, and a
+ * build with half its features behind a lock cannot answer the questions it is
+ * started to answer. `?dev` already did this and cannot help here: it is
+ * guarded on `import.meta.env.DEV`, and the phone build is a production build
+ * on purpose, so that branch is not in it.
+ *
+ * `?dev=off` still works, because the one thing this would otherwise make
+ * untestable on a handset is the paywall itself.
+ *
+ * It sticks, like every other entitlement written here, and that is harmless
+ * in a way it would not be elsewhere: this build is served from a LAN address
+ * and the packaged app runs from its own origin, so they do not share the
+ * storage this is written to. Nothing set here can reach the real app.
+ */
+if (__PHONE_BUILD__) {
+  settingsStore.set({ owned: new URLSearchParams(location.search).get('dev') !== 'off' });
+}
+
+/*
  * The App Store screenshot rig, which hands the tuner a synthetic instrument
  * so the pictures have a note in them. Imported dynamically inside a DEV
  * guard, so a production build drops the branch and never emits the chunk.
