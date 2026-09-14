@@ -1250,6 +1250,32 @@ button {
 }
 
 /*
+ * With no carousel, the pitch indicator goes up to the note names.
+ *
+ * It is normally pinned to the bottom of the zone's upper gap, eleven pixels
+ * above the screen, which puts it right under the carousel and -- in Full,
+ * where the screen draws its own note names at the top of the band -- right
+ * on that row. Switch the carousel off and the zone grows upward by whatever
+ * the carousel was using, the gap grows with it, and the indicator is left
+ * stranded a hundred pixels below the notes it belongs with.
+ *
+ * So it is pinned to the *top* of the gap instead, and the gap's top is the
+ * top of the tuner's band. Nine pixels down from there lands it across the
+ * note-name row, in the space between the two notes either side of the centre
+ * line -- which is the only part of that row the screen leaves empty.
+ *
+ * `:first-child` is the test for "no carousel", and it is exact rather than
+ * clever: the carousel is unmounted when it is off, not hidden, so the zone
+ * is literally the first thing in .stage when there is none. See the comment
+ * in App.tsx about why it unmounts.
+ */
+.app[data-tuner-style='full'] .stage > .field-zone:first-child .verdict {
+  align-self: start;
+  margin-top: 9px;
+  margin-bottom: 0;
+}
+
+/*
  * The corner print goes. Those corners are the app's corners now, and the
  * bottom two have the tuning button and the auto toggle in them.
  *
