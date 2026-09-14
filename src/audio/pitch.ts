@@ -248,6 +248,29 @@ const ATTACK_SHARP_CENTS = 35;
  * covers three quarters of a genuine change within one settling phase.
  */
 const SETTLE_RISE_FACTOR = 0.3;
+/**
+ * Longest the low-clarity disagreement guard below may go on refusing.
+ *
+ * It had no bound at all, and that is the whole of a bug reported from a real
+ * guitar: play one string, then play another while the first is still ringing,
+ * and every reading of the new string is refused for as long as you keep
+ * playing it. Measured from Joe's own recording -- Drop C#, G#2 ringing, C#2
+ * struck repeatedly -- the detector found C#2 correctly on nearly every frame
+ * and the tracker refused **330 frames in a row, five and a half seconds**,
+ * showing the old note the whole time. It only let go when the first string
+ * was damped and clarity rose back over the threshold.
+ *
+ * A quarter of a second, because of what the guard is actually for: the brief
+ * alternatives a decaying note throws off, which last a frame or two. A
+ * disagreement that survives this long is not a glitch, it is the player
+ * having moved, and the note being defended is the wrong one.
+ *
+ * Deliberately *not* reset by `noteAttack`. A room that trips the onset test
+ * would otherwise renew the refusal indefinitely, which is the same trap as
+ * the silence count, and for the same reason: an onset is a transient, and a
+ * transient is the one thing known to carry no pitch.
+ */
+const MAX_DISAGREE_SECONDS = 0.25;
 
 export class PitchTracker {
   private history: number[] = [];
@@ -256,6 +279,8 @@ export class PitchTracker {
   private silentSeconds = 0;
   private octaveVotes = 0;
   private pendingCents = 0;
+  /** How long the guard below has been refusing — see MAX_DISAGREE_SECONDS. */
+  private disagreeSeconds = 0;
 
   /**
    * How long a reading survives with nothing arriving to confirm it.
@@ -281,6 +306,7 @@ export class PitchTracker {
     this.hasValue = false;
     this.silentSeconds = 0;
     this.octaveVotes = 0;
+    this.disagreeSeconds = 0;
   }
 
   /**
@@ -366,12 +392,23 @@ export class PitchTracker {
     // disagrees with the established note *and* is poorly resolved is dropped
     // rather than allowed to drag the needle off the note being played.
     if (this.hasValue && result.clarity < 0.82 && Math.abs(cents - this.smoothCents) > 55) {
-      return {
-        frequency: centsToFreq(this.smoothCents),
-        clarity: result.clarity,
-        rms: result.rms,
-        active: true,
-      };
+      this.disagreeSeconds += dt;
+      /*
+       * ...but only for so long. Past the budget the disagreement has stopped
+       * looking like a glitch and started looking like the truth, so the
+       * reading falls through to the note-change test below, which resets the
+       * median window and lets the needle move. See MAX_DISAGREE_SECONDS.
+       */
+      if (this.disagreeSeconds < MAX_DISAGREE_SECONDS) {
+        return {
+          frequency: centsToFreq(this.smoothCents),
+          clarity: result.clarity,
+          rms: result.rms,
+          active: true,
+        };
+      }
+    } else {
+      this.disagreeSeconds = 0;
     }
 
     // A genuine note change resets the median window so the display doesn't

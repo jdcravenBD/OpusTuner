@@ -237,19 +237,46 @@ console.log('Tracker: settles onto a steady note, survives one bad frame');
   );
 }
 {
-  // A decaying note starts offering poorly-resolved alternatives (a neighbour
-  // string ringing, or correlated noise). Those must not drag the reading off.
-  const tracker = new PitchTracker();
-  for (let i = 0; i < 30; i++) tracker.update({ frequency: 110, clarity: 0.95, rms: 0.1 });
+  /*
+   * A decaying note starts offering poorly-resolved alternatives (a neighbour
+   * string ringing, or correlated noise). A few of those must not drag the
+   * reading off.
+   *
+   * This used to feed thirty of them and assert the reading never moved, which
+   * is half a second and was the bug rather than the behaviour: with no bound
+   * at all, the refusal could go on for as long as the disagreement did. It
+   * was reported from a real guitar in Drop C# -- G#2 left ringing, C#2 struck
+   * over and over -- where the detector found C#2 on nearly every frame and
+   * the tracker refused 330 frames in a row, five and a half seconds, showing
+   * G#2 throughout. A neighbour ringing sympathetically holds clarity down for
+   * as long as it rings, so "low clarity" never expires on its own.
+   *
+   * Both halves are the test now: a brief disagreement is ignored, and one
+   * that persists is eventually believed.
+   */
+  const brief = new PitchTracker();
+  for (let i = 0; i < 30; i++) brief.update({ frequency: 110, clarity: 0.95, rms: 0.1 });
   let last = 110;
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 8; i++) {
     // 500 cents away — a perfect fourth up — but weakly resolved.
-    last = tracker.update({ frequency: 146.83, clarity: 0.7, rms: 0.02 }).frequency;
+    last = brief.update({ frequency: 146.83, clarity: 0.7, rms: 0.02 }).frequency;
   }
   check(
     'ignores weak outliers'.padEnd(22),
     Math.abs(centsError(last, 110)) < 1.0,
-    `stayed at ${last.toFixed(2)} Hz through 30 low-clarity frames a fourth away`,
+    `stayed at ${last.toFixed(2)} Hz through 8 low-clarity frames a fourth away`,
+  );
+
+  const persistent = new PitchTracker();
+  for (let i = 0; i < 30; i++) persistent.update({ frequency: 110, clarity: 0.95, rms: 0.1 });
+  let moved = 110;
+  for (let i = 0; i < 60; i++) {
+    moved = persistent.update({ frequency: 146.83, clarity: 0.7, rms: 0.02 }).frequency;
+  }
+  check(
+    'but not forever'.padEnd(22),
+    Math.abs(centsError(moved, 146.83)) < 20,
+    `followed to ${moved.toFixed(2)} Hz once the disagreement outlasted the budget`,
   );
 }
 {
@@ -775,6 +802,104 @@ console.log('Following: a sub-multiple is a slip, a neighbour is a note');
     'threshold in the gap'.padEnd(22),
     HOLD_DISAGREE_CENTS > 700 && HOLD_DISAGREE_CENTS < 1200,
     `${HOLD_DISAGREE_CENTS}¢: over a fifth, under an octave`,
+  );
+}
+
+/* --- 7f. a real guitar --------------------------------------------------- */
+// The only test here taken from an instrument rather than from a synthesiser,
+// and it exists because six days of synthetic scenes failed to reproduce what
+// one recording showed in a minute.
+//
+// Drop C# on an unplugged electric. G#2 is played, then damped briefly and C#2
+// is struck over and over. Reported symptom: the display stayed on G#2, frozen
+// at the last cent value it had, however hard C#2 was plucked -- and cleared
+// only after a couple of seconds of silence.
+//
+// The numbers below are what the *detector* produced, frame by frame, from
+// that recording: it found C#2 correctly on nearly every frame. The fault was
+// entirely downstream, in the tracker, which refused all of them. So the
+// detector's output is the right fixture -- it is exactly what the tracker
+// consumes, it is a few kilobytes rather than a few megabytes, and it pins the
+// layer the bug was actually in.
+console.log('A real guitar: Drop C#, G#2 ringing, C#2 struck');
+{
+  /** [frequency Hz, clarity] per frame at 60 fps, t = 0.6 s .. 6.0 s. */
+  const FRAMES: [number, number][] = [
+   [104.0,0.76], [104.0,0.76], [104.0,0.78], [104.0,0.78], [104.0,0.80], [104.0,0.80],
+    [103.9,0.76], [104.0,0.72], [103.9,0.70], [103.9,0.65], [103.8,0.66], [103.9,0.68],
+    [103.9,0.69], [103.9,0.70], [103.9,0.69], [103.9,0.69], [103.9,0.67], [103.9,0.69],
+    [104.0,0.68], [104.0,0.71], [51.9,0.78], [51.9,0.77], [51.9,0.79], [51.9,0.77], [51.9,0.62],
+    [51.9,0.47], [103.7,0.36], [232.2,0.26], [239.8,0.20], [104.5,0.41], [104.6,0.60],
+    [104.7,0.69], [104.7,0.73], [104.7,0.82], [104.6,0.81], [104.6,0.76], [104.5,0.76],
+    [104.4,0.76], [104.4,0.77], [104.4,0.80], [104.4,0.86], [104.4,0.85], [104.4,0.84],
+    [104.3,0.85], [104.3,0.84], [104.3,0.82], [104.3,0.84], [104.3,0.84], [104.3,0.84],
+    [104.3,0.84], [104.3,0.85], [104.3,0.79], [104.3,0.76], [104.3,0.75], [104.3,0.66],
+    [213.1,0.53], [213.7,0.60], [69.8,0.49], [52.1,0.49], [0,0.70], [0,0.67], [0,0.33],
+    [0,0.46], [0,0.46], [70.1,0.43], [240.0,0.41], [70.1,0.49], [70.0,0.59], [69.9,0.59],
+    [69.8,0.59], [69.8,0.62], [69.7,0.65], [69.6,0.68], [69.5,0.69], [69.5,0.71], [69.5,0.71],
+    [69.5,0.70], [69.4,0.69], [69.5,0.69], [69.4,0.70], [69.3,0.69], [69.3,0.71], [69.2,0.72],
+    [69.2,0.71], [69.2,0.70], [69.2,0.71], [69.2,0.72], [69.2,0.71], [69.1,0.74], [69.0,0.76],
+    [69.0,0.77], [69.0,0.79], [69.0,0.78], [69.1,0.77], [69.0,0.77], [68.9,0.77], [68.9,0.76],
+    [69.0,0.77], [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75],
+    [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75], [68.9,0.75],
+    [68.9,0.75], [68.9,0.75], [69.5,0.73], [69.4,0.75], [69.4,0.77], [69.4,0.77], [69.4,0.76],
+    [69.4,0.74], [69.3,0.75], [69.4,0.75], [69.3,0.74], [69.3,0.75], [69.3,0.78], [69.3,0.78],
+    [69.2,0.78], [69.2,0.78], [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.2,0.76],
+    [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.2,0.76],
+    [69.2,0.76], [69.2,0.76], [69.2,0.76], [69.5,0.77], [69.4,0.78], [69.4,0.78], [69.4,0.79],
+    [69.3,0.80], [69.3,0.81], [69.3,0.81], [69.3,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81],
+    [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81],
+    [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.2,0.81], [69.7,0.68], [69.6,0.70],
+    [69.6,0.71], [69.6,0.71], [69.5,0.73], [69.5,0.72], [69.5,0.73], [69.4,0.74], [69.4,0.64],
+    [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51],
+    [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51], [69.5,0.51],
+    [69.5,0.51], [69.6,0.63], [69.5,0.66], [69.5,0.67], [69.5,0.67], [69.4,0.70], [69.5,0.58],
+    [0,0.58], [0,0.52], [0,0.49], [0,0.28], [0,0.27], [241.9,0.39], [242.4,0.45], [69.5,0.58],
+    [69.5,0.60], [69.4,0.63], [69.4,0.65], [69.4,0.65], [69.4,0.65], [69.4,0.65], [69.4,0.67],
+    [69.4,0.68], [69.4,0.70], [69.3,0.72], [69.3,0.73], [69.3,0.68], [249.2,0.29], [245.0,0.31],
+    [245.0,0.31], [245.0,0.31], [241.2,0.32], [241.8,0.42], [74.5,0.56], [74.5,0.56],
+    [74.5,0.59], [74.5,0.57], [74.5,0.55], [74.6,0.54], [69.8,0.59], [69.8,0.61], [69.8,0.63],
+    [69.7,0.66], [69.6,0.67], [69.6,0.69], [69.6,0.66], [69.6,0.28], [240.9,0.26], [244.3,0.31],
+    [244.1,0.32], [244.1,0.33], [243.1,0.45], [242.8,0.45], [241.8,0.46], [70.0,0.57],
+    [70.0,0.60], [69.9,0.65], [69.9,0.66], [69.9,0.67], [69.8,0.70], [69.8,0.73], [69.8,0.74],
+    [69.7,0.75], [69.7,0.75], [69.6,0.69], [69.6,0.35], [208.0,0.24], [241.2,0.22],
+    [241.2,0.25], [241.2,0.27], [242.4,0.46], [242.7,0.53], [242.5,0.58], [69.8,0.63],
+    [69.8,0.66], [69.8,0.66], [69.8,0.68], [69.8,0.68], [69.8,0.71], [69.8,0.74], [69.7,0.73],
+    [69.6,0.72], [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59],
+    [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59], [69.5,0.59],
+    [69.5,0.59], [69.5,0.59], [242.4,0.40], [69.7,0.52], [69.6,0.56], [69.6,0.50], [69.5,0.44],
+    [69.6,0.32], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28],
+    [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [0,0.28], [69.9,0.70],
+    [69.9,0.70], [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73],
+    [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73], [69.9,0.73],
+    [69.9,0.73], [69.9,0.73], [69.9,0.73], [70.1,0.69]
+  ];
+
+  const C2 = 69.296; // the string being struck
+  const G2 = 103.826; // the one left ringing
+
+  const tracker = new PitchTracker();
+  let onC = 0;
+  let onG = 0;
+  for (const [frequency, clarity] of FRAMES) {
+    const out = tracker.update({ frequency, clarity, rms: 0.01 }, false, 1 / 60);
+    if (out.frequency > 0) {
+      if (Math.abs(centsError(out.frequency, C2)) < 60) onC++;
+      else if (Math.abs(centsError(out.frequency, G2)) < 60) onG++;
+    }
+  }
+
+  // The detector found C#2 on most of these frames. Before the disagreement
+  // guard was given a budget the tracker showed G#2 for 330 frames in a row.
+  check(
+    'follows the struck string'.padEnd(22),
+    onC > onG * 2,
+    `C#2 on ${onC} frames, G#2 on ${onG}`,
+  );
+  check(
+    'lets go of the old one'.padEnd(22),
+    onG < FRAMES.length / 3,
+    `${onG}/${FRAMES.length} frames still on the string that was only ringing`,
   );
 }
 
