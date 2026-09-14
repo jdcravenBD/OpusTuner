@@ -236,15 +236,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             }
           />
         </Row>
-        {/*
-          How wide the tuner screen is drawn, whichever screen it is.
-
-          Full is on the list and cannot be chosen: `soon` makes it a label
-          rather than a control, which is the honest state for a size with no
-          CSS behind it — it would otherwise sell, take the money and draw a
-          Box. Delete the one word when it is built; everything else it needs
-          is already here, the paywall included.
-        */}
+        {/* How wide the tuner screen is drawn, whichever screen it is. */}
         <Row name="Tuner style">
           <Segmented
             value={s.tunerStyle}
@@ -255,11 +247,15 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
                 label: 'Long',
                 locked: isAppearanceLocked('tunerStyle', 'long', s.owned),
               },
-              { value: 'full' as TunerStyle, label: 'Full', soon: true },
+              {
+                value: 'full' as TunerStyle,
+                label: 'Full',
+                locked: isAppearanceLocked('tunerStyle', 'full', s.owned),
+              },
             ]}
             onChange={(v) =>
               isAppearanceLocked('tunerStyle', v, s.owned)
-                ? setWanted('The long tuner screen')
+                ? setWanted('The bigger tuner screens')
                 : set('tunerStyle', v)
             }
           />
@@ -310,11 +306,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           Not separately paid: it does nothing at all unless Display color is
           on, and that is already the gate.
         */}
-        <Row
-          name="Color strength"
-          desc="How far the color is pushed. The light theme wants more of it than the dark one."
-          stack
-        >
+        <Row name="Color strength" stack>
           <StrengthField
             value={s.colorStrength}
             onChange={(v) => set('colorStrength', v)}
@@ -366,6 +358,14 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             on={s.showVerdict}
             onChange={(v) => (s.owned ? set('showVerdict', v) : setWanted('Hide the indicator'))}
             label="Pitch indicator"
+            locked={!s.owned}
+          />
+        </Row>
+        <Row name="Display cents" desc="The number of cents off, on whichever screen is showing.">
+          <Switch
+            on={s.showCents}
+            onChange={(v) => (s.owned ? set('showCents', v) : setWanted('Hide the cents readout'))}
+            label="Display cents"
             locked={!s.owned}
           />
         </Row>

@@ -50,9 +50,10 @@ export const THEME_MODES: ThemeMode[] = ['dark', 'light'];
  *   *height* is untouched, deliberately -- the column's budget is balanced
  *   against that one number (see .field-deck) and widening a screen should not
  *   move the string row.
- * - `full` is not built yet. It is named here so the setting it will need
- *   already exists and already costs money; until there is CSS for it, it
- *   draws as `box`, which is why the picker will not let anyone choose it.
+ * - `full` leaves the column altogether. The screen is pinned to the app and
+ *   drawn behind every control, and a veil over it holds the chassis
+ *   readable — measured from where the column's own gaps ended up, so it
+ *   follows whatever has been switched off. See .field-deck in app.css.
  */
 export type TunerStyle = 'box' | 'long' | 'full';
 
@@ -173,6 +174,20 @@ export interface Settings {
   /** The "Too sharp" / "Too flat" line under the carousel. */
   showVerdict: boolean;
   /**
+   * The cents figure on the tuner screen itself.
+   *
+   * The field's number over the nib and the strobe's under its note — one
+   * setting, because they are the same reading drawn twice and nobody wants
+   * it on one screen and off the other.
+   *
+   * Separate from `showTunerMarks`, which takes away furniture and used to
+   * make a point of never touching a reading. This is the reading, and the
+   * case for turning it off is the strobe's: the whole argument for a strobe
+   * is that you read motion rather than a number, and a number sitting there
+   * invites you to read the number instead.
+   */
+  showCents: boolean;
+  /**
    * The instrument-face furniture on the tuner screens.
    *
    * The accidental marks down the sides, the small print in the corners,
@@ -233,6 +248,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showStatus: true,
   showCarousel: true,
   showVerdict: true,
+  showCents: true,
   showTunerMarks: true,
   showTunerArrows: true,
   visual: DEFAULT_VISUAL,

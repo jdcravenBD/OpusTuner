@@ -63,7 +63,57 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const appRef = useRef<HTMLDivElement>(null);
+  const zoneRef = useRef<HTMLDivElement>(null);
   const version = useTunerVersion();
+
+  /*
+   * How much of the app the Full screen has to share, top and bottom.
+   *
+   * Two numbers in CSS pixels: from the app's top edge to where the tuner's
+   * own row begins, and from the end of that row to the app's bottom. In every
+   * other size they are zero and nothing reads them.
+   *
+   * Measured, not derived. The chassis above the tuner is four independent
+   * toggles and a wrapping key row below it, so the only honest source for
+   * "where does the furniture end" is where the layout actually put it -- and
+   * .field-zone is exactly the space the column had left over. They feed two
+   * things: the veil in app.css, through custom properties, and the screens
+   * themselves, which lay their readings out inside what is left so a nib or a
+   * strobe readout never ends up behind a string button.
+   */
+  const [fullInset, setFullInset] = useState({ top: 0, bottom: 0 });
+  const full = settings.tunerStyle === 'full';
+
+  useEffect(() => {
+    const app = appRef.current;
+    const zone = zoneRef.current;
+    if (!app || !zone) return;
+    if (!full) {
+      app.style.removeProperty('--full-top');
+      app.style.removeProperty('--full-bottom');
+      setFullInset((prev) => (prev.top === 0 && prev.bottom === 0 ? prev : { top: 0, bottom: 0 }));
+      return;
+    }
+    const measure = () => {
+      const a = app.getBoundingClientRect();
+      const z = zone.getBoundingClientRect();
+      const next = {
+        top: Math.max(0, Math.round(z.top - a.top)),
+        bottom: Math.max(0, Math.round(a.bottom - z.bottom)),
+      };
+      app.style.setProperty('--full-top', `${next.top}px`);
+      app.style.setProperty('--full-bottom', `${next.bottom}px`);
+      // Same numbers, same object — this runs from a ResizeObserver, and a
+      // fresh object every time would re-render, re-measure and never stop.
+      setFullInset((prev) => (prev.top === next.top && prev.bottom === next.bottom ? prev : next));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(app);
+    ro.observe(zone);
+    return () => ro.disconnect();
+  }, [full]);
 
   useAppearance(
     settings.themeStyle,
@@ -433,7 +483,7 @@ export default function App() {
         {/* The field is centred in this zone, which spans the full gap between
             the carousel and the string row. The frequency readout is pinned to
             the bottom of the zone so it cannot pull the field off centre. */}
-        <div className="field-zone">
+        <div className="field-zone" ref={zoneRef}>
           {settings.showVerdict && <TuningVerdict tolerance={settings.tolerance} />}
           <TunerVisual
             visual={settings.visual}
@@ -446,6 +496,9 @@ export default function App() {
             naming={settings.naming}
             fallbackMidi={fallbackMidi}
             marks={settings.showTunerMarks}
+            cents={settings.showCents}
+            padTop={fullInset.top}
+            padBottom={fullInset.bottom}
             trailWidth={settings.trailWidth}
             arrows={settings.showTunerArrows}
           />

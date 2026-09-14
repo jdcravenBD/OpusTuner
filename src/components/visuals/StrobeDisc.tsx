@@ -96,7 +96,7 @@ const SNAP_RATE = 9;
  * the most sensitive thing human vision does, which is why the mechanical
  * original is still the reference instrument.
  */
-export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
+export function StrobeDisc({ themeKey, naming, fallbackMidi, cents, padTop, padBottom }: VisualProps) {
   const phases = useRef(HARMONICS.map(() => 0));
   const displayCents = useRef(0);
   const signalFade = useRef(0);
@@ -105,6 +105,12 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
   namingRef.current = naming;
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
+  const showCentsRef = useRef(cents);
+  showCentsRef.current = cents;
+  const padTopRef = useRef(padTop);
+  padTopRef.current = padTop;
+  const padBottomRef = useRef(padBottom);
+  padBottomRef.current = padBottom;
 
   loadSegmentFont();
 
@@ -112,7 +118,17 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
     themeKey,
     draw: (ctx, size, p, frame, dt) => {
       const { w, h, dpr } = size;
-      const S = Math.min(w, h);
+      /*
+       * The dial is laid out inside whatever the chassis has left, not inside
+       * the canvas. In every size but Full both pads are zero and this is
+       * min(w, h) with the centre on the bottom edge, exactly as it was.
+       *
+       * A floor on the height, so that a canvas briefly measured at nothing --
+       * a rotation, a first paint -- cannot produce a dial of radius zero and
+       * a division by it further down.
+       */
+      const floorY = h - padBottomRef.current;
+      const S = Math.min(w, Math.max(64, floorY - padTopRef.current));
 
       const target = frame.hasSignal ? frame.cents : 0;
       displayCents.current += (target - displayCents.current) * 0.18;
@@ -140,10 +156,10 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
-      // Dial centre on the bottom edge; only the top half of the circle exists,
-      // and the canvas crops whatever runs past the sides.
+      // Dial centre on the bottom edge of the room it has; only the top half
+      // of the circle exists, and the canvas crops whatever runs past the sides.
       const cx = w / 2;
-      const cy = h;
+      const cy = floorY;
 
       HARMONICS.forEach((harmonic, k) => {
         const blocks = BASE_BLOCKS * harmonic;
@@ -229,14 +245,18 @@ export function StrobeDisc({ themeKey, naming, fallbackMidi }: VisualProps) {
       };
 
       drawSegmentText(ctx, note, cx, cy - (1 - NOTE_Y) * S, fit(note, NOTE_SIZE * S), style);
-      drawSegmentText(
-        ctx,
-        centsLabel,
-        cx,
-        cy - (1 - CENTS_Y) * S,
-        fit(centsLabel, CENTS_SIZE * S),
-        style,
-      );
+      // The note stays whatever this says. It names the string you are on,
+      // which is not the same kind of thing as the number below it.
+      if (showCentsRef.current) {
+        drawSegmentText(
+          ctx,
+          centsLabel,
+          cx,
+          cy - (1 - CENTS_Y) * S,
+          fit(centsLabel, CENTS_SIZE * S),
+          style,
+        );
+      }
 
       ctx.restore();
     },

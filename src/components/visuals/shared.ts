@@ -96,10 +96,31 @@ export interface VisualProps {
    *
    * False takes away the accidentals, the corner print and the field's
    * note names. It never takes away a reading: the strobe keeps its note
-   * and cents and the field keeps its cents, because those are the answer
-   * the tuner exists to give.
+   * and the field its nib, because those are the answer the tuner exists
+   * to give. The cents figure has a switch of its own -- see `cents`.
    */
   marks: boolean;
+  /**
+   * Whether the cents figure is drawn.
+   *
+   * Its own setting rather than part of `marks`, because it is a reading and
+   * not furniture, and because the reason to turn it off belongs to the
+   * strobe: the argument for a strobe is that you read motion instead of a
+   * number, and a number on the screen invites you to read the number.
+   */
+  cents: boolean;
+  /**
+   * Room at the top and bottom of the canvas that something else is using,
+   * in CSS pixels.
+   *
+   * Zero in every size but Full, where the canvas is the whole app and the
+   * chassis is drawn over it. The screens still *paint* edge to edge -- that
+   * is the point of Full -- but they lay their readings out inside what is
+   * left, so a nib or a strobe readout never ends up behind a string button.
+   * See the measurement in App.tsx.
+   */
+  padTop: number;
+  padBottom: number;
   /** Multiplier on the field trail's weight — see TrailWidth in the store. */
   trailWidth: number;
   /** Half-width of the in-tune window, in cents. */

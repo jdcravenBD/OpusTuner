@@ -48,6 +48,9 @@ export function PitchField({
   naming,
   fallbackMidi,
   marks,
+  cents,
+  padTop,
+  padBottom,
   trailWidth,
 }: VisualProps) {
   /**
@@ -81,8 +84,14 @@ export function PitchField({
   fallbackRef.current = fallbackMidi;
   const marksRef = useRef(marks);
   marksRef.current = marks;
+  const centsRef = useRef(cents);
+  centsRef.current = cents;
   const trailWidthRef = useRef(trailWidth);
   trailWidthRef.current = trailWidth;
+  const padRef = useRef({ top: padTop, bottom: padBottom });
+  padRef.current = { top: padTop, bottom: padBottom };
+  /** What the pads were when the trail's positions were recorded. */
+  const padAtSample = useRef({ top: padTop, bottom: padBottom });
 
   const canvasRef = useVisualCanvas({
     themeKey,
@@ -94,6 +103,24 @@ export function PitchField({
     },
     draw: (ctx, size, palette, frame, dt) => {
       const { w, h } = size;
+      /*
+       * The band the readings live in. Zero pads everywhere but Full, where
+       * the canvas is the whole app: the grid and the trail still run edge to
+       * edge, but the nib, its number and the note names sit inside what the
+       * chassis has left. See padTop on VisualProps.
+       */
+      const top = padRef.current.top;
+      const floorY = Math.max(top + 64, h - padRef.current.bottom);
+
+      // Every stored y is an absolute position in a geometry that has just
+      // changed. Keeping them would drag the trail's head off the nib.
+      if (
+        padAtSample.current.top !== padRef.current.top ||
+        padAtSample.current.bottom !== padRef.current.bottom
+      ) {
+        padAtSample.current = padRef.current;
+        trail.current.count = 0;
+      }
 
       const fall = SCROLL_PX_PER_SEC * dt;
       scrollOffset.current = (scrollOffset.current + fall) % GRID_SPACING;
@@ -104,7 +131,7 @@ export function PitchField({
 
       /* --- age the trail, then sample the current position ---------------- */
       const t = trail.current;
-      const markerY = h * MARKER_Y;
+      const markerY = top + (floorY - top) * MARKER_Y;
       for (let i = 0; i < t.count; i++) {
         const idx = (t.head - 1 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
         t.y[idx] += fall;
@@ -112,7 +139,7 @@ export function PitchField({
       // Drop anything that has fallen out of the bottom of the field.
       while (t.count > 0) {
         const oldest = (t.head - t.count + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
-        if (t.y[oldest] <= h) break;
+        if (t.y[oldest] <= floorY) break;
         t.count--;
       }
 
@@ -136,6 +163,9 @@ export function PitchField({
         naming: namingRef.current,
         fallbackMidi: fallbackRef.current,
         marks: marksRef.current,
+        showCents: centsRef.current,
+        top,
+        floorY,
         trailWidth: trailWidthRef.current,
         trail: t,
         buffer: trailCanvas.current,
@@ -162,6 +192,10 @@ interface DrawState {
   naming: NoteNaming;
   fallbackMidi: number;
   marks: boolean;
+  showCents: boolean;
+  /** The band the readings are laid out in — see padTop on VisualProps. */
+  top: number;
+  floorY: number;
   trailWidth: number;
   trail: Trail;
   buffer: HTMLCanvasElement | null;
@@ -229,14 +263,16 @@ function draw(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
-  const markerY = h * MARKER_Y;
+  const markerY = s.top + (s.floorY - s.top) * MARKER_Y;
+  /** The height the readings are sized against, which is not the canvas. */
+  const boxH = s.floorY - s.top;
   const inTune = frame.hasSignal && Math.abs(frame.cents) <= s.tolerance;
   const hot = colorFor(p, frame.hasSignal ? frame.cents : 9999, s.tolerance);
   const alpha = 0.32 + s.fade * 0.68;
 
   /** Fades everything out toward the bottom of the field. */
   const depthFade = (y: number) => {
-    const d = (y - markerY) / Math.max(1, h - markerY);
+    const d = (y - markerY) / Math.max(1, s.floorY - markerY);
     return clamp(1 - d * 0.92, 0, 1);
   };
 
@@ -293,11 +329,11 @@ function draw(
   if (s.marks && refMidi > 0) {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = p.text3;
-    ctx.font = visualFont(Math.max(10, Math.round(h * 0.042)));
+    ctx.font = visualFont(Math.max(10, Math.round(boxH * 0.042)));
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (const c of [-200, -100, 100, 200]) {
-      ctx.fillText(pitchClassName(refMidi + c / 100, s.naming), xOf(w, c), 7);
+      ctx.fillText(pitchClassName(refMidi + c / 100, s.naming), xOf(w, c), s.top + 7);
     }
   }
 
@@ -317,10 +353,12 @@ function draw(
   ctx.shadowBlur = 0;
 
   /* --- cent readout, riding above the nib -------------------------------- */
-  if (frame.hasSignal) {
+  // Switched off, the nib is the whole reading, which is what the field is
+  // for -- the number was always the coarse half of it.
+  if (frame.hasSignal && s.showCents) {
     const cents = Math.round(frame.cents);
     const label = cents === 0 ? '0' : `${cents > 0 ? '+' : '-'}${Math.abs(cents)}`;
-    const fontSize = Math.max(13, Math.round(h * 0.055));
+    const fontSize = Math.max(13, Math.round(boxH * 0.055));
     ctx.font = visualFont(fontSize);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -393,8 +431,8 @@ function drawTrail(
     const a = (t.head - 1 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
     const b = (t.head - 2 - i + TRAIL_CAPACITY * 2) % TRAIL_CAPACITY;
     if (!t.live[a] || !t.live[b]) continue; // gap where nothing was sounding
-    if (t.y[a] > h) continue;
-    const depth = clamp(1 - (t.y[a] - markerY) / Math.max(1, h - markerY), 0, 1);
+    if (t.y[a] > s.floorY) continue;
+    const depth = clamp(1 - (t.y[a] - markerY) / Math.max(1, s.floorY - markerY), 0, 1);
     bctx.strokeStyle = colorFor(p, t.cents[a], s.tolerance);
     // Scaled, not replaced: the taper from three pixels under the nib to one
     // at the bottom is what makes the trail read as falling away.
@@ -406,7 +444,9 @@ function drawTrail(
   }
 
   // Fade with depth in one pass, so the gradient can't interact with overlap.
-  const grad = bctx.createLinearGradient(0, markerY, 0, h);
+  // Gone by the bottom of the band the readings live in, not by the bottom of
+  // the canvas — in Full those are a string row apart.
+  const grad = bctx.createLinearGradient(0, markerY, 0, s.floorY);
   grad.addColorStop(0, 'rgba(255,255,255,1)');
   grad.addColorStop(0.55, 'rgba(255,255,255,0.62)');
   grad.addColorStop(1, 'rgba(255,255,255,0)');
