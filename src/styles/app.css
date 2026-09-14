@@ -4680,9 +4680,19 @@ button {
   padding: 0 16px;
 }
 
+/*
+ * The ink is the same neutral the rest of the app uses, and not the accent.
+ *
+ * Blue is what this idiom draws a control that *does* something in, which is
+ * why it was reached for -- but the two wearing it are the settings gear and
+ * the clear-tuned reset, and those are the two chrome buttons in the corners
+ * of a tuner. Colour on them puts the loudest thing on the screen in the
+ * corner furthest from the reading, and the accent is still doing its proper
+ * job three places down: the lit string, the buy button, the switches.
+ */
 :root[data-theme='modern'] .icon-btn {
   border-radius: 14px;
-  color: var(--accent);
+  color: var(--text-2);
 }
 
 :root[data-theme='modern'] .icon-btn:active,
