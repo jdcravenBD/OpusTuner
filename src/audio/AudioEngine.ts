@@ -75,7 +75,7 @@ const ONSET_RISE_RATIO = 2.2;
  * detecting. In a quiet room it lands within a decibel of where the slider's
  * default sat, which is the behaviour already known to be right.
  */
-export const NOISE_HEADROOM = 3.5;
+export const NOISE_HEADROOM = 5.5;
 /**
  * The gate may never leave the range the slider offered.
  *
@@ -117,69 +117,180 @@ export function followGateForNoiseFloor(floor: number): number {
 /** A quieter room is believed almost at once. */
 const FLOOR_FALL_SECONDS = 0.15;
 /**
- * A louder one is not. The asymmetry is the whole design — see below — and it
- * is this far apart because the two mistakes do not cost the same.
+ * A louder one is believed in about a second and a half, once the window below
+ * has agreed.
  *
- * Rising too eagerly puts the gate above a quiet instrument, which is the
- * complaint this app has already had twice. Rising too slowly leaves it under
- * a room that has genuinely got louder, where the clarity test is still in the
- * way and the symptom is a stray reading rather than a tuner that hears
- * nothing. And the case where a loud room matters most, which is being in one
- * when the microphone opens, is not handled by this at all: the first frame
- * adopts the room outright.
+ * This was twelve seconds, and twelve was doing two jobs: following a room
+ * that had genuinely changed, and refusing to follow a note. The window does
+ * the second job now, and does it properly, so this one is free to be as quick
+ * as the first job wants.
  */
-const FLOOR_RISE_SECONDS = 12;
+const FLOOR_RISE_SECONDS = 1;
+
 /**
- * Longest gap the estimate will integrate over.
+ * How much recent history the floor is the minimum of.
+ *
+ * Long enough that ordinary playing always contains a gap -- the quiet between
+ * two plucks, the tail of a decay -- and short enough that a room which has
+ * actually changed is believed while the player is still on the same string.
+ * Five seconds puts the gate above a room that starts up mid-session in about
+ * eight, measured.
+ */
+export const FLOOR_WINDOW_SECONDS = 5;
+/** Resolution of that window. Twenty blocks is enough and costs twenty compares. */
+const FLOOR_BLOCK_SECONDS = 0.25;
+
+/**
+ * How long a single unbroken run of notes may hold the estimate still.
+ *
+ * The freeze is the guard against the one case the window cannot handle, which
+ * is a note that never stops: bow a violin, or lean on an ebow, for longer than
+ * the window and every block in it belongs to the note. Four seconds covers the
+ * loud part of anything plucked, and past it the clamp on the gate is what
+ * bounds the damage.
+ *
+ * **The budget is a leaky bucket, not a stopwatch**, and that is the whole
+ * point of having one rather than a flag. A room loud enough to trip the onset
+ * test trips it about twice a second -- measured at 35 onsets in 24 seconds of
+ * nothing but an air conditioner -- so anything timed from the most recent
+ * onset can never expire, and neither can anything a momentary gap resets. It
+ * fills while a note is on and drains at the same rate while one is not, so a
+ * room drumming on the onset test saturates it within a few seconds and leaves
+ * it saturated, while ordinary playing (a note, then a gap to hear it in) keeps
+ * it somewhere in the middle where a real note still gets its protection.
+ */
+export const FREEZE_BUDGET_SECONDS = 3;
+
+/**
+ * Longest gap anything in here will integrate over.
  *
  * Two things stop the frame loop without stopping the clock: a background tab,
  * where requestAnimationFrame simply does not fire, and the app deafening
  * itself while it makes a sound of its own. Either can leave minutes between
- * consecutive steps, and a step that size works out to a coefficient of 1 —
- * the floor snapping to whatever the first frame back happens to hold.
+ * consecutive steps, and the tracker's hold measured over a gap that size
+ * expires on the first frame back. The floor clamps its own step separately,
+ * to one block.
  */
-const MAX_FLOOR_STEP_SECONDS = 0.1;
+const MAX_DT_SECONDS = 0.1;
 
 /**
- * One step of the noise floor estimate: fast down, slow up, and frozen while a
- * note is ringing.
+ * The room's own level, as the minimum of what has been heard recently.
  *
- * An adaptive floor was written here once and reverted, and it is worth being
- * exact about why, because the bug is an easy one to write twice. It averaged.
- * Over a long note the average climbed toward the note's own level, the gate
- * climbed with it, the note was cut off by the very thing measuring it, and
- * the floor then sat high across the start of the next one.
+ * An adaptive floor was written here once and reverted, and the bug is an easy
+ * one to write twice: it averaged, so over a long note the average climbed
+ * toward the note's own level, the gate climbed with it, the note was cut off
+ * by the very thing measuring it, and the floor then sat high across the start
+ * of the next one. The fix for that was to freeze the estimate whenever a note
+ * was on -- and that turned out to be a worse bug than the one it fixed,
+ * because of where the word "note" comes from.
  *
- * Three things stop that, all of them the same observation: playing can only
- * ever make a room louder, so a rise is never evidence of anything.
+ * **The floor decided what a note was, and a note stopped the floor.** A room
+ * loud enough to trip the onset threshold therefore froze the one measurement
+ * that would have lifted the threshold out of its way, and it stayed frozen at
+ * whatever the room happened to be at that instant, for as long as the app was
+ * open. Which way it was then wrong was pure timing. Frozen low, the room read
+ * as notes and a reading could sit pinned at a steady cent value indefinitely.
+ * Frozen high -- which is what opening the app in a loud room does, since the
+ * first frame adopts the room outright -- the gate sat above a quiet
+ * instrument, and an unplugged electric had to be hit three times as hard as
+ * it should need. All three complaints, one loop.
  *
- *  1. This tracks a minimum rather than a mean. A fall is followed at once, a
- *     rise eighty times more slowly.
- *  2. It does not update at all while a note is on. The engine already knows
- *     when one is, and the note's own level is the single measurement
- *     guaranteed to be the wrong answer.
- *  3. The gate it feeds is clamped at both ends, so the worst case is bounded
- *     by something that used to be selectable.
+ * A minimum breaks the loop by not asking. Playing can only make a room
+ * louder, so the quietest thing in the last few seconds is the room whether or
+ * not anything was played over it, and no part of this needs to know what a
+ * note is. Measured against the case that reverted the first attempt -- a
+ * pluck every two seconds for twenty-eight seconds -- the estimate does not
+ * move off the room at all.
  *
- * The circularity — the floor decides what a note is, notes freeze the floor —
- * is real, and it points the safe way. An estimate that has drifted too high
- * stops onsets registering, which leaves `noteOn` false, which leaves the
- * estimate free to fall until notes are heard again. Too low and the room
- * itself corrects it within a fraction of a second. There is no state it can
- * settle into and stay wrong in.
+ * What is left is bounded on every side: the window is a minimum so a note
+ * cannot lift it, the freeze is the guard for a note with no gaps and it has a
+ * budget it cannot renew, and the gate the whole thing feeds is clamped at both
+ * ends to a range that used to be selectable by hand.
  */
-export function nextNoiseFloor(
-  floor: number,
-  env: number,
-  dtSeconds: number,
-  noteOn: boolean,
-): number {
-  // Nothing measured yet. Adopt the room outright rather than spending the
-  // first several seconds of use climbing toward it from zero.
-  if (floor <= 0) return env;
-  if (env < floor) return floor + (env - floor) * (1 - Math.exp(-dtSeconds / FLOOR_FALL_SECONDS));
-  if (noteOn) return floor;
-  return floor + (env - floor) * (1 - Math.exp(-dtSeconds / FLOOR_RISE_SECONDS));
+export class NoiseFloor {
+  private readonly blocks: Float32Array;
+  private readonly blockSamples: number;
+  private readonly freezeSamples: number;
+
+  private at = 0;
+  private filled = 0;
+  private blockMin = Infinity;
+  private inBlock = 0;
+  private frozenFor = 0;
+  private smoothed = 0;
+
+  constructor(private readonly sampleRate: number) {
+    const rate = sampleRate || 48000;
+    this.blockSamples = Math.max(1, Math.round(FLOOR_BLOCK_SECONDS * rate));
+    this.freezeSamples = Math.round(FREEZE_BUDGET_SECONDS * rate);
+    this.blocks = new Float32Array(Math.round(FLOOR_WINDOW_SECONDS / FLOOR_BLOCK_SECONDS));
+  }
+
+  /** Current estimate in rms. Zero until the first frame of audio arrives. */
+  get value(): number {
+    return this.smoothed;
+  }
+
+  reset(): void {
+    this.at = 0;
+    this.filled = 0;
+    this.blockMin = Infinity;
+    this.inBlock = 0;
+    this.frozenFor = 0;
+    this.smoothed = 0;
+  }
+
+  /**
+   * One step.
+   *
+   * @param env    the short-term level of this frame
+   * @param samples how much audio arrived since the last step
+   * @param noteOn whether the engine currently believes a note is ringing
+   */
+  push(env: number, samples: number, noteOn: boolean): number {
+    /*
+     * Clamped to one block, because two things stop the frame loop without
+     * stopping the clock -- a backgrounded tab, where rAF does not fire, and
+     * the engine deafening itself while the app makes a sound of its own. An
+     * unclamped gap would flush the entire window with the single level that
+     * happened to be there on the first frame back.
+     */
+    const n = Math.min(Math.max(samples, 0), this.blockSamples);
+
+    const frozen = noteOn && this.frozenFor < this.freezeSamples;
+    this.frozenFor = Math.max(0, this.frozenFor + (noteOn ? n : -n));
+
+    if (!frozen) {
+      if (env < this.blockMin) this.blockMin = env;
+      this.inBlock += n;
+      if (this.inBlock >= this.blockSamples) {
+        this.blocks[this.at] = this.blockMin;
+        this.at = (this.at + 1) % this.blocks.length;
+        if (this.filled < this.blocks.length) this.filled++;
+        this.blockMin = Infinity;
+        this.inBlock = 0;
+      }
+    }
+
+    // The block in progress counts too, so a room that has just gone quiet is
+    // believed now rather than a quarter of a second from now.
+    let min = this.blockMin;
+    for (let i = 0; i < this.filled; i++) {
+      if (this.blocks[i] < min) min = this.blocks[i];
+    }
+    if (!isFinite(min)) min = env;
+
+    // Nothing measured yet. Adopt the room outright rather than spending the
+    // first several seconds of use climbing toward it from zero.
+    if (this.smoothed <= 0) {
+      this.smoothed = min;
+      return this.smoothed;
+    }
+
+    const tau = min < this.smoothed ? FLOOR_FALL_SECONDS : FLOOR_RISE_SECONDS;
+    this.smoothed += (min - this.smoothed) * (1 - Math.exp(-n / this.sampleRate / tau));
+    return this.smoothed;
+  }
 }
 
 /**
@@ -226,7 +337,7 @@ export const ONSET_FLOOR_RATIO = 1.8;
  * throwing away signal, it is declining to keep a dead note alive on a
  * technicality.
  */
-export const FOLLOW_HEADROOM = 1.41;
+export const FOLLOW_HEADROOM = 2.75;
 /**
  * How far a reading may disagree with the note already on screen before it is
  * refused rather than followed, once the gate has been relaxed.
@@ -356,9 +467,14 @@ export class AudioEngine {
 
   /**
    * The room's own level, in rms, as far as it has been measured — see
-   * nextNoiseFloor. Zero until the first frame of audio arrives.
+   * NoiseFloor. Zero until the first frame of audio arrives.
+   *
+   * Mirrored out of the estimator every frame rather than owned here, so that
+   * everything downstream — the gate, the onset floor, the debug HUD — reads
+   * one number and none of them has to know how it is arrived at.
    */
   noiseFloor = 0;
+  private floor = new NoiseFloor(48000);
   /** `written` at the last floor step, so the step can be timed in samples. */
   private floorAt = 0;
 
@@ -452,6 +568,9 @@ export class AudioEngine {
       const ctx = new Ctor({ latencyHint: 'interactive' });
       this.ctx = ctx;
       this.sampleRate = ctx.sampleRate;
+      // Its window is measured in samples, so it cannot be built until the
+      // context has said what a second is.
+      this.floor = new NoiseFloor(ctx.sampleRate);
 
       // iOS hands back a suspended context unless resumed inside the gesture
       // that triggered start().
@@ -566,6 +685,7 @@ export class AudioEngine {
     // Measured from the room, so a new room starts from nothing rather than
     // from whatever the last one happened to be.
     this.noiseFloor = 0;
+    this.floor.reset();
     this.floorAt = 0;
     this.sustainRef = 0;
     this.samplesAtOnset = 0;
@@ -717,16 +837,13 @@ export class AudioEngine {
     /*
      * Measure the room, then decide with it. `noteOn` is one frame stale here
      * and has to be, since the estimate is read further down this same frame;
-     * the cost is that the frame an onset lands on is seen as room noise. At a
-     * twelve-second time constant one frame of it moves the floor by a tenth
-     * of one percent, which is not a cost.
+     * the cost is that the frame an onset lands on is seen as room noise, and
+     * against a minimum taken over five seconds one frame is not a cost.
      */
-    const dt = Math.min(
-      (this.written - this.floorAt) / (this.sampleRate || 48000),
-      MAX_FLOOR_STEP_SECONDS,
-    );
+    const since = this.written - this.floorAt;
     this.floorAt = this.written;
-    this.noiseFloor = nextNoiseFloor(this.noiseFloor, env, dt, this.noteOn);
+    this.noiseFloor = this.floor.push(env, since, this.noteOn);
+    const dt = Math.min(since / (this.sampleRate || 48000), MAX_DT_SECONDS);
 
     // A pluck is a sharp rise in the short-term level. Requiring a minimum gap
     // since the last onset stops one attack registering as several.
@@ -823,6 +940,27 @@ export class AudioEngine {
     // `dt` rather than a frame count, so the hold lasts the same length of
     // time on a 120 Hz screen as on a 60 Hz one.
     this.last = this.tracker.update(raw, settling, dt);
+
+    /*
+     * Nothing on screen means the note is over, whatever its level says.
+     *
+     * `noteDead` was the only way out of `noteOn`, and it compares the level
+     * against the note's own sustain: fifty decibels down, which is a fall no
+     * envelope containing a room can ever make, because the envelope cannot go
+     * below the room. So in any room with anything audible in it the flag
+     * latched on the first pluck and stayed on for the life of the session,
+     * taking `decayFraction` and the freeze above with it.
+     *
+     * This is the way out that does not depend on a level at all. It reads the
+     * tracker, which has already applied its own half-second hold, so a dropout
+     * mid-decay does not end the note -- only the tracker actually giving up
+     * does. It sits after the update rather than before it, and past settling,
+     * so that the frames where there is legitimately nothing yet (the attack
+     * blank, and the first reading of a note that has not been acquired) cannot
+     * end a note that has only just started.
+     */
+    if (!settling && this.last.frequency <= 0) this.noteOn = false;
+
     return this.last;
   }
 
