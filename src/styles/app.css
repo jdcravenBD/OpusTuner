@@ -966,9 +966,8 @@ button {
  * left is the machined top edge and the lit bottom one, running out of sight
  * past both margins — the recess becomes a slot.
  *
- * The rake down from the top edge (the first two shadows) survives untouched.
- * Its x offset is already zero; it is the two rings and the all-round inner
- * glow that were drawing the sides, and those are the ones replaced.
+ * Nothing that reaches sideways survives, which turned out to include the
+ * rakes themselves -- see the box-shadow below.
  *
  * And it is mirrored onto the bottom lip, which a recess would not do — a
  * recess is lit from above, so its lower edge catches light rather than
@@ -991,27 +990,72 @@ button {
   border-left-width: 0;
   border-right-width: 0;
   border-radius: 0;
+  /*
+   * Four flat lines and nothing else: two 1px lips inside and two outside,
+   * every one of them zero-blur and zero-spread, so not one has any
+   * horizontal reach.
+   *
+   * **The rakes had to stop being shadows.** A blurred inset shadow is round:
+   * at blur 16 and spread -6 the top rake's edge sat six pixels outside the
+   * left side of the box and feathered eight back in, painting a soft dark
+   * band a couple of pixels wide down both sides. That is unfixable within
+   * box-shadow -- spread is uniform and there is no per-axis blur -- so they
+   * are gradients on a pseudo-element now, which only ever run one way.
+   */
   box-shadow:
     inset 0 1px 0 rgba(0, 0, 0, 0.22),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.05),
-    inset 0 8px 16px -6px rgba(0, 0, 0, 0.62),
-    inset 0 3px 6px -1px rgba(0, 0, 0, 0.48),
-    inset 0 -8px 16px -6px rgba(0, 0, 0, 0.62),
-    inset 0 -3px 6px -1px rgba(0, 0, 0, 0.48),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
     0 -1px 0 rgba(255, 255, 255, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/*
+ * The two lips, as gradients.
+ *
+ * The top shades down and the bottom shades up, which a recess would not do:
+ * a recess is lit from above, so its lower edge catches light rather than
+ * casting. This is not a recess. With no ends to it, it reads as a slot cut
+ * clean through the chassis, and a slot has a lip at the bottom shading
+ * upward exactly as the top one shades down.
+ *
+ * `z-index: -1` puts this precisely where the inset shadows it replaces used
+ * to sit: over the screen's own background and under the canvas, so the trail
+ * and the gridlines still draw across it at full strength. .field carries
+ * will-change, so it is already a stacking context and the -1 cannot escape.
+ */
+.app[data-tuner-style='long'] .field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.66) 0, rgba(0, 0, 0, 0.3) 8px, transparent 20px),
+    linear-gradient(to top, rgba(0, 0, 0, 0.66) 0, rgba(0, 0, 0, 0.3) 8px, transparent 20px);
 }
 
 :root[data-theme='light'] .app[data-tuner-style='long'] .field {
   box-shadow:
     inset 0 1px 0 rgba(16, 26, 42, 0.06),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.9),
-    inset 0 8px 14px -7px rgba(16, 26, 42, 0.22),
-    inset 0 3px 5px -1px rgba(16, 26, 42, 0.13),
-    inset 0 -8px 14px -7px rgba(16, 26, 42, 0.22),
-    inset 0 -3px 5px -1px rgba(16, 26, 42, 0.13),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.9),
     0 -1px 0 rgba(255, 255, 255, 0.9),
     0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme='light'] .app[data-tuner-style='long'] .field::before {
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(16, 26, 42, 0.2) 0,
+      rgba(16, 26, 42, 0.09) 8px,
+      transparent 18px
+    ),
+    linear-gradient(to top, rgba(16, 26, 42, 0.2) 0, rgba(16, 26, 42, 0.09) 8px, transparent 18px);
+}
+
+/* Modern has no depth anywhere else and gets none here. */
+:root[data-theme='modern'] .app[data-tuner-style='long'] .field::before {
+  display: none;
 }
 
 /*
