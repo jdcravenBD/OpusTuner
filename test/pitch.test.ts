@@ -278,6 +278,40 @@ console.log('Tracker: settles onto a steady note, survives one bad frame');
     Math.abs(centsError(moved, 146.83)) < 20,
     `followed to ${moved.toFixed(2)} Hz once the disagreement outlasted the budget`,
   );
+
+  /*
+   * And *how* it stops holding matters, which is the second half of the same
+   * report.
+   *
+   * The first version of the budget fell through and adopted the disagreeing
+   * reading. That fixed the note that would not let go and created a worse
+   * fault: mute a string abruptly and the needle slid off onto whatever the
+   * room had, because the only evidence available was the evidence the guard
+   * had just spent a quarter second calling too weak to trust.
+   *
+   * So the note ends instead, and there must be a frame of *nothing* between
+   * the old reading and whatever replaces it. That blank is not cosmetic: the
+   * relaxed follow gate in AudioEngine applies only while a reading exists, so
+   * giving up here is what puts the stricter acquire gate back in front of the
+   * next candidate.
+   */
+  const giving = new PitchTracker();
+  for (let i = 0; i < 30; i++) giving.update({ frequency: 110, clarity: 0.95, rms: 0.1 });
+  let blanked = false;
+  let heldAfterBudget = 0;
+  for (let i = 0; i < 40; i++) {
+    const out = giving.update({ frequency: 146.83, clarity: 0.7, rms: 0.02 });
+    if (out.frequency === 0) blanked = true;
+    else if (blanked) break;
+    else if (Math.abs(centsError(out.frequency, 110)) < 1) heldAfterBudget = i + 1;
+  }
+  check(
+    'gives up, not over'.padEnd(22),
+    blanked,
+    blanked
+      ? `reading ended after ${heldAfterBudget} held frames rather than jumping to the weak one`
+      : 'never blanked — it adopted the reading it had just refused',
+  );
 }
 {
   // The same disagreement, but confidently resolved, should still be followed.

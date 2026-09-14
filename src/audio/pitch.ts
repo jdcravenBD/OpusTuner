@@ -262,8 +262,9 @@ const SETTLE_RISE_FACTOR = 0.3;
  *
  * A quarter of a second, because of what the guard is actually for: the brief
  * alternatives a decaying note throws off, which last a frame or two. A
- * disagreement that survives this long is not a glitch, it is the player
- * having moved, and the note being defended is the wrong one.
+ * disagreement that survives this long is not a glitch: the note being
+ * defended has gone. What replaces it is decided by acquiring again from
+ * scratch, not by believing the reading that broke the tie.
  *
  * Deliberately *not* reset by `noteAttack`. A room that trips the onset test
  * would otherwise renew the refusal indefinitely, which is the same trap as
@@ -407,6 +408,26 @@ export class PitchTracker {
           active: true,
         };
       }
+      /*
+       * Budget spent. Give the note up rather than adopt its replacement.
+       *
+       * The first version of this fell through and took the disagreeing
+       * reading, which fixed the note that would not let go and created a
+       * worse one: mute a string abruptly and the needle would slide off onto
+       * whatever the room had to offer, because the only evidence on the table
+       * was the evidence the guard had just spent a quarter second calling too
+       * weak to trust. Believing it the instant the clock ran out was never
+       * the intent.
+       *
+       * Ending the note is the honest answer, and it does more than blank the
+       * screen. The relaxed follow gate in AudioEngine applies only while a
+       * reading exists, so letting go here puts the acquire gate back -- eight
+       * decibels stricter -- in front of whatever comes next. A real note
+       * clears that on its next frame and is picked up fresh; a room does not.
+       * Either it hears a note or it does not.
+       */
+      this.reset();
+      return { frequency: 0, clarity: result.clarity, rms: result.rms, active: false };
     } else {
       this.disagreeSeconds = 0;
     }
