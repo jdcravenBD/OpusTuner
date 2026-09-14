@@ -80,6 +80,26 @@ export const TOLERANCES: ToleranceCents[] = [2, 5, 10, 20];
 /** The stock blue-grey. Matches the hue baked into styles/app.css. */
 export const DEFAULT_HUE = 215;
 
+/**
+ * How hard the hue is pushed, as a percentage of the palette's own saturation.
+ *
+ * Every token built from a hue is written `calc(N% * var(--s))`, so `--s` is
+ * already the one number that decides how much colour the whole app has — it
+ * is what the Display color switch sets to zero. This opens that number up.
+ *
+ * 100 is the palette as designed. It floors at 25 rather than 0 because 0 is
+ * what the switch above it already does, and a slider whose bottom end
+ * silently duplicates a switch is two controls for one state. The ceiling is
+ * 300 because the light palette needs it: its surfaces sit at 90-100%
+ * lightness, where 40% saturation is a tint you have to look for. hsl clamps
+ * saturation at 100%, so the top of the range saturates gracefully rather
+ * than breaking, and the faces at exactly 100% lightness stay white whatever
+ * this says — there is no colour to be had at the top of the scale.
+ */
+export const DEFAULT_COLOR_STRENGTH = 100;
+export const MIN_COLOR_STRENGTH = 25;
+export const MAX_COLOR_STRENGTH = 300;
+
 export interface Settings {
   /** Concert-pitch reference, 415–466 Hz. */
   a4: number;
@@ -123,6 +143,13 @@ export interface Settings {
    * make it look wrong.
    */
   hue: number;
+  /**
+   * How much of that hue there is — see DEFAULT_COLOR_STRENGTH.
+   *
+   * Kept whatever the Display color switch says, so turning the colour off
+   * and back on returns the strength that was chosen rather than the default.
+   */
+  colorStrength: number;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -198,6 +225,7 @@ export const DEFAULT_SETTINGS: Settings = {
   themeMode: 'dark',
   themeColor: false,
   hue: DEFAULT_HUE,
+  colorStrength: DEFAULT_COLOR_STRENGTH,
   leftHanded: false,
   capo: 0,
   inputDeviceId: 'default',
@@ -406,6 +434,11 @@ export const settingsStore = createStore<Settings>(
     tunerStyle: TUNER_STYLES.includes(s.tunerStyle)
       ? s.tunerStyle
       : DEFAULT_SETTINGS.tunerStyle,
+    // Clamped rather than checked against a list: this one is continuous, and
+    // the ends of the range are the sort of thing that gets narrowed later.
+    colorStrength: Number.isFinite(s.colorStrength)
+      ? Math.min(MAX_COLOR_STRENGTH, Math.max(MIN_COLOR_STRENGTH, Math.round(s.colorStrength)))
+      : DEFAULT_COLOR_STRENGTH,
   }),
   /*
    * What a reset leaves alone.

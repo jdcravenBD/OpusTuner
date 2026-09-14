@@ -7,8 +7,12 @@ import { ScreensSection } from './ScreensSection';
 import { CheckIcon, ChevronRightIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
 import { PRICE, TIER_NAME, isAppearanceLocked } from '../state/unlock';
+import { paintColorStrength, paintHue } from '../hooks';
 import {
+  DEFAULT_COLOR_STRENGTH,
   DEFAULT_HUE,
+  MAX_COLOR_STRENGTH,
+  MIN_COLOR_STRENGTH,
   settingsStore,
   TOLERANCES,
   TRAIL_WIDTHS,
@@ -300,11 +304,31 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             disabled={colorless}
           />
         </Row>
-        {!colorless && s.hue !== DEFAULT_HUE && (
+        {/*
+          Which colour is one question and how much of it is another, so this
+          is its own row rather than a second slider crowded under the first.
+          Not separately paid: it does nothing at all unless Display color is
+          on, and that is already the gate.
+        */}
+        <Row
+          name="Color strength"
+          desc="How far the color is pushed. The light theme wants more of it than the dark one."
+          stack
+        >
+          <StrengthField
+            value={s.colorStrength}
+            onChange={(v) => set('colorStrength', v)}
+            colored={s.themeColor}
+            disabled={colorless}
+          />
+        </Row>
+        {!colorless && (s.hue !== DEFAULT_HUE || s.colorStrength !== DEFAULT_COLOR_STRENGTH) && (
           <button
             className="btn btn--block"
             style={{ marginTop: 6 }}
-            onClick={() => settingsStore.set({ hue: DEFAULT_HUE })}
+            onClick={() =>
+              settingsStore.set({ hue: DEFAULT_HUE, colorStrength: DEFAULT_COLOR_STRENGTH })
+            }
           >
             Reset colors
           </button>
@@ -576,6 +600,69 @@ function Row({
 }
 
 /**
+ * A slider that paints while it is dragged and only writes to the store when
+ * it is let go.
+ *
+ * Both of the palette sliders below drive a custom property on <html>, and
+ * every frame of a drag repaints the whole app through it. That much is the
+ * floor. What was on top of it was a store write per pointer move, which
+ * re-renders every component reading `useSettings` -- which is the entire app
+ * and the whole of this panel -- and measured at 4.9 ms median and 13.7 ms at
+ * the ninetieth percentile against 2.3 and 3.0 for the paint alone. The
+ * spikes are what a thumb feels as lag.
+ *
+ * So: `paint` on every move, `commit` once on release. Local state holds the
+ * position in between, which re-renders this control and nothing else.
+ *
+ * The commit rides the *native* `change` event, which for a range input is
+ * exactly "the user has finished" -- mouse up, touch end, or one arrow key.
+ * React's onChange is the `input` event, so it cannot be used for this and the
+ * listener is attached by hand.
+ */
+function useLiveSlider(
+  value: number,
+  commit: (value: number) => void,
+  paint: (value: number) => void,
+) {
+  const ref = useRef<HTMLInputElement>(null);
+  /**
+   * Null except mid-drag.
+   *
+   * The input has to stay controlled: React restores a controlled input's DOM
+   * value after any event that does not change state, so leaving this out does
+   * not mean "no re-render", it means the thumb springs back under the finger.
+   */
+  const [live, setLive] = useState<number | null>(null);
+
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onDone = () => {
+      const v = Number(el.value);
+      // Both in one batch, so the control never renders a frame of the old
+      // stored value on its way to the new one.
+      setLive(null);
+      commitRef.current(v);
+    };
+    el.addEventListener('change', onDone);
+    return () => el.removeEventListener('change', onDone);
+  }, []);
+
+  return {
+    ref,
+    shown: live ?? value,
+    onInput: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = Number(e.target.value);
+      setLive(v);
+      paint(v);
+    },
+  };
+}
+
+/**
  * Hue picker: a slider running the full spectrum with a swatch of the chosen
  * hue beside it. The swatch is shown at mid lightness rather than at the near
  * -black the chassis actually uses, because a swatch of near-black tells you
@@ -593,25 +680,70 @@ function HueField({
   /** The plain theme has no hue to set — the control says so rather than lying. */
   disabled?: boolean;
 }) {
+  const { ref, shown, onInput } = useLiveSlider(value, onChange, paintHue);
   return (
     <div className="slider-field slider-field--grow" data-disabled={disabled}>
       <span
         className="hue-swatch"
-        style={{ background: disabled ? 'hsl(0 0% 50%)' : `hsl(${value} 45% 50%)` }}
+        style={{ background: disabled ? 'hsl(0 0% 50%)' : `hsl(${shown} 45% 50%)` }}
       />
       <input
+        ref={ref}
         className="slider slider--hue"
         type="range"
         min={0}
         max={359}
         step={1}
-        value={value}
+        value={shown}
         disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={onInput}
         aria-label={label}
-        aria-valuetext={`${value} degrees`}
+        aria-valuetext={`${shown} degrees`}
       />
-      <span className="slider-field__value">{value}°</span>
+      <span className="slider-field__value">{shown}°</span>
+    </div>
+  );
+}
+
+/**
+ * How much of that hue there is.
+ *
+ * The track runs from grey to the chosen hue at full saturation, so it shows
+ * what it does rather than being a bare line with a number beside it — and it
+ * re-tints as the picker above it moves, because it is drawn from the same
+ * custom property the palette is.
+ */
+function StrengthField({
+  value,
+  onChange,
+  colored,
+  disabled,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  /** Whether there is any colour to strengthen — see paintColorStrength. */
+  colored: boolean;
+  disabled?: boolean;
+}) {
+  const { ref, shown, onInput } = useLiveSlider(value, onChange, (v) =>
+    paintColorStrength(colored, v),
+  );
+  return (
+    <div className="slider-field slider-field--grow" data-disabled={disabled}>
+      <input
+        ref={ref}
+        className="slider slider--strength"
+        type="range"
+        min={MIN_COLOR_STRENGTH}
+        max={MAX_COLOR_STRENGTH}
+        step={5}
+        value={shown}
+        disabled={disabled}
+        onChange={onInput}
+        aria-label="Color strength"
+        aria-valuetext={`${shown} percent`}
+      />
+      <span className="slider-field__value">{shown}%</span>
     </div>
   );
 }

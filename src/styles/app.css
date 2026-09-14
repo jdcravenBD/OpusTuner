@@ -2474,6 +2474,29 @@ button {
 }
 
 /*
+ * Colour strength: grey at one end, the chosen hue at full tilt at the other.
+ *
+ * Drawn from --h rather than from a literal, so it re-tints as the picker
+ * above it moves and the track is always showing the colour it would be
+ * strengthening. At a flat 50% lightness throughout, for the same reason the
+ * hue swatch is: the palette's own lightness values are at the ends of the
+ * scale, and a track drawn in them would be a line of near-black or of white.
+ */
+.slider--strength {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--h) 0% 50%),
+    hsl(var(--h) 45% 50%),
+    hsl(var(--h) 100% 50%)
+  );
+}
+
+.slider-field--grow .slider--strength {
+  width: auto;
+  flex: 1 1 auto;
+}
+
+/*
  * Takes the width the row is not using, rather than a fixed 92px.
  *
  * Both halves are needed: the field has to be allowed to grow against the
@@ -2530,7 +2553,17 @@ button {
   flex: 0 0 auto;
   height: 4px;
   border-radius: 999px;
-  background: var(--surface-sunk);
+  /*
+   * background-*color*, not the shorthand.
+   *
+   * The shorthand resets background-image along with everything else, and
+   * this rule sits after both of the track modifiers at the same specificity
+   * — so `.slider--hue` was declaring a full spectrum that was thrown away on
+   * the next line, and had been since it was written. The picker was a plain
+   * dark line the whole time, which is the worst possible track there is for
+   * choosing a colour on.
+   */
+  background-color: var(--surface-sunk);
   box-shadow: var(--sunk);
   outline: none;
 }
