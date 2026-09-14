@@ -118,13 +118,8 @@
   --s: 0;
 }
 
-/* `.pv__app` is the settings preview tile -- see components/StyleInfo. It is
-   named here for the same reason `.purchase` is below: a palette has to be
-   reachable from a subtree, not only from the root, or a tile cannot show you
-   a style the app is not currently wearing. */
 :root,
-:root[data-theme='dark'],
-.pv__app[data-pv-style='default'][data-mode='dark'] {
+:root[data-theme='dark'] {
   --bg-void: hsl(var(--h) calc(18% * var(--s)) 3.5%);
   --bg-0: hsl(var(--h) calc(20% * var(--s)) 5%);
   --bg-1: hsl(var(--h) calc(19% * var(--s)) 7.3%);
@@ -192,8 +187,7 @@
 
 /* ----------------------------------------------------------------- light -- */
 
-:root[data-theme='light'],
-.pv__app[data-pv-style='default'][data-mode='light'] {
+:root[data-theme='light'] {
   --bg-void: hsl(var(--h) calc(26% * var(--s)) 90%);
   --bg-0: hsl(var(--h) calc(31% * var(--s)) 94%);
   --bg-1: hsl(var(--h) calc(45% * var(--s)) 98%);
@@ -3770,20 +3764,20 @@ button {
 /* ----------------------------------------------------- style preview -- */
 
 /*
- * The info button, and the row of miniature apps it opens.
+ * The info button, and the row of phones it opens.
  *
- * See components/StyleInfo for why these are live rather than pictures. What
- * is here is only paint: every tile is the same handful of boxes, and what
- * differs between them is which palette the tokens resolve to and where the
- * screen sits.
+ * See components/StyleInfo for why these are the real app rather than a
+ * picture of it. What is here is the frame and the shrinking: everything
+ * inside a tile is styled by the same rules as the tuner, because it is the
+ * same markup wearing the same classes.
  */
 .info__btn {
   display: inline-grid;
   place-items: center;
   vertical-align: middle;
-  margin-left: 6px;
-  width: 20px;
-  height: 20px;
+  margin-left: 7px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   color: var(--text-4);
   transition: color var(--dur) var(--ease);
@@ -3811,7 +3805,7 @@ button {
   left: 0;
   z-index: 60;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   padding: 10px;
   border-radius: var(--r-lg);
   background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
@@ -3832,12 +3826,12 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .pv__label {
   font-family: var(--font-mono);
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -3845,217 +3839,74 @@ button {
 }
 
 /*
- * The app, at a fourteenth of the size.
+ * The hole the phone is seen through.
  *
- * `overflow: hidden` is doing real work here and not just tidying: the Full
- * tile draws its screen across the whole tile and the Long one runs it past
- * both sides, exactly as they do at full size.
+ * A transform does not change layout, so the tile inside still occupies a
+ * whole handset as far as the box model is concerned. This is the box that
+ * takes up the space the shrunk one appears to, and clips the rest.
  */
-.pv__app {
-  position: relative;
-  width: 76px;
-  height: 132px;
-  padding: 7px 6px 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
+.pv__glass {
+  display: block;
+  width: calc(var(--pv-w) * var(--pv-scale));
+  height: calc(var(--pv-h) * var(--pv-scale));
   border-radius: 9px;
   overflow: hidden;
-  background: linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
-  border: 1px solid var(--border-hi);
-}
-
-/* The detail bar: three chips in a track. */
-.pv__bar {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 2px;
-}
-
-.pv__bar i {
-  width: 14px;
-  height: 6px;
-  border-radius: 2px;
-  background: var(--surface-raised-a);
-  border: 1px solid var(--border);
-}
-
-/* The big note. */
-.pv__note {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--text-4);
-  opacity: 0.55;
+  box-shadow: 0 0 0 1px var(--border-hi);
 }
 
 /*
- * The screen. Box is inset from both edges, Long runs the full width, and
- * Full is lifted out of the column altogether and pinned to the tile -- the
- * same three answers the real .field-deck gives, drawn the same way round.
- */
-.pv__screen {
-  position: relative;
-  flex: 1 1 auto;
-  width: 46px;
-  min-height: 0;
-  border-radius: 4px;
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--field-top), var(--field-bg) 55%, var(--field-bottom));
-  border: 1px solid rgba(0, 0, 0, 0.42);
-  box-shadow:
-    inset 0 3px 6px -3px rgba(0, 0, 0, 0.62),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-.pv__app[data-pv-tuner='long'] .pv__screen {
-  width: calc(100% + 12px);
-  border-radius: 0;
-  border-left: 0;
-  border-right: 0;
-  box-shadow: inset 0 3px 6px -3px rgba(0, 0, 0, 0.62), inset 0 -3px 6px -3px rgba(0, 0, 0, 0.62);
-}
-
-.pv__app[data-pv-tuner='full'] .pv__screen {
-  position: absolute;
-  inset: 0;
-  width: auto;
-  z-index: 0;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-/*
- * Full's veil, as one gradient rather than the measured pair the real one
- * uses. There is nothing to measure at this size and nothing to adapt to --
- * the tile always draws the same furniture.
- */
-.pv__app[data-pv-tuner='full'] .pv__screen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to bottom, var(--bg-0) 0, transparent 42px),
-    linear-gradient(to top, var(--bg-0) 0, transparent 40px);
-  opacity: 0.8;
-}
-
-/* Everything in the column has to sit over a screen that is behind all of it. */
-.pv__app[data-pv-tuner='full'] > *:not(.pv__screen) {
-  position: relative;
-  z-index: 1;
-}
-
-/*
- * ...and the column has to keep its shape without it.
+ * A handset, shrunk.
  *
- * The screen was the one flexible item in the stack, so taking it out of the
- * flow let everything else bunch up at the top -- which is the same trap the
- * real Full hit, and the same answer: hold the bottom cluster where it was.
- * One auto margin does here what a measured row height does there.
+ * A real viewport at 390x844, so every budget in the stylesheet resolves to
+ * the number it would on a phone -- the tuner screen's own `min()`, `100dvh`,
+ * the container query at 620, the lot -- and only then scaled. Anything that
+ * sized itself against the *tile* would be sizing against a box no chassis
+ * ever sees.
  */
-.pv__app[data-pv-tuner='full'] .pv__keys {
-  margin-top: auto;
+.pv__frame {
+  display: block;
+  width: var(--pv-w);
+  height: var(--pv-h);
+  border: 0;
+  transform: scale(var(--pv-scale));
+  transform-origin: top left;
+  /* Nothing in there is pressable, and several of them are real buttons. */
+  pointer-events: none;
+  color-scheme: normal;
 }
 
-/* The centre line, and the marker riding on it. */
-.pv__line {
+/* The tuner screen's face -- see the Face component. */
+.pv__face {
   position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  margin-left: -0.5px;
-  /* --field-grid is already an alpha, and at one pixel on a 76px tile it
-     disappears outright. The tick token is the readable one. */
-  background: var(--tick);
+  inset: 0;
+  /* The falling rules, at the spacing PitchField scrolls them past: an
+     absolute 38px, which is why this is not a percentage. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--field-grid) 0 1px,
+    transparent 1px 38px
+  );
+  background-position: 0 14px;
+  opacity: 0.9;
+}
+
+.pv__face-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .pv__nib {
   position: absolute;
   left: 50%;
-  top: 30%;
-  width: 5px;
-  height: 5px;
-  margin-left: -2.5px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-135deg);
-  background: var(--amber);
-}
-
-/* The string row. */
-.pv__keys {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 2px;
-}
-
-.pv__keys i {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
-  border: 1px solid var(--border);
-}
-
-/* The tuning button and the auto switch. */
-.pv__foot {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 3px;
-  width: 100%;
-}
-
-.pv__foot i:first-child {
-  flex: 1 1 auto;
-  height: 13px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
-  border: 1px solid var(--border);
-}
-
-.pv__foot i:last-child {
-  flex: 0 0 22px;
-  height: 13px;
-  border-radius: 3px;
-  background: var(--green);
-  opacity: 0.85;
-}
-
-/*
- * Modern, in the four ways it reads at this size: no moulding, no borders on
- * the raised faces, corners that are much rounder for their size, and a page
- * that is one flat colour rather than a gradient.
- */
-.pv__app[data-pv-style='modern'] {
-  background: var(--bg-0);
-  border: 0.5px solid var(--border);
-}
-
-.pv__app[data-pv-style='modern'] .pv__bar i,
-.pv__app[data-pv-style='modern'] .pv__keys i,
-.pv__app[data-pv-style='modern'] .pv__foot i:first-child {
-  background: var(--surface);
-  border: 0;
-}
-
-.pv__app[data-pv-style='modern'] .pv__keys i {
-  border-radius: 3px;
-}
-
-.pv__app[data-pv-style='modern'] .pv__foot i:first-child,
-.pv__app[data-pv-style='modern'] .pv__foot i:last-child {
-  border-radius: 999px;
-}
-
-.pv__app[data-pv-style='modern'] .pv__screen {
-  background: var(--surface);
-  border: 0;
-  border-radius: 6px;
-  box-shadow: none;
+  top: 28%;
+  width: 32px;
+  height: 36px;
+  margin-left: -16px;
+  margin-top: -36px;
+  overflow: visible;
+  filter: drop-shadow(0 0 7px var(--amber));
 }
 
 /* ------------------------------------------------------------------ promo -- */
@@ -4284,8 +4135,7 @@ button {
  */
 
 :root[data-theme='modern'],
-.purchase,
-.pv__app[data-pv-style='modern'] {
+.purchase {
   /*
    * Grouped background, and the cards that sit on it.
    *
@@ -5194,8 +5044,7 @@ button {
  * each, which is again what the platform ships two of.
  */
 :root[data-theme='modern'][data-mode='dark'],
-.purchase[data-mode='dark'],
-.pv__app[data-pv-style='modern'][data-mode='dark'] {
+.purchase[data-mode='dark'] {
   --bg-void: hsl(var(--h) calc(11% * var(--s)) 7%);
   --bg-0: hsl(var(--h) calc(11% * var(--s)) 7%);
   --bg-1: hsl(var(--h) calc(11% * var(--s)) 7%);
