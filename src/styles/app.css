@@ -379,7 +379,26 @@ button {
     linear-gradient(176deg, var(--bg-1) 0%, var(--bg-0) 42%, var(--bg-void) 100%);
   overflow: hidden;
   isolation: isolate;
-  transition: background 400ms var(--ease);
+  /*
+   * No transition on the background, and it has to stay that way.
+   *
+   * There was a `transition: background 400ms` here from the first commit,
+   * and with a sheet open it made the chassis appear not to change theme at
+   * all. The sheet's scrim carries a backdrop-filter, and while this element
+   * is mid-transition it is being animated on the compositor: the blurred
+   * backdrop the scrim shows is a cached one, and it is not re-sampled until
+   * the transition ends. So the strip of chassis visible above the panel kept
+   * the old palette while the panel itself changed instantly.
+   *
+   * Measured in Chromium, by toggling one at a time: with the transition
+   * removed and the backdrop-filter left alone, the strip follows within a
+   * frame; with the transition left in and the backdrop-filter removed,
+   * likewise. Either one alone fixes it, and this is the one that costs
+   * nothing — the engine does not interpolate between two gradients that
+   * differ in every stop, so the 400ms bought no animation, only the stale
+   * backdrop. There it recovered when the transition ended; on the handset
+   * it did not recover at all, which is how this was reported.
+   */
   /*
    * Held on its own compositing layer permanently. The sheet's scrim carries a
    * backdrop-filter, and promoting a layer only at the moment the sheet opens
