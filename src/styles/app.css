@@ -3444,12 +3444,17 @@ button {
  * literal, so it stays the same hue and follows the palette -- including into
  * the appearances that drain it.
  *
+ * It was 68%, and that overshot. The face it mixes toward is at 7.8%
+ * lightness, so a third of the way into it is most of the way to grey, and
+ * the line read as a disabled control rather than as a quiet one. 86% takes
+ * the edge off the needle's amber without taking the ink out of it.
+ *
  * The light palettes need none of this: their amber is already a dark ink,
  * chosen to be read against white.
  */
 :root[data-theme='dark'] .promo__name,
 :root[data-theme='modern'][data-mode='dark'] .promo__name {
-  color: color-mix(in srgb, var(--amber) 68%, var(--surface));
+  color: color-mix(in srgb, var(--amber) 86%, var(--surface));
 }
 
 .promo__desc {
