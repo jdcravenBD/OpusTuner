@@ -35,19 +35,24 @@ export const PRICE = '$1.99';
 export const FREE_CUSTOM_TUNINGS = 1;
 
 /**
- * The two appearance settings that cost something, and the free answer to each.
+ * The appearance settings that cost something, and the free answer to each.
  *
  * **Light and dark are not on this list, and that is the point.** A tuner gets
  * used on a stage and in a bedroom, and charging for the one that does not
  * burn a hole in your night vision is charging for the app being usable. The
  * mode is free in both styles.
  *
- * What money buys is the *look*: the Modern style, and a palette dyed to a
- * colour of your choosing. Naming the free answer rather than listing the paid
- * ones means a style added later is paid by default, which is the safe way
- * round to be wrong.
+ * What money buys is the *look*: the Modern style, a palette dyed to a colour
+ * of your choosing, and the tuner screen drawn at anything but its stock size.
+ * Naming the free answer rather than listing the paid ones means a style added
+ * later is paid by default, which is the safe way round to be wrong -- and it
+ * is why `tunerStyle` needs one entry here rather than one per size.
  */
-export const FREE_APPEARANCE = { themeStyle: 'default', themeColor: false };
+export const FREE_APPEARANCE = {
+  themeStyle: 'default',
+  themeColor: false,
+  tunerStyle: 'box',
+};
 
 /**
  * The claim the purchase screen leads with, as two sentences.
@@ -105,6 +110,7 @@ export const TIER_DETAILS: TierDetail[] = [
       ['Unlimited custom tunings', 'One without'],
       ['The Modern style', 'In light and dark'],
       ['The display color', 'The whole spectrum'],
+      ['The long tuner screen', 'Edge to edge'],
       ['Hide the title'],
       ['Hide the detail bar'],
       ['Hide the note carousel'],

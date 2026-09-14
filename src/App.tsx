@@ -324,6 +324,10 @@ export default function App() {
       /* A twelve-string wraps its key row onto two lines, and the tuner screen
          has to give back the height that costs — see .field-deck. */
       data-wide-row={targets.length > 8}
+      /* How wide the tuner screen is drawn — see .field-deck and TunerStyle.
+         On the app rather than on the deck because the pager chevrons, which
+         live outside it, have to move out of the way too. */
+      data-tuner-style={settings.tunerStyle}
     >
       {debugRequested() && <DebugHud />}
       {/*

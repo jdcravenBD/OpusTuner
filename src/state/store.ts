@@ -35,6 +35,30 @@ export const THEME_STYLES: ThemeStyle[] = ['default', 'modern'];
 
 /** Both modes, likewise. */
 export const THEME_MODES: ThemeMode[] = ['dark', 'light'];
+
+/**
+ * How much of the app's width the tuner screen is given.
+ *
+ * A separate question from `visual`, which is *which* screen is shown. Both
+ * screens answer this one the same way, so it lives here rather than being
+ * asked twice.
+ *
+ * - `box` is the shape the app has always drawn: a screen inset far enough
+ *   from both edges to leave the pager chevrons somewhere to stand.
+ * - `long` spends that inset. The screen runs to the app's own margin and the
+ *   chevrons move on top of it, which is the only place left for them. Its
+ *   *height* is untouched, deliberately -- the column's budget is balanced
+ *   against that one number (see .field-deck) and widening a screen should not
+ *   move the string row.
+ * - `full` is not built yet. It is named here so the setting it will need
+ *   already exists and already costs money; until there is CSS for it, it
+ *   draws as `box`, which is why the picker will not let anyone choose it.
+ */
+export type TunerStyle = 'box' | 'long' | 'full';
+
+/** Every tuner size on offer, in the order the picker shows them. */
+export const TUNER_STYLES: TunerStyle[] = ['box', 'long', 'full'];
+
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
 /**
@@ -135,6 +159,8 @@ export interface Settings {
   showTunerArrows: boolean;
   /** Which tuner screen is on show — see components/visuals. */
   visual: VisualId;
+  /** How wide that screen is drawn — see TunerStyle. */
+  tunerStyle: TunerStyle;
   /**
    * Whether the paid tier is owned — see state/unlock.
    *
@@ -182,6 +208,8 @@ export const DEFAULT_SETTINGS: Settings = {
   showTunerMarks: true,
   showTunerArrows: true,
   visual: DEFAULT_VISUAL,
+  // The free size, and the one the app has always drawn. See FREE_APPEARANCE.
+  tunerStyle: 'box',
   owned: false,
 };
 
@@ -375,6 +403,9 @@ export const settingsStore = createStore<Settings>(
     trailWidth: TRAIL_WIDTHS.includes(s.trailWidth)
       ? s.trailWidth
       : DEFAULT_SETTINGS.trailWidth,
+    tunerStyle: TUNER_STYLES.includes(s.tunerStyle)
+      ? s.tunerStyle
+      : DEFAULT_SETTINGS.tunerStyle,
   }),
   /*
    * What a reset leaves alone.

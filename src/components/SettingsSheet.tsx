@@ -16,6 +16,7 @@ import {
   type Settings,
   type ThemeMode,
   type ThemeStyle,
+  type TunerStyle,
 } from '../state/store';
 import type { NoteNaming } from '../music/notes';
 
@@ -213,7 +214,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- visual */}
       <Section label="Visual">
-        <Row name="Style">
+        <Row name="App style">
           <Segmented
             value={s.themeStyle}
             options={[
@@ -231,8 +232,36 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
             }
           />
         </Row>
+        {/*
+          How wide the tuner screen is drawn, whichever screen it is.
+
+          Full is on the list and cannot be chosen: `soon` makes it a label
+          rather than a control, which is the honest state for a size with no
+          CSS behind it — it would otherwise sell, take the money and draw a
+          Box. Delete the one word when it is built; everything else it needs
+          is already here, the paywall included.
+        */}
+        <Row name="Tuner style">
+          <Segmented
+            value={s.tunerStyle}
+            options={[
+              { value: 'box' as TunerStyle, label: 'Box' },
+              {
+                value: 'long' as TunerStyle,
+                label: 'Long',
+                locked: isAppearanceLocked('tunerStyle', 'long', s.owned),
+              },
+              { value: 'full' as TunerStyle, label: 'Full', soon: true },
+            ]}
+            onChange={(v) =>
+              isAppearanceLocked('tunerStyle', v, s.owned)
+                ? setWanted('The long tuner screen')
+                : set('tunerStyle', v)
+            }
+          />
+        </Row>
         {/* Free in both styles — see FREE_APPEARANCE for why. */}
-        <Row name="Mode">
+        <Row name="Theme">
           <Segmented
             value={s.themeMode}
             options={[
@@ -626,9 +655,20 @@ function Segmented<T extends string | number>({
   disabled,
 }: {
   value: T;
-  options: { value: T; label: string; locked?: boolean }[];
+  options: {
+    value: T;
+    label: string;
+    /** Costs money, and stays pressable: the press opens the showcase. */
+    locked?: boolean;
+    /**
+     * Named but not built. Shown so the set of choices is the real one, and
+     * not pressable, because there is nothing behind it yet — the same
+     * distinction `disabled` draws for the whole control.
+     */
+    soon?: boolean;
+  }[];
   onChange: (value: T) => void;
-  /** Nothing here applies right now — see the Mode row. */
+  /** Nothing here applies right now — see the Theme row. */
   disabled?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -681,12 +721,13 @@ function Segmented<T extends string | number>({
         <button
           key={String(o.value)}
           data-on={o.value === value}
-          data-locked={o.locked && !disabled}
-          disabled={disabled}
+          data-locked={o.locked && !disabled && !o.soon}
+          data-soon={o.soon || undefined}
+          disabled={disabled || o.soon}
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
         >
-          {o.locked && !disabled && <LockIcon size={11} />}
+          {o.locked && !disabled && !o.soon && <LockIcon size={11} />}
           {o.label}
         </button>
       ))}

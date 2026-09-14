@@ -896,6 +896,56 @@ button {
 }
 
 /*
+ * Long: the screen spends the inset the chevrons were standing in.
+ *
+ * Width only, and that is the whole trick. The deck's height is still
+ * max(--screen-w, --tall-h) and both screens keep exactly the height they had,
+ * so neither budget above moves and nothing below the screen — readout, key
+ * row, bottom bar — has to be re-measured.
+ *
+ * A gutter of margin either side rather than running flush to the edge:
+ * .field-row is the crop, it clips, and the screen wears a lit hairline a
+ * pixel *outside* its own border. At a full 100cqw that ring is shaved off
+ * down both sides.
+ *
+ * `full` deliberately has no rules yet. It falls through to everything above
+ * and draws as a Box, which is why the picker will not let it be chosen — see
+ * the Tuner style row in SettingsSheet.
+ */
+.app[data-tuner-style='long'] .field-deck {
+  width: calc(100cqw - var(--gutter) * 2);
+}
+
+/*
+ * Both screens, each keeping its own height.
+ *
+ * The strobe's dial is sized from min(w, h) in the canvas, so it stays as big
+ * as the height allows and the extra width only shows more of an arc that was
+ * already running off both sides. The field's cent scale is the one thing that
+ * spreads: still ±250 at the edges, with half again as much room between them.
+ */
+.app[data-tuner-style='long'] .field[data-visual='strobe'],
+.app[data-tuner-style='long'] .field[data-visual='field'] {
+  width: 100%;
+}
+
+/*
+ * The chevrons end up on the screen, because there is no longer an outside for
+ * them to stand in — and the ♭ and ♯ marks were in precisely that spot. The
+ * marks move inboard of them, past --nav-w and the 6px they are offset by.
+ *
+ * The field only. The strobe puts its accidentals in the top corners already,
+ * clear of an arrow that is pinned to the middle of the edge.
+ */
+.app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--flat {
+  left: calc(var(--nav-w) + 12px);
+}
+
+.app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--sharp {
+  right: calc(var(--nav-w) + 12px);
+}
+
+/*
  * Absolutely positioned, which is what lets the toggle for these be a plain
  * `display: none`: they are not in the flow, so the screen beside them does
  * not resize when they go. The deck still subtracts --nav-w from its own
@@ -2740,6 +2790,20 @@ button {
 
 .segmented button[data-locked='true'] svg {
   margin-right: -1px;
+}
+
+/*
+ * Named, and not built yet.
+ *
+ * Sits with `data-disabled` above rather than with `data-locked`: a locked
+ * option is for sale and has to stay pressable, and this one has nothing
+ * behind it to press. Its own attribute rather than a bare `[disabled]`,
+ * because disabling the whole control already dims the track and the two
+ * would compound.
+ */
+.segmented button[data-soon='true'] {
+  opacity: 0.38;
+  pointer-events: none;
 }
 
 .switch-wrap {
