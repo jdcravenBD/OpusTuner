@@ -896,24 +896,78 @@ button {
 }
 
 /*
- * Long: the screen spends the inset the chevrons were standing in.
+ * Long: the screen spends the inset the chevrons were standing in, and then
+ * the last of it — it runs clean off both sides of the app.
  *
  * Width only, and that is the whole trick. The deck's height is still
  * max(--screen-w, --tall-h) and both screens keep exactly the height they had,
  * so neither budget above moves and nothing below the screen — readout, key
  * row, bottom bar — has to be re-measured.
  *
- * A gutter of margin either side rather than running flush to the edge:
- * .field-row is the crop, it clips, and the screen wears a lit hairline a
- * pixel *outside* its own border. At a full 100cqw that ring is shaved off
- * down both sides.
+ * 100cqw and not 100%: cqw resolves against .app's *content* box, so on a
+ * notched handset in landscape the screen still stops at the safe area rather
+ * than running under the sensor housing.
  *
  * `full` deliberately has no rules yet. It falls through to everything above
  * and draws as a Box, which is why the picker will not let it be chosen — see
  * the Tuner style row in SettingsSheet.
  */
 .app[data-tuner-style='long'] .field-deck {
-  width: calc(100cqw - var(--gutter) * 2);
+  width: 100cqw;
+}
+
+/*
+ * A screen with no left or right end.
+ *
+ * Everything that says "this stops here" comes off the sides and stays on the
+ * top and bottom: no corner radius, no side border, and the ring shadows
+ * rewritten as pairs of flat lines that have no horizontal reach. What is
+ * left is the machined top edge and the lit bottom one, running out of sight
+ * past both margins — the recess becomes a slot.
+ *
+ * The rake down from the top edge (the first two shadows) survives untouched.
+ * Its x offset is already zero; it is the two rings and the all-round inner
+ * glow that were drawing the sides, and those are the ones replaced.
+ *
+ * border-*-width rather than a shorthand, so the top and bottom keep the
+ * colour the rule above gives them. And the box stays border-box, so dropping
+ * two vertical borders changes the screen's height by nothing at all.
+ */
+.app[data-tuner-style='long'] .field {
+  border-left-width: 0;
+  border-right-width: 0;
+  border-radius: 0;
+  box-shadow:
+    inset 0 8px 16px -6px rgba(0, 0, 0, 0.62),
+    inset 0 3px 6px -1px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(0, 0, 0, 0.22),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.05),
+    0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='light'] .app[data-tuner-style='long'] .field {
+  box-shadow:
+    inset 0 8px 14px -7px rgba(16, 26, 42, 0.22),
+    inset 0 3px 5px -1px rgba(16, 26, 42, 0.13),
+    inset 0 1px 0 rgba(16, 26, 42, 0.06),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.9),
+    0 -1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/*
+ * Modern draws the screen's outline as a masked gradient ring on ::after
+ * rather than as a border, so it needs the same treatment by its own means:
+ * stretch the ring a pixel past both sides and let .field's `overflow: hidden`
+ * take the two vertical arms away. The top and bottom survive, full width.
+ *
+ * The `:root` is carrying specificity, not matching anything. The rule it has
+ * to beat is `:root[data-theme='modern'] .field::after`, which scores the same
+ * as this selector without it and sits later in the file.
+ */
+:root .app[data-tuner-style='long'] .field::after {
+  inset: 0 -1px;
 }
 
 /*
@@ -932,17 +986,21 @@ button {
 /*
  * The chevrons end up on the screen, because there is no longer an outside for
  * them to stand in — and the ♭ and ♯ marks were in precisely that spot. The
- * marks move inboard of them, past --nav-w and the 6px they are offset by.
+ * marks move inboard of them: --nav-w of chevron, the 6px it is offset from
+ * the app edge, and the same clearance again on the far side of it.
+ *
+ * Measured from the screen's own edge, which is now the app's edge — so this
+ * is 44px absolute, and the chevron ends at 30.
  *
  * The field only. The strobe puts its accidentals in the top corners already,
  * clear of an arrow that is pinned to the middle of the edge.
  */
 .app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--flat {
-  left: calc(var(--nav-w) + 12px);
+  left: calc(var(--nav-w) + 20px);
 }
 
 .app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--sharp {
-  right: calc(var(--nav-w) + 12px);
+  right: calc(var(--nav-w) + 20px);
 }
 
 /*
