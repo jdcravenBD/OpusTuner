@@ -18,6 +18,85 @@ const base = (size: number) => ({
   'aria-hidden': true,
 });
 
+/*
+ * Apple's icon outline is a superellipse, not a rounded rectangle, and that is
+ * the whole difference: a rounded rectangle changes curvature the instant the
+ * arc starts, and the eye reads the join. This one never has a straight edge
+ * to join to, so the corner arrives gradually and reads as one continuous
+ * shape. |x|^n + |y|^n = 1 with n = 5 is the usual fit for the iOS mask.
+ *
+ * Sampled rather than approximated with four cubics, because the sampling is
+ * exact and the cubic handles are somebody's guess. Ninety-six segments on a
+ * 34px tile is a great deal finer than the pixels under it, and the whole
+ * string is built once when the module loads.
+ */
+const SQUIRCLE = ((n = 5, r = 50, steps = 96) => {
+  const p = (v: number, e: number) => Math.sign(v) * Math.abs(v) ** e;
+  let d = '';
+  for (let i = 0; i < steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const x = 50 + r * p(Math.cos(a), 2 / n);
+    const y = 50 + r * p(Math.sin(a), 2 / n);
+    d += `${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`;
+  }
+  return `${d}Z`;
+})();
+
+/**
+ * The face on the promo row: an app icon for the app you are already in.
+ *
+ * Every colour in here is a literal and not a token, which is deliberate --
+ * it is a picture of a tile, and a tile does not re-tint with the panel it is
+ * sitting on any more than a home screen icon re-tints with the wallpaper.
+ * The orange is the dark palette's amber either way, because the light
+ * palette's amber is a dark ink chosen to be read against white and this is
+ * being read against near-black.
+ *
+ * The rim repeats --stroke-mixed from app.css by hand: a gradient cannot be a
+ * border in CSS, which is why that one is a masked pseudo-element, but in SVG
+ * it is simply what you stroke with. The viewBox is two units over on each
+ * side so the stroke, which straddles the outline, is not half clipped.
+ */
+export const FaceIcon = ({ size = 34 }: IconProps) => (
+  <svg width={size} height={size} viewBox="-2 -2 104 104" aria-hidden>
+    <defs>
+      <linearGradient id="eat-face-tile" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#3a3d42" />
+        <stop offset="100%" stopColor="#1c1e21" />
+      </linearGradient>
+      {/* 135deg, as a diagonal across the box. */}
+      <linearGradient id="eat-face-rim" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#fff" stopOpacity="1" />
+        <stop offset="34%" stopColor="#fff" stopOpacity="0.66" />
+        <stop offset="66%" stopColor="#fff" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#fff" stopOpacity="0.1" />
+      </linearGradient>
+    </defs>
+    <path d={SQUIRCLE} fill="url(#eat-face-tile)" />
+    {/*
+      Two shadows rather than one: a tight bright halo for the filament and a
+      wide faint one for the air around it. A single blur at either radius
+      reads as a smudge.
+    */}
+    <g
+      style={{
+        filter: 'drop-shadow(0 0 2px rgba(255,176,46,0.95)) drop-shadow(0 0 7px rgba(255,176,46,0.55))',
+      }}
+    >
+      <circle cx="35" cy="40" r="6" fill="#ffb02e" />
+      <circle cx="65" cy="40" r="6" fill="#ffb02e" />
+      <path
+        d="M31 58 Q50 75 69 58"
+        fill="none"
+        stroke="#ffb02e"
+        strokeWidth="7"
+        strokeLinecap="round"
+      />
+    </g>
+    <path d={SQUIRCLE} fill="none" stroke="url(#eat-face-rim)" strokeWidth="3" />
+  </svg>
+);
+
 export const GearIcon = ({ size = 22 }: IconProps) => (
   <svg {...base(size)}>
     <circle cx="12" cy="12" r="3.2" />

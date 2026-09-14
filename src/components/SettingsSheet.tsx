@@ -4,7 +4,7 @@ import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
 import { ScreensSection } from './ScreensSection';
-import { CheckIcon, ChevronRightIcon, LockIcon } from './Icons';
+import { CheckIcon, ChevronRightIcon, FaceIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
 import { PRICE, TIER_NAME, isAppearanceLocked } from '../state/unlock';
 import { paintColorStrength, paintHue } from '../hooks';
@@ -90,6 +90,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
                 Every tuning, every style. {PRICE} once, forever.
               </span>
             </span>
+            <FaceIcon />
             <ChevronRightIcon size={18} />
           </button>
         </div>
