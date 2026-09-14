@@ -57,6 +57,11 @@ const SQUIRCLE = ((n = 5, r = 50, steps = 96) => {
  * palette's amber is a dark ink chosen to be read against white and this is
  * being read against near-black.
  *
+ * The rim runs at half the alpha --stroke-mixed uses. That token is drawn on
+ * faces a few levels off white, where a bright edge is an edge; here it is on
+ * something nearly black, and at full strength it stopped reading as an edge
+ * and started being the brightest thing in the row.
+ *
  * The rim repeats --stroke-mixed from app.css by hand: a gradient cannot be a
  * border in CSS, which is why that one is a masked pseudo-element, but in SVG
  * it is simply what you stroke with. The viewBox is two units over on each
@@ -71,10 +76,10 @@ export const FaceIcon = ({ size = 44 }: IconProps) => (
       </linearGradient>
       {/* 135deg, as a diagonal across the box. */}
       <linearGradient id="eat-face-rim" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#fff" stopOpacity="1" />
-        <stop offset="34%" stopColor="#fff" stopOpacity="0.66" />
-        <stop offset="66%" stopColor="#fff" stopOpacity="0.3" />
-        <stop offset="100%" stopColor="#fff" stopOpacity="0.1" />
+        <stop offset="0%" stopColor="#fff" stopOpacity="0.5" />
+        <stop offset="34%" stopColor="#fff" stopOpacity="0.3" />
+        <stop offset="66%" stopColor="#fff" stopOpacity="0.14" />
+        <stop offset="100%" stopColor="#fff" stopOpacity="0.05" />
       </linearGradient>
     </defs>
     <path d={SQUIRCLE} fill="url(#eat-face-tile)" />
@@ -88,17 +93,17 @@ export const FaceIcon = ({ size = 44 }: IconProps) => (
         filter: 'drop-shadow(0 0 2px rgba(255,176,46,0.95)) drop-shadow(0 0 7px rgba(255,176,46,0.55))',
       }}
     >
-      <circle cx="32" cy="37" r="7.5" fill="#ffb02e" />
-      <circle cx="68" cy="37" r="7.5" fill="#ffb02e" />
+      <circle cx="32" cy="37" r="5.6" fill="#ffb02e" />
+      <circle cx="68" cy="37" r="5.6" fill="#ffb02e" />
       <path
         d="M24 57 Q50 82 76 57"
         fill="none"
         stroke="#ffb02e"
-        strokeWidth="9"
+        strokeWidth="6"
         strokeLinecap="round"
       />
     </g>
-    <path d={SQUIRCLE} fill="none" stroke="url(#eat-face-rim)" strokeWidth="3" />
+    <path d={SQUIRCLE} fill="none" stroke="url(#eat-face-rim)" strokeWidth="2.2" />
   </svg>
 );
 
