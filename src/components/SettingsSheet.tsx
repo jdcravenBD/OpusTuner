@@ -4,6 +4,7 @@ import { listInputDevices } from '../audio/AudioEngine';
 import { toneEngine } from '../audio/tone';
 import { PurchaseScreen } from './PurchaseScreen';
 import { ScreensSection } from './ScreensSection';
+import { StyleInfo } from './StyleInfo';
 import { CheckIcon, ChevronRightIcon, FaceIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
 import { PRICE, TIER_NAME, isAppearanceLocked } from '../state/unlock';
@@ -219,7 +220,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- visual */}
       <Section label="Visual">
-        <Row name="App style">
+        <Row name="App style" info={<StyleInfo kind="app" mode={s.themeMode} />}>
           <Segmented
             value={s.themeStyle}
             options={[
@@ -238,7 +239,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           />
         </Row>
         {/* How wide the tuner screen is drawn, whichever screen it is. */}
-        <Row name="Tuner style">
+        <Row name="Tuner style" info={<StyleInfo kind="tuner" mode={s.themeMode} />}>
           <Segmented
             value={s.tunerStyle}
             options={[
@@ -555,12 +556,22 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
 function Row({
   name,
   desc,
+  info,
   children,
   stack,
   aside,
 }: {
   name: string;
   desc?: string;
+  /**
+   * A control that sits on the name's line, right after the words.
+   *
+   * Beside the name rather than beside the pills: what it explains is the
+   * setting, not the option under the finger, and pushed up against the
+   * control it would read as part of it -- a fourth segment on a three-way
+   * picker.
+   */
+  info?: ReactNode;
   children: ReactNode;
   /**
    * Puts the control on its own line under the label rather than beside it.
@@ -581,7 +592,10 @@ function Row({
 }) {
   const main = (
     <div className="setting__main">
-      <div className="setting__name">{name}</div>
+      <div className="setting__name">
+        {name}
+        {info}
+      </div>
       {desc && <div className="setting__desc">{desc}</div>}
     </div>
   );

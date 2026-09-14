@@ -109,6 +109,14 @@ export const GearIcon = ({ size = 22 }: IconProps) => (
   </svg>
 );
 
+export const InfoIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)} strokeWidth={2}>
+    <circle cx="12" cy="12" r="9.2" />
+    <path d="M12 16.4v-5.2" />
+    <path d="M12 7.9h.01" />
+  </svg>
+);
+
 export const ChevronDownIcon = ({ size = 18 }: IconProps) => (
   <svg {...base(size)} strokeWidth={2.4}>
     <path d="m6 9 6 6 6-6" />
