@@ -948,29 +948,46 @@ button {
  * Its x offset is already zero; it is the two rings and the all-round inner
  * glow that were drawing the sides, and those are the ones replaced.
  *
+ * And it is mirrored onto the bottom lip, which a recess would not do — a
+ * recess is lit from above, so its lower edge catches light rather than
+ * casting. This is not a recess any more. With no ends to it, it reads as a
+ * slot cut clean through the chassis, and a slot has a lip at the bottom of it
+ * shading upward exactly as the top one shades down. The lit hairlines stay
+ * where they are on both edges: they are what says where the metal is.
+ *
  * border-*-width rather than a shorthand, so the top and bottom keep the
  * colour the rule above gives them. And the box stays border-box, so dropping
  * two vertical borders changes the screen's height by nothing at all.
+ */
+/*
+ * Order matters here and it did not before: the first shadow in the list is
+ * painted on top. The two 1px lip lines are listed ahead of the rakes now,
+ * because the bottom one is a lit edge and a rake at 0.62 black rising over
+ * the same pixel would simply bury it.
  */
 .app[data-tuner-style='long'] .field {
   border-left-width: 0;
   border-right-width: 0;
   border-radius: 0;
   box-shadow:
-    inset 0 8px 16px -6px rgba(0, 0, 0, 0.62),
-    inset 0 3px 6px -1px rgba(0, 0, 0, 0.48),
     inset 0 1px 0 rgba(0, 0, 0, 0.22),
     inset 0 -1px 1px rgba(255, 255, 255, 0.05),
+    inset 0 8px 16px -6px rgba(0, 0, 0, 0.62),
+    inset 0 3px 6px -1px rgba(0, 0, 0, 0.48),
+    inset 0 -8px 16px -6px rgba(0, 0, 0, 0.62),
+    inset 0 -3px 6px -1px rgba(0, 0, 0, 0.48),
     0 -1px 0 rgba(255, 255, 255, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 :root[data-theme='light'] .app[data-tuner-style='long'] .field {
   box-shadow:
-    inset 0 8px 14px -7px rgba(16, 26, 42, 0.22),
-    inset 0 3px 5px -1px rgba(16, 26, 42, 0.13),
     inset 0 1px 0 rgba(16, 26, 42, 0.06),
     inset 0 -1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 8px 14px -7px rgba(16, 26, 42, 0.22),
+    inset 0 3px 5px -1px rgba(16, 26, 42, 0.13),
+    inset 0 -8px 14px -7px rgba(16, 26, 42, 0.22),
+    inset 0 -3px 5px -1px rgba(16, 26, 42, 0.13),
     0 -1px 0 rgba(255, 255, 255, 0.9),
     0 1px 0 rgba(255, 255, 255, 0.9);
 }
@@ -1006,20 +1023,45 @@ button {
  * The chevrons end up on the screen, because there is no longer an outside for
  * them to stand in — and the ♭ and ♯ marks were in precisely that spot. The
  * marks move inboard of them: --nav-w of chevron, the 6px it is offset from
- * the app edge, and the same clearance again on the far side of it.
+ * the app edge, and a little clearance on the far side of it.
  *
  * Measured from the screen's own edge, which is now the app's edge — so this
- * is 44px absolute, and the chevron ends at 30.
+ * is 34px absolute, and the chevron's box ends at 30. That is tighter than it
+ * sounds: the chevron is a 22px glyph in a 24px box with its own padding, so
+ * the gap between the two *strokes* is about ten pixels. The mark and the
+ * arrow have to read as a pair, and at the previous 44 they read as two
+ * separate pieces of furniture that happened to be on the same line.
  *
  * The field only. The strobe puts its accidentals in the top corners already,
  * clear of an arrow that is pinned to the middle of the edge.
  */
 .app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--flat {
-  left: calc(var(--nav-w) + 20px);
+  left: calc(var(--nav-w) + 10px);
 }
 
 .app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--sharp {
-  right: calc(var(--nav-w) + 20px);
+  right: calc(var(--nav-w) + 10px);
+}
+
+/*
+ * ...and an optical nudge down, which is the one number here that is not
+ * derived from anything.
+ *
+ * The boxes are already aligned exactly: the mark is centred on the screen,
+ * the chevron on the row, and the two share a centre line to the pixel —
+ * measured at 384.0 against 384.0. What is not aligned is the *ink*, because
+ * a glyph is not centred in its own line box and where it sits depends on the
+ * font's ascent, which is whatever --font-sym resolves to on the device. On
+ * Windows it measured 1.3px low; on the handset Joe reads it as high.
+ *
+ * So this is his eye, not a measurement, and it is deliberately one value in
+ * one place. If the marks still sit high, raise it; if they now sit low on
+ * the desktop build, lower it. The only real cure is drawing the accidentals
+ * as SVG the way the chevrons are, which is a bigger change than it looks:
+ * the same glyphs are furniture on both screens and in both sizes.
+ */
+.app[data-tuner-style='long'] .field[data-visual='field'] .field__edge {
+  transform: translateY(calc(-50% + 1px));
 }
 
 /*
