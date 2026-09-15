@@ -413,7 +413,7 @@ export function StyleInfo({ kind, style, mode }: Props) {
         aria-expanded={open}
         onClick={() => setOpen((was) => !was)}
       >
-        <InfoIcon size={18} />
+        <InfoIcon size={21} />
       </button>
       {open &&
         createPortal(

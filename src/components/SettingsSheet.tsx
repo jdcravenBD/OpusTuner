@@ -220,7 +220,18 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ---------------------------------------------------------- visual */}
       <Section label="Visual">
-        <Row name="App style" info={<StyleInfo kind="app" style={s.themeStyle} mode={s.themeMode} />}>
+        {/*
+          The info buttons are for somebody deciding whether to buy, and they
+          go once that is decided. An owner can simply press the option and
+          look at it -- which is the thing a preview was standing in for, and
+          a better version of it.
+        */}
+        <Row
+          name="App style"
+          info={
+            s.owned ? undefined : <StyleInfo kind="app" style={s.themeStyle} mode={s.themeMode} />
+          }
+        >
           <Segmented
             value={s.themeStyle}
             options={[
@@ -239,7 +250,12 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           />
         </Row>
         {/* How wide the tuner screen is drawn, whichever screen it is. */}
-        <Row name="Tuner style" info={<StyleInfo kind="tuner" style={s.themeStyle} mode={s.themeMode} />}>
+        <Row
+          name="Tuner style"
+          info={
+            s.owned ? undefined : <StyleInfo kind="tuner" style={s.themeStyle} mode={s.themeMode} />
+          }
+        >
           <Segmented
             value={s.tunerStyle}
             options={[

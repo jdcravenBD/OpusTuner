@@ -3793,8 +3793,8 @@ button {
   place-items: center;
   vertical-align: middle;
   margin-left: 7px;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   color: var(--text-4);
   transition: color var(--dur) var(--ease);
@@ -3896,15 +3896,37 @@ button {
 .pv__face {
   position: absolute;
   inset: 0;
-  /* The falling rules, at the spacing PitchField scrolls them past: an
-     absolute 38px, which is why this is not a percentage. */
+}
+
+/*
+ * The falling rules.
+ *
+ * At the spacing PitchField scrolls them past -- an absolute 38px, which is
+ * why it is not a percentage -- and at the weight it draws them, which is the
+ * part that was wrong. --field-grid already carries an alpha of its own and
+ * the canvas then multiplies it by 0.16, so painting the token neat made these
+ * six times heavier than the real ones and heavier than the *vertical* lines
+ * beside them, which is backwards: on the screen itself the cent lines are the
+ * strong ones and the rules are a texture underneath.
+ *
+ * The mask is the other half of it. The canvas fades every rule with depth,
+ * from full at the marker to almost nothing at the bottom edge, and a screen
+ * of evenly spaced full-strength lines reads as ruled paper rather than as
+ * something falling away.
+ */
+.pv__face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
   background-image: repeating-linear-gradient(
     to bottom,
     var(--field-grid) 0 1px,
     transparent 1px 38px
   );
   background-position: 0 14px;
-  opacity: 0.9;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 28%, rgba(0, 0, 0, 0.08) 100%);
+  mask-image: linear-gradient(to bottom, #000 0 28%, rgba(0, 0, 0, 0.08) 100%);
 }
 
 .pv__face-grid {
