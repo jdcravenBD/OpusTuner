@@ -92,25 +92,31 @@ export const FaceIcon = ({ size = 44 }: IconProps) => (
     </defs>
     <path d={SQUIRCLE} fill="url(#eat-face-tile)" />
     {/*
-      Two shadows rather than one: a tight bright halo for the filament and a
-      wide faint one for the air around it. A single blur at either radius
-      reads as a smudge.
+      Set, not drawn.
+
+      Two dots and a bracket at these weights made a round-eyed face staring
+      out of the tile, which is a different thing from an emoticon and not a
+      friendly one. Typed, it is punctuation that happens to look like a face
+      -- which is the whole joke, and it stops being a face the moment you
+      read it as a colon and a bracket.
+
+      Placed on its own baseline rather than by `dominant-baseline: central`,
+      which centres the *em box* -- and an em box is mostly empty above a
+      colon. Measured: at this size the ink runs 53 above the baseline and 12
+      below, so its middle is a shade over twenty units up, and the baseline
+      goes that far below the tile's centre to put it back.
     */}
-    <g
-      style={{
-        filter: 'drop-shadow(0 0 2px rgba(255,176,46,0.95)) drop-shadow(0 0 7px rgba(255,176,46,0.55))',
-      }}
+    <text
+      x="50"
+      y="70.5"
+      textAnchor="middle"
+      fontFamily="var(--font-ui)"
+      fontSize="76"
+      fontWeight="700"
+      fill="#ffb02e"
     >
-      <circle cx="34" cy="34" r="5.6" fill="#ffb02e" />
-      <circle cx="34" cy="66" r="5.6" fill="#ffb02e" />
-      <path
-        d="M56 26 Q80 50 56 74"
-        fill="none"
-        stroke="#ffb02e"
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-    </g>
+      :)
+    </text>
     <path d={SQUIRCLE} fill="none" stroke="url(#eat-face-rim)" strokeWidth="2.2" />
   </svg>
 );
