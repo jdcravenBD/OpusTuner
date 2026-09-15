@@ -3980,21 +3980,42 @@ button {
   padding: 12px 14px;
   border-radius: var(--r-lg);
   /*
-   * Two layers: the wash, over the face every other raised thing wears. Not
-   * one flat blend, so the row keeps whatever moulding the style gives it and
-   * the tint sits on top of that rather than replacing it.
+   * Three layers, over the face every other raised thing wears. The face
+   * stays underneath rather than being replaced, so the row keeps whatever
+   * moulding the style gives it and the colour sits on top of that.
    *
-   * `color-mix` rather than four hand-written rgba values, one per palette --
-   * the amber is already defined in each and this follows it, including into
-   * the two that drain their hues.
+   * It used to be one flat 14% wash and it looked like exactly that: a panel
+   * that had been dipped. A tint with no direction in it has no light in it
+   * either, and on a chassis whose entire idiom is "lit from above" a flat
+   * field is the one surface that does not belong.
+   *
+   * So the colour arrives from the top left and falls away: a soft pool at
+   * the corner where the heading starts, and a rake down the diagonal behind
+   * it. Same amount of amber overall, and now it has a near side and a far
+   * one.
+   *
+   * `color-mix` rather than hand-written rgba values, one per palette -- the
+   * amber is already defined in each and this follows it, including into the
+   * two that drain their hues.
    */
   background-image:
+    radial-gradient(
+      132% 150% at 0% 0%,
+      color-mix(in srgb, var(--amber) 17%, transparent) 0%,
+      transparent 68%
+    ),
     linear-gradient(
-      color-mix(in srgb, var(--amber) 14%, transparent),
-      color-mix(in srgb, var(--amber) 14%, transparent)
+      152deg,
+      color-mix(in srgb, var(--amber) 13%, transparent) 0%,
+      color-mix(in srgb, var(--amber) 6%, transparent) 100%
     ),
     linear-gradient(180deg, var(--surface-raised-a), var(--surface-raised-b));
-  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  /*
+   * A softer edge than the 30% it was. At that strength the hairline was the
+   * most saturated thing on the row and it closed the shape off like a
+   * warning box -- which is the one reading this must not have.
+   */
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent);
   box-shadow: var(--hi);
   text-align: left;
   transition: transform 110ms var(--ease);
@@ -4043,15 +4064,30 @@ button {
   color: color-mix(in srgb, var(--amber) 86%, var(--surface));
 }
 
+/*
+ * The second line, warmed.
+ *
+ * It was --text-3, which is the panel's tertiary neutral: a cold grey chosen
+ * to sit on the grey rows above. On an amber field it reads as a piece of
+ * some other row that wandered in, and at 40% lightness it was also the
+ * dimmest thing on the brightest surface in the list -- the one line here
+ * that actually says what the money buys, and the hardest to read.
+ *
+ * Built from --text-2 instead, which is the readable secondary, and pulled a
+ * third of the way toward the row's own colour. Warm sand on brown in the
+ * dark palettes and a warm ink on cream in the light ones, brighter than it
+ * was in both, and it belongs to the row it is printed on.
+ */
 .promo__desc {
   font-size: 12.5px;
   line-height: 1.35;
-  color: var(--text-3);
+  color: color-mix(in srgb, var(--amber) 34%, var(--text-2));
 }
 
+/* The chevron follows, for the same reason and by the same route. */
 .promo svg {
   flex: 0 0 auto;
-  color: var(--text-4);
+  color: color-mix(in srgb, var(--amber) 40%, var(--text-4));
 }
 
 /* No border and no moulding in that style: the lit edge does both. */
@@ -4060,9 +4096,15 @@ button {
   border-radius: 16px;
   box-shadow: none;
   background-image:
+    radial-gradient(
+      132% 150% at 0% 0%,
+      color-mix(in srgb, var(--amber) 18%, transparent) 0%,
+      transparent 68%
+    ),
     linear-gradient(
-      color-mix(in srgb, var(--amber) 15%, transparent),
-      color-mix(in srgb, var(--amber) 15%, transparent)
+      152deg,
+      color-mix(in srgb, var(--amber) 14%, transparent) 0%,
+      color-mix(in srgb, var(--amber) 7%, transparent) 100%
     ),
     linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 62%);
 }
