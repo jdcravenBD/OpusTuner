@@ -243,11 +243,11 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
           <Segmented
             value={s.tunerStyle}
             options={[
-              { value: 'box' as TunerStyle, label: 'Box' },
+              { value: 'small' as TunerStyle, label: 'Small' },
               {
-                value: 'long' as TunerStyle,
-                label: 'Long',
-                locked: isAppearanceLocked('tunerStyle', 'long', s.owned),
+                value: 'large' as TunerStyle,
+                label: 'Large',
+                locked: isAppearanceLocked('tunerStyle', 'large', s.owned),
               },
               {
                 value: 'full' as TunerStyle,

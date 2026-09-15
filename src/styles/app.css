@@ -937,7 +937,7 @@ button {
 }
 
 /*
- * Long: the screen spends the inset the chevrons were standing in, and then
+ * Large: the screen spends the inset the chevrons were standing in, and then
  * the last of it — it runs clean off both sides of the app.
  *
  * Width only, and that is the whole trick. The deck's height is still
@@ -949,11 +949,10 @@ button {
  * notched handset in landscape the screen still stops at the safe area rather
  * than running under the sensor housing.
  *
- * `full` deliberately has no rules yet. It falls through to everything above
- * and draws as a Box, which is why the picker will not let it be chosen — see
- * the Tuner style row in SettingsSheet.
+ * Small has no rules of its own at all: it is what the stylesheet draws before
+ * any of this, and the other two are written as what they spend of it.
  */
-.app[data-tuner-style='long'] .field-deck {
+.app[data-tuner-style='large'] .field-deck {
   width: 100cqw;
 }
 
@@ -986,7 +985,7 @@ button {
  * because the bottom one is a lit edge and a rake at 0.62 black rising over
  * the same pixel would simply bury it.
  */
-.app[data-tuner-style='long'] .field {
+.app[data-tuner-style='large'] .field {
   border-left-width: 0;
   border-right-width: 0;
   border-radius: 0;
@@ -1023,7 +1022,7 @@ button {
  * and the gridlines still draw across it at full strength. .field carries
  * will-change, so it is already a stacking context and the -1 cannot escape.
  */
-.app[data-tuner-style='long'] .field::before {
+.app[data-tuner-style='large'] .field::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1034,7 +1033,7 @@ button {
     linear-gradient(to top, rgba(0, 0, 0, 0.66) 0, rgba(0, 0, 0, 0.3) 8px, transparent 20px);
 }
 
-:root[data-theme='light'] .app[data-tuner-style='long'] .field {
+:root[data-theme='light'] .app[data-tuner-style='large'] .field {
   box-shadow:
     inset 0 1px 0 rgba(16, 26, 42, 0.06),
     inset 0 -1px 0 rgba(255, 255, 255, 0.9),
@@ -1042,7 +1041,7 @@ button {
     0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-:root[data-theme='light'] .app[data-tuner-style='long'] .field::before {
+:root[data-theme='light'] .app[data-tuner-style='large'] .field::before {
   background:
     linear-gradient(
       to bottom,
@@ -1054,7 +1053,7 @@ button {
 }
 
 /* Modern has no depth anywhere else and gets none here. */
-:root[data-theme='modern'] .app[data-tuner-style='long'] .field::before {
+:root[data-theme='modern'] .app[data-tuner-style='large'] .field::before {
   display: none;
 }
 
@@ -1068,7 +1067,7 @@ button {
  * to beat is `:root[data-theme='modern'] .field::after`, which scores the same
  * as this selector without it and sits later in the file.
  */
-:root .app[data-tuner-style='long'] .field::after {
+:root .app[data-tuner-style='large'] .field::after {
   inset: 0 -1px;
 }
 
@@ -1080,8 +1079,8 @@ button {
  * already running off both sides. The field's cent scale is the one thing that
  * spreads: still ±250 at the edges, with half again as much room between them.
  */
-.app[data-tuner-style='long'] .field[data-visual='strobe'],
-.app[data-tuner-style='long'] .field[data-visual='field'] {
+.app[data-tuner-style='large'] .field[data-visual='strobe'],
+.app[data-tuner-style='large'] .field[data-visual='field'] {
   width: 100%;
 }
 
@@ -1101,11 +1100,17 @@ button {
  * The field only. The strobe puts its accidentals in the top corners already,
  * clear of an arrow that is pinned to the middle of the edge.
  */
-.app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--flat {
+/*
+ * Only while there is a chevron to stand beside. With the arrows switched off
+ * that offset is clearance for something nothing draws, so the mark takes the
+ * edge it would have had in Small -- the `left: 11px` this override is the
+ * only thing standing in front of.
+ */
+.app[data-arrows='true'][data-tuner-style='large'] .field[data-visual='field'] .field__edge--flat {
   left: calc(var(--nav-w) + 10px);
 }
 
-.app[data-tuner-style='long'] .field[data-visual='field'] .field__edge--sharp {
+.app[data-arrows='true'][data-tuner-style='large'] .field[data-visual='field'] .field__edge--sharp {
   right: calc(var(--nav-w) + 10px);
 }
 
@@ -1126,7 +1131,7 @@ button {
  * as SVG the way the chevrons are, which is a bigger change than it looks:
  * the same glyphs are furniture on both screens and in both sizes.
  */
-.app[data-tuner-style='long'] .field[data-visual='field'] .field__edge {
+.app[data-tuner-style='large'] .field[data-visual='field'] .field__edge {
   transform: translateY(calc(-50% + 1px));
 }
 
@@ -1280,7 +1285,7 @@ button {
  * bottom two have the tuning button and the auto toggle in them.
  *
  * The accidentals stay, and sit beside the chevrons exactly as they do in
- * Long -- on the field, where they are at mid-edge. The strobe keeps its own
+ * Large -- on the field, where they are at mid-edge. The strobe keeps its own
  * placement, which is measured from the screen's top and is therefore up
  * behind the wordmark; it is hidden here for the same reason as the print.
  */
@@ -1289,11 +1294,11 @@ button {
   display: none;
 }
 
-.app[data-tuner-style='full'] .field[data-visual='field'] .field__edge--flat {
+.app[data-arrows='true'][data-tuner-style='full'] .field[data-visual='field'] .field__edge--flat {
   left: calc(var(--nav-w) + 10px);
 }
 
-.app[data-tuner-style='full'] .field[data-visual='field'] .field__edge--sharp {
+.app[data-arrows='true'][data-tuner-style='full'] .field[data-visual='field'] .field__edge--sharp {
   right: calc(var(--nav-w) + 10px);
 }
 

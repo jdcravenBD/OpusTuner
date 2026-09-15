@@ -43,9 +43,9 @@ export const THEME_MODES: ThemeMode[] = ['dark', 'light'];
  * screens answer this one the same way, so it lives here rather than being
  * asked twice.
  *
- * - `box` is the shape the app has always drawn: a screen inset far enough
+ * - `small` is the shape the app has always drawn: a screen inset far enough
  *   from both edges to leave the pager chevrons somewhere to stand.
- * - `long` spends that inset. The screen runs to the app's own margin and the
+ * - `large` spends that inset. The screen runs to the app's own margin and the
  *   chevrons move on top of it, which is the only place left for them. Its
  *   *height* is untouched, deliberately -- the column's budget is balanced
  *   against that one number (see .field-deck) and widening a screen should not
@@ -55,10 +55,21 @@ export const THEME_MODES: ThemeMode[] = ['dark', 'light'];
  *   readable — measured from where the column's own gaps ended up, so it
  *   follows whatever has been switched off. See .field-deck in app.css.
  */
-export type TunerStyle = 'box' | 'long' | 'full';
+export type TunerStyle = 'small' | 'large' | 'full';
 
 /** Every tuner size on offer, in the order the picker shows them. */
-export const TUNER_STYLES: TunerStyle[] = ['box', 'long', 'full'];
+export const TUNER_STYLES: TunerStyle[] = ['small', 'large', 'full'];
+
+/**
+ * What the first two used to be called.
+ *
+ * `box` and `long` described the shapes rather than the sizes, and the three
+ * of them read better as one scale. The stored value has to be carried across
+ * or the guard below hands anyone who paid for Long a Small instead -- which
+ * is the right answer for a value that was never valid, and exactly the wrong
+ * one for a value that has only been renamed.
+ */
+const TUNER_STYLE_WAS: Record<string, TunerStyle> = { box: 'small', long: 'large' };
 
 export type ToleranceCents = 2 | 5 | 10 | 20;
 
@@ -253,7 +264,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showTunerArrows: true,
   visual: DEFAULT_VISUAL,
   // The free size, and the one the app has always drawn. See FREE_APPEARANCE.
-  tunerStyle: 'box',
+  tunerStyle: 'small',
   owned: false,
 };
 
@@ -449,7 +460,7 @@ export const settingsStore = createStore<Settings>(
       : DEFAULT_SETTINGS.trailWidth,
     tunerStyle: TUNER_STYLES.includes(s.tunerStyle)
       ? s.tunerStyle
-      : DEFAULT_SETTINGS.tunerStyle,
+      : (TUNER_STYLE_WAS[s.tunerStyle as string] ?? DEFAULT_SETTINGS.tunerStyle),
     // Clamped rather than checked against a list: this one is continuous, and
     // the ends of the range are the sort of thing that gets narrowed later.
     colorStrength: Number.isFinite(s.colorStrength)

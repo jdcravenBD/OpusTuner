@@ -51,7 +51,7 @@ export const FREE_CUSTOM_TUNINGS = 1;
 export const FREE_APPEARANCE = {
   themeStyle: 'default',
   themeColor: false,
-  tunerStyle: 'box',
+  tunerStyle: 'small',
 };
 
 /**
@@ -110,7 +110,7 @@ export const TIER_DETAILS: TierDetail[] = [
       ['Unlimited custom tunings', 'One without'],
       ['The Modern style', 'In light and dark'],
       ['The display color', 'The whole spectrum'],
-      ['The long tuner screen', 'Edge to edge'],
+      ['The large tuner screen', 'Edge to edge'],
       ['The full tuner screen', 'The whole app'],
       ['Hide the title'],
       ['Hide the detail bar'],

@@ -385,8 +385,8 @@ export function StyleInfo({ kind, style, mode }: Props) {
   const tiles: TileProps[] =
     kind === 'app'
       ? [
-          { style: 'default', tuner: 'box', mode, label: 'Default' },
-          { style: 'modern', tuner: 'box', mode, label: 'Modern' },
+          { style: 'default', tuner: 'small', mode, label: 'Default' },
+          { style: 'modern', tuner: 'small', mode, label: 'Modern' },
         ]
       : /*
          * The tuner tiles take whatever style the app is already in, which
@@ -396,8 +396,8 @@ export function StyleInfo({ kind, style, mode }: Props) {
          * the app they actually own.
          */
         [
-          { style, tuner: 'box', mode, label: 'Box' },
-          { style, tuner: 'long', mode, label: 'Long' },
+          { style, tuner: 'small', mode, label: 'Small' },
+          { style, tuner: 'large', mode, label: 'Large' },
           { style, tuner: 'full', mode, label: 'Full' },
         ];
 

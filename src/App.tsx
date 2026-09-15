@@ -384,6 +384,10 @@ export default function App() {
          On the app rather than on the deck because the pager chevrons, which
          live outside it, have to move out of the way too. */
       data-tuner-style={settings.tunerStyle}
+      /* Whether the pager chevrons are drawn. The accidentals sit beside them
+         when they are, and take their place when they are not -- see
+         .field__edge in app.css. */
+      data-arrows={settings.showTunerArrows}
     >
       {debugRequested() && <DebugHud />}
       {/*
