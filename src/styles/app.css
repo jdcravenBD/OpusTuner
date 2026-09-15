@@ -1831,7 +1831,7 @@ button {
   border-top-right-radius: var(--r-xl);
   border-top: 1px solid var(--border-hi);
   box-shadow: var(--elev-3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: slide-up 280ms var(--ease-out);
+  animation: slide-up 380ms var(--ease-out);
 }
 
 /*
@@ -1844,10 +1844,22 @@ button {
   height: min(90%, 780px);
 }
 
+/*
+ * All the way up, and no fade.
+ *
+ * It was twelve per cent and an opacity ramp, which is not a sheet arriving
+ * from the bottom of the screen -- it is a panel appearing where it already
+ * was, with a nudge. Over 280ms that reads as a flicker rather than a
+ * movement. A sheet is a physical thing being pushed up into view, so it
+ * starts fully off the bottom edge and travels the whole way.
+ *
+ * Nothing fades. The travel is what says it arrived and the scrim behind it
+ * is what says the app went away; a panel that dissolves into place while it
+ * moves reads as neither.
+ */
 @keyframes slide-up {
   from {
-    transform: translateY(12%);
-    opacity: 0;
+    transform: translateY(100%);
   }
 }
 
