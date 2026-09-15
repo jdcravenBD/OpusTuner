@@ -50,6 +50,14 @@ const SQUIRCLE = ((n = 5, r = 50, steps = 96) => {
  * size this is actually seen, a mid-grey square with a small face on it reads
  * as a grey square, and it is the face that has to carry from across a room.
  *
+ * It lies on its side, which is to say it is the emoticon rather than the
+ * emoji -- two dots and a bracket, read left to right. That is the older and
+ * the quieter of the two, and this is a row that is trying not to shout.
+ *
+ * The tile is warmed toward the amber rather than left neutral, so the icon
+ * reads as part of the row it sits on instead of a black square dropped onto
+ * it. Still a literal: see below for why none of this follows the palette.
+ *
  * Every colour in here is a literal and not a token, which is deliberate --
  * it is a picture of a tile, and a tile does not re-tint with the panel it is
  * sitting on any more than a home screen icon re-tints with the wallpaper.
@@ -71,8 +79,8 @@ export const FaceIcon = ({ size = 44 }: IconProps) => (
   <svg width={size} height={size} viewBox="-2 -2 104 104" aria-hidden>
     <defs>
       <linearGradient id="eat-face-tile" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#18191c" />
-        <stop offset="100%" stopColor="#090a0b" />
+        <stop offset="0%" stopColor="#261c0c" />
+        <stop offset="100%" stopColor="#100a03" />
       </linearGradient>
       {/* 135deg, as a diagonal across the box. */}
       <linearGradient id="eat-face-rim" x1="0" y1="0" x2="1" y2="1">
@@ -93,10 +101,10 @@ export const FaceIcon = ({ size = 44 }: IconProps) => (
         filter: 'drop-shadow(0 0 2px rgba(255,176,46,0.95)) drop-shadow(0 0 7px rgba(255,176,46,0.55))',
       }}
     >
-      <circle cx="32" cy="37" r="5.6" fill="#ffb02e" />
-      <circle cx="68" cy="37" r="5.6" fill="#ffb02e" />
+      <circle cx="34" cy="34" r="5.6" fill="#ffb02e" />
+      <circle cx="34" cy="66" r="5.6" fill="#ffb02e" />
       <path
-        d="M24 57 Q50 82 76 57"
+        d="M56 26 Q80 50 56 74"
         fill="none"
         stroke="#ffb02e"
         strokeWidth="6"
