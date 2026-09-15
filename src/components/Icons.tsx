@@ -100,19 +100,30 @@ export const FaceIcon = ({ size = 44 }: IconProps) => (
       -- which is the whole joke, and it stops being a face the moment you
       read it as a colon and a bracket.
 
+      Light rather than bold, and larger to pay for it.
+
+      Weight is the only dial here -- a colon's dots and a bracket's stroke
+      are the same glyph getting thicker -- and at 700 the dots measured
+      fifteen units across on a hundred-unit tile, which is a pair of eyes
+      rather than a piece of punctuation. At 300 they are eight. The size goes
+      up from 76 to 84 so that thinning the strokes does not also shrink the
+      mark: the ink is 32 by 73 where the bold one was 41 by 65.
+
       Placed on its own baseline rather than by `dominant-baseline: central`,
       which centres the *em box* -- and an em box is mostly empty above a
-      colon. Measured: at this size the ink runs 53 above the baseline and 12
-      below, so its middle is a shade over twenty units up, and the baseline
-      goes that far below the tile's centre to put it back.
+      colon. Measured instead: the ink runs 59 above the baseline and 14
+      below, so its middle sits 22.5 up and the baseline goes that far below
+      the tile's centre to put it back. Those are this font's numbers, and a
+      handset resolves --font-ui to a different one, so it may want a unit or
+      two there.
     */}
     <text
       x="50"
-      y="70.5"
+      y="72.5"
       textAnchor="middle"
       fontFamily="var(--font-ui)"
-      fontSize="76"
-      fontWeight="700"
+      fontSize="84"
+      fontWeight="300"
       fill="#ffb02e"
     >
       :)
