@@ -154,7 +154,7 @@ export default defineConfig(({ mode }) => ({
      * production build on purpose, so the phone sees the same bundle the store
      * gets, and DEV is false there too.
      */
-    __BUILD_WORD__: JSON.stringify(mode === 'phone' ? 'tinder' : ''),
+    __BUILD_WORD__: JSON.stringify(mode === 'phone' ? 'umber' : ''),
 
     /*
      * True only in `npm run phone`, the build served over HTTPS on the LAN for
