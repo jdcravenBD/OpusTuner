@@ -125,8 +125,26 @@ export function PitchField({
       const fall = SCROLL_PX_PER_SEC * dt;
       scrollOffset.current = (scrollOffset.current + fall) % GRID_SPACING;
 
-      const target = clamp(frame.cents, -RANGE_CENTS * 1.2, RANGE_CENTS * 1.2);
-      displayCents.current += (target - displayCents.current) * 0.3;
+      /*
+       * Home when there is nothing to hear.
+       *
+       * TunerController deliberately leaves `cents` at its last value when the
+       * signal goes, so that nothing snaps to centre on the frame a note dies.
+       * That is the right call for the number -- a reading should not lie --
+       * and the wrong one for the marker, which then sits out at the edge of
+       * an empty screen pointing at a string nobody is playing. The display
+       * takes the other view and glides back, which is neither a snap nor a
+       * stranded needle.
+       *
+       * Slower coming home than following, by a factor of five. Following has
+       * to keep up with a hand on a tuning peg; returning is the screen
+       * settling, and at the follow rate it reads as the needle being yanked
+       * rather than let go.
+       */
+      const target = frame.hasSignal
+        ? clamp(frame.cents, -RANGE_CENTS * 1.2, RANGE_CENTS * 1.2)
+        : 0;
+      displayCents.current += (target - displayCents.current) * (frame.hasSignal ? 0.3 : 0.06);
       signalFade.current += ((frame.hasSignal ? 1 : 0) - signalFade.current) * 0.1;
 
       /* --- age the trail, then sample the current position ---------------- */
