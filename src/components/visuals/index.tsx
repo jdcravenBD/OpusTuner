@@ -15,6 +15,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import { PitchField } from './PitchField';
 import { StrobeDisc } from './StrobeDisc';
+import { SpectrumView } from './Spectrum';
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons';
 import { VISUALS, stepVisual, visualIndex, type VisualId } from './registry';
 import type { VisualProps } from './shared';
@@ -25,6 +26,7 @@ export type { VisualId } from './registry';
 const COMPONENTS: Record<VisualId, ComponentType<VisualProps>> = {
   field: PitchField,
   strobe: StrobeDisc,
+  spectrum: SpectrumView,
 };
 
 /** Space between one screen and the next while they are both on the move. */
@@ -68,19 +70,49 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
 
   const drag = useRef({ id: -1, startX: 0, lastX: 0, lastT: 0, velocity: 0, dx: 0, live: false });
   const busy = useRef(false);
-  const otherId = stepVisual(visual, 1);
+
+  /**
+   * Which screen is mounted beside the current one, and it is not a constant.
+   *
+   * It used to be `stepVisual(visual, 1)` outright, which was right for
+   * exactly as long as there were two screens: with two, the one before and
+   * the one after are the same screen and the direction of the drag does not
+   * matter. With three they are different, and a drag to the right that
+   * mounted the *next* screen would slide the wrong one in from the left.
+   *
+   * State rather than a read of `side`, because this decides what React
+   * renders and `side` is a ref the pointer handler writes between renders.
+   * They are set together by `face` below, which is the only thing that
+   * writes either.
+   */
+  const [other, setOther] = useState<VisualId | null>(null);
 
   /*
    * Which side the neighbouring screen sits on, as a slot index.
    *
-   * With two screens, "previous" and "next" are the same one, so this belongs
-   * to the gesture rather than to the screen: dragging right pulls in the one
-   * on the left, and the arrows say outright which side they mean. It is held
+   * It belongs to the gesture rather than to the screen: dragging right pulls
+   * in the one on the left, and the arrows say outright which side they mean.
+   * `other` above is derived from it, and the pair are what decide which
+   * screen is waiting at which edge. It is held
    * rather than recomputed from the drag offset, because at the moment of
    * release that offset is on its way back to zero — reading the side from it
    * there sent the neighbour across the deck in the middle of the animation.
    */
   const side = useRef<1 | -1>(1);
+
+  /**
+   * Points the deck at one of its neighbours: the ref the placement reads and
+   * the state the render reads, which must never disagree.
+   *
+   * Called on every pointer move, and the state update is a no-op on all but
+   * the one that crosses back over the start — dragging left, changing your
+   * mind and dragging right has to swap which screen is waiting at the edge.
+   */
+  const face = (dir: 1 | -1) => {
+    side.current = dir;
+    const id = stepVisual(visual, dir);
+    setOther((prev) => (prev === id ? prev : id));
+  };
 
   /** Distance from one screen's centre to the next. */
   const step = () => (deckRef.current?.offsetWidth ?? 0) + DECK_GAP;
@@ -141,6 +173,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
       if (settleTo !== 0) onChange(stepVisual(visual, settleTo === -1 ? 1 : -1));
       setSettleTo(null);
       setActive(false);
+      setOther(null);
       rowRef.current?.removeAttribute('data-sliding');
     };
 
@@ -186,7 +219,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
     if (busy.current) return;
     busy.current = true;
     // Next arrives from the right, previous from the left.
-    side.current = dir === 1 ? 1 : -1;
+    face(dir);
     setActive(true);
     rowRef.current?.setAttribute('data-sliding', 'true');
     // -1 sends the deck left, which brings the next screen in from the right.
@@ -215,7 +248,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
     if (!d.live) {
       if (Math.abs(dx) < SLOP) return;
       d.live = true;
-      side.current = dx > 0 ? -1 : 1;
+      face(dx > 0 ? -1 : 1);
       setActive(true);
       rowRef.current?.setAttribute('data-sliding', 'true');
       deckRef.current?.setPointerCapture?.(e.pointerId);
@@ -229,7 +262,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
     // Resistance at the ends is deliberately absent: the list wraps, so there
     // is always something real on both sides.
     d.dx = dx;
-    side.current = dx > 0 ? -1 : 1;
+    face(dx > 0 ? -1 : 1);
     place(dx, false);
   };
 
@@ -276,8 +309,8 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
         {/* Keyed by screen, so the one you drag in keeps its canvas when it
             becomes the current one — a remount here would blank it. */}
         <Screen key={visual} id={visual} sampleRateLabel={sampleRateLabel} {...rest} />
-        {active && otherId !== visual && (
-          <Screen key={otherId} id={otherId} sampleRateLabel={sampleRateLabel} {...rest} />
+        {active && other && other !== visual && (
+          <Screen key={other} id={other} sampleRateLabel={sampleRateLabel} {...rest} />
         )}
       </div>
 
