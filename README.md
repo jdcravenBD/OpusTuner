@@ -271,3 +271,21 @@ which string is selected, which have landed in tune, which sheet is open.
 Needs `AudioWorklet` and `getUserMedia`: Chrome 66+, Edge 79+, Firefox 76+,
 Safari 14.5+ (iOS 14.5+). A `ScriptProcessorNode` fallback covers older
 engines. Microphone access requires HTTPS or `localhost` everywhere.
+
+---
+
+## License
+
+**This is source-available, not open source.** The repository is public so the
+code can be read; that is the whole of what its being public means.
+
+Copyright © 2026. All rights reserved. You may read it and you may fork it on
+GitHub, which is what GitHub's Terms of Service already allow for any public
+repository. You may not use it in another project, redistribute it, or publish
+a build of it anywhere, including any app store, without written permission.
+The name, icon, listing copy and screenshots are separate from the code and are
+not licensed at all.
+
+The full notice is in [LICENSE](LICENSE), and it is worth reading before
+assuming otherwise — permission is not automatically refused, so if you want to
+use something here, ask.

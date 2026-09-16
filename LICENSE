@@ -1,0 +1,55 @@
+Easy as Tuning
+Copyright (c) 2026 Joseph, github.com/jdcravenBD
+All rights reserved.
+
+This repository is public so that the code can be read. It is NOT open source,
+and no open source licence is granted by its being public.
+
+
+WHAT YOU MAY DO
+
+  - Read this repository, its history and its documentation.
+  - Fork it on GitHub. GitHub's Terms of Service grant every GitHub user that
+    much for any public repository, and nothing beyond it.
+  - Build and run it locally for the sole purpose of reading and understanding
+    the code.
+
+
+WHAT YOU MAY NOT DO WITHOUT PRIOR WRITTEN PERMISSION
+
+  - Use this code, or any part of it, in another project, whether or not that
+    project is commercial and whether or not it is published.
+  - Copy, modify, merge, publish, distribute, sublicense or sell it.
+  - Build it and distribute the result anywhere, including but not limited to
+    the Apple App Store, Google Play, any other application store, and any
+    website.
+  - Publish a derivative, a port, a translation or a reskin of it.
+
+The name "Easy as Tuning", the app icon, the store listing copy, the
+screenshots and the artwork are not code and are not covered by anything above.
+No permission to use any of them is granted under any circumstances.
+
+
+ASKING
+
+Permission is not automatically refused. If you want to use any of this for
+anything, write to jdcraven87@gmail.com and ask.
+
+
+THIRD-PARTY COMPONENTS
+
+This notice covers the original work in this repository. Dependencies declared
+in package.json remain under their own licences, which are unaffected by this
+file. The seven-segment display face used by the strobe readout is 7-Segment by
+Jan Bobrowski and carries its own terms; see the note at the top of
+src/styles/app.css.
+
+
+NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
