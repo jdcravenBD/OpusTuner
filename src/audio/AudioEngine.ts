@@ -429,7 +429,29 @@ export interface AudioEngineOptions {
   inputGain?: number;
 }
 
-export class AudioEngine {
+/**
+ * Where to start a read so that it covers a whole number of target periods.
+ *
+ * The companion to `readSpan`, and the whole trick behind a triggered display.
+ * Anchoring the window to a multiple of the *target's* period, measured on the
+ * capture clock, means every frame opens its window on the same phase -- so a
+ * string sounding exactly that frequency draws the same picture every time and
+ * stands still, and one a little off slides by exactly the difference: one
+ * cycle per second per hertz of error, which is the beat the ear hears too.
+ *
+ * Nothing about the detected pitch goes into it. The window is cut from the
+ * raw input against the note that was asked for, so what moves on screen is
+ * the string itself rather than a smoothed reading of it.
+ *
+ * @param clock  the engine's sample clock
+ * @param period samples per cycle of the target
+ * @param span   how many samples the window is to cover
+ */
+export function triggerStart(clock: number, period: number, span: number): number {
+  // Two samples of slack, because the read interpolates and so looks one past
+  // its own last position; the write head has to stay ahead of that.
+  return Math.floor((clock - span - 2) / period) * period;
+}export class AudioEngine {
   state: EngineState = 'idle';
   error: EngineError | null = null;
   sampleRate = 0;
@@ -707,6 +729,70 @@ export class AudioEngine {
     }
     this.writeIndex = w;
     this.written += samples.length;
+  }  /* -------------------------------------------------------------- readout -- */
+
+  /**
+   * Where the write head is, counted in samples since capture began.
+   *
+   * The *audio* clock: exact, monotonic, and unaffected by how the frames
+   * happen to fall. That is the point of exposing it. Anything holding a
+   * waveform still against a frequency has to know where in that waveform it
+   * is to within a sample, and `performance.now()` cannot say -- the two
+   * clocks drift apart, and a frame lands whenever the compositor gets to it.
+   */
+  get clock(): number {
+    return this.written;
+  }
+
+  /** How far back `readSpan` can reach. A third of a second at 48 kHz. */
+  get history(): number {
+    return RING_SIZE;
+  }
+
+  /**
+   * Copies raw input out of the ring, resampled.
+   *
+   * `from` is a position on the same clock as `clock` and may be fractional;
+   * outputs are `step` samples apart, interpolated between the samples either
+   * side. Fractional on purpose: a caller drawing a waveform wants whatever
+   * falls under each pixel, and one made to start on a sample boundary would
+   * carry up to half a sample of phase jitter into every frame it drew.
+   *
+   * Returns false and leaves `out` untouched if any of the span has been
+   * overwritten or has not been captured yet -- which is the ordinary answer
+   * for the first third of a second, where the caller draws nothing.
+   *
+   * A pull, and deliberately. Nothing here runs unless something is looking,
+   * and the detector neither knows nor cares: the last thing to read this
+   * audio for a picture was a tap *inside* the detector that copied its
+   * analysis window every frame whether or not anyone was watching.
+   */
+  readSpan(out: Float32Array, from: number, step: number): boolean {
+    const n = out.length;
+    const now = this.written;
+    if (n === 0 || !(step > 0) || now < RING_SIZE) return false;
+    // The far end is one past the last position, since interpolation looks
+    // ahead by a sample.
+    if (from < now - RING_SIZE || from + (n - 1) * step + 1 >= now) return false;
+
+    /*
+     * Indexed back from the write head rather than by absolute position.
+     * `written` is a running total -- half a day of capture and it is past
+     * what a bitwise mask can hold -- while the distance back from the head is
+     * always inside the ring by construction.
+     */
+    const ring = this.ring;
+    const head = this.writeIndex;
+    let pos = from;
+    for (let i = 0; i < n; i++) {
+      const whole = Math.floor(pos);
+      const j = (head - (now - whole) + RING_SIZE) & (RING_SIZE - 1);
+      const a = ring[j];
+      const b = ring[(j + 1) & (RING_SIZE - 1)];
+      out[i] = a + (b - a) * (pos - whole);
+      pos += step;
+    }
+    return true;
   }
 
   /* ------------------------------------------------------------- analysis -- */
