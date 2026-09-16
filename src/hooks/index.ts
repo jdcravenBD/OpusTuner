@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { tuner, type TunerEvent, type TunerFrame } from '../tuner/TunerController';
 import {
   BUILTIN_TUNINGS,
@@ -167,6 +167,75 @@ export function useAppearance(
     // the resolved body background, so it has to be re-read when the amount of
     // colour in that background changes.
   }, [style, mode, colored, hue, colorStrength]);
+}
+
+/* ------------------------------------------------------------------ idle -- */
+
+/**
+ * How long the app waits before deciding nobody is there.
+ *
+ * Long enough to read the detail bar and pick a string off the row, short
+ * enough that it has gone by the time you have finished the first note. A
+ * tuner is used in bursts of a few seconds, so anything much longer never
+ * fires between plucks and anything much shorter takes the controls away
+ * while a thumb is still travelling toward them.
+ */
+const IDLE_MS = 4500;
+
+/**
+ * What counts as being there.
+ *
+ * Down rather than up, so the chassis is back before the finger arrives
+ * rather than after it leaves. `pointermove` is in the list for the desktop
+ * build, where there is a cursor and no taps; on a handset it only fires
+ * during a drag, which is a touch anyway.
+ */
+const AWAKE_ON = ['pointerdown', 'pointermove', 'keydown', 'wheel'] as const;
+
+/**
+ * Marks the app idle when the screen has not been touched for a while.
+ *
+ * Written straight to the DOM rather than held in state: this flips on a
+ * timer that the whole app would otherwise re-render for, and what it drives
+ * is one CSS attribute. `data-intune` is painted the same way and for the
+ * same reason.
+ *
+ * Capture-phase listeners on the document, because the thing that most needs
+ * to wake the app is a press on a control that stops the event getting
+ * anywhere near here -- a string button, a switch, a sheet.
+ */
+export function useIdleChrome(enabled: boolean, ref: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!enabled) {
+      delete el.dataset.idle;
+      return;
+    }
+
+    let timer = 0;
+    let last = 0;
+    const wake = () => {
+      const now = performance.now();
+      // pointermove arrives by the hundred and the work below is the same
+      // every time. Nothing is lost by ignoring all but the first of a burst.
+      if (now - last < 250 && !el.dataset.idle) return;
+      last = now;
+      delete el.dataset.idle;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        el.dataset.idle = 'true';
+      }, IDLE_MS);
+    };
+
+    wake();
+    for (const type of AWAKE_ON) document.addEventListener(type, wake, true);
+    return () => {
+      clearTimeout(timer);
+      delete el.dataset.idle;
+      for (const type of AWAKE_ON) document.removeEventListener(type, wake, true);
+    };
+  }, [enabled, ref]);
 }
 
 /* ------------------------------------------------------------- wake lock -- */

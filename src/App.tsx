@@ -9,6 +9,7 @@ import { sessionStore, settingsStore, useSettings } from './state/store';
 import {
   useAppearance,
   useCurrentTuning,
+  useIdleChrome,
   useSyncControllerSettings,
   useTunerEvent,
   useTunerFrame,
@@ -123,6 +124,7 @@ export default function App() {
     settings.colorStrength,
   );
   useWakeLock(settings.keepAwake && micState === 'running');
+  useIdleChrome(settings.dimIdle, appRef);
   useSyncControllerSettings();
 
   /* ---------------------------------------------------------- targets --- */
@@ -388,6 +390,9 @@ export default function App() {
          when they are, and take their place when they are not -- see
          .field__edge in app.css. */
       data-arrows={settings.showTunerArrows}
+      /* Whether the chassis fades when the screen goes untouched. The state
+         itself is `data-idle`, written by useIdleChrome outside React. */
+      data-dim={settings.dimIdle}
     >
       {debugRequested() && <DebugHud />}
       {/*
@@ -441,6 +446,10 @@ export default function App() {
           {/* Standing configuration, kept out of the reading itself. */}
           <button
             className={settings.showStatus ? 'status' : 'status status--off'}
+            /* Faded rather than `visibility: hidden`, so it needs telling that
+               it is gone -- see .status--off in app.css. */
+            aria-hidden={!settings.showStatus}
+            tabIndex={settings.showStatus ? undefined : -1}
             onClick={() => setSettingsOpen(true)}
             title="Reference pitch, in-tune window and capo. Tap to change."
           >

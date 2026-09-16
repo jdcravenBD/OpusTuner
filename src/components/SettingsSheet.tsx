@@ -411,6 +411,12 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
 
       {/* ------------------------------------------------------------- misc */}
       <Section label="Misc">
+        <Row
+          name="Dim when idle"
+          desc="Fades everything but the tuner once you stop touching the screen."
+        >
+          <Switch on={s.dimIdle} onChange={(v) => set('dimIdle', v)} label="Dim when idle" />
+        </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />
         </Row>

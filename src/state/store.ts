@@ -162,6 +162,20 @@ export interface Settings {
    * and back on returns the strength that was chosen rather than the default.
    */
   colorStrength: number;
+  /**
+   * Fade the chassis away while nobody is touching the screen.
+   *
+   * Everything but the tuner itself goes: the title, the detail bar, the
+   * carousel, the indicator, the string row and the bottom bar. They come
+   * back on the next touch, several times faster than they left.
+   *
+   * Free, and in Misc rather than up with the Display switches, because it
+   * is not the same kind of thing. Those take a piece of the app away and
+   * leave it away, which is what the tier sells; this lends the screen to
+   * the tuner for as long as your hands are busy and hands it back the
+   * moment they are not.
+   */
+  dimIdle: boolean;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -260,6 +274,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showCarousel: true,
   showVerdict: true,
   showCents: true,
+  dimIdle: false,
   showTunerMarks: true,
   showTunerArrows: true,
   visual: DEFAULT_VISUAL,

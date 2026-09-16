@@ -454,6 +454,78 @@ button {
   z-index: 1;
 }
 
+/* ------------------------------------------------------------------ idle -- */
+
+/*
+ * Everything but the tuner, fading out while nobody is there.
+ *
+ * `data-dim` is the setting and `data-idle` is the state, and they are two
+ * attributes rather than one because the setting is React's and the state is
+ * a timer's -- see useIdleChrome, which writes it straight to the DOM for the
+ * same reason `data-intune` is written that way.
+ *
+ * Out slowly and back quickly, which is the whole feel of the thing. A
+ * chassis that leaves at the speed it returns reads as a glitch; leaving over
+ * most of a second reads as the app getting out of the way, and coming back
+ * in a sixth of one reads as it having been waiting. The two durations are on
+ * two rules on purpose: a transition declared on the state governs entering
+ * it, and the one on the base rule governs leaving.
+ *
+ * The list is every part of the chassis and nothing else. The tuner screen is
+ * not in it, which is the point, and neither is the scrim or a sheet -- open
+ * Settings while it is faded and the panel arrives at full strength over a
+ * dimmed app, which is exactly what it should do.
+ *
+ * `color` rides along in the transition because the pitch indicator has one
+ * of its own, and a bare `transition: opacity` on the shared rule would throw
+ * it away.
+ */
+.app[data-dim='true'] .topbar,
+.app[data-dim='true'] .note-block,
+.app[data-dim='true'] .verdict,
+.app[data-dim='true'] .strings,
+.app[data-dim='true'] .bottombar {
+  transition:
+    opacity 170ms var(--ease),
+    color 200ms var(--ease);
+}
+
+.app[data-dim='true'][data-idle='true'] .topbar,
+.app[data-dim='true'][data-idle='true'] .note-block,
+.app[data-dim='true'][data-idle='true'] .verdict,
+.app[data-dim='true'][data-idle='true'] .strings,
+.app[data-dim='true'][data-idle='true'] .bottombar {
+  /*
+   * Not zero. At nothing at all the app looks broken rather than resting, and
+   * the string row is the one thing you might still want to find with a thumb
+   * without waking the screen first.
+   */
+  opacity: 0.12;
+  transition:
+    opacity 900ms var(--ease),
+    color 200ms var(--ease);
+}
+
+/*
+ * The pager chevrons go too, and they are not in the list above because they
+ * are the tuner's own furniture rather than the chassis -- the only piece of
+ * it that points at something you would have to press.
+ */
+.app[data-dim='true'] .visual-nav {
+  transition:
+    opacity 170ms var(--ease),
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.app[data-dim='true'][data-idle='true'] .visual-nav {
+  opacity: 0.12;
+  transition:
+    opacity 900ms var(--ease),
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
 /* ---------------------------------------------------------------- topbar -- */
 
 .topbar {
