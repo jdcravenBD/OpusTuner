@@ -1012,6 +1012,23 @@ export class AudioEngine {
     return this.last;
   }
 
+  /**
+   * The last analysed window's power spectrum, or null before there is one.
+   *
+   * A view of the detector's own buffer rather than a copy: it is overwritten
+   * every frame and read within the same frame, and handing out sixty
+   * throwaway arrays a second to avoid a mutation nobody observes is the
+   * wrong trade. See PitchDetector.spectrum for what is in it.
+   */
+  get spectrum(): Float32Array | null {
+    return this.detector?.spectrum ?? null;
+  }
+
+  /** Hz per bin of `spectrum`, or 0 when there is no detector yet. */
+  get spectrumBinHz(): number {
+    return this.detector?.spectrumBinHz ?? 0;
+  }
+
   /** Drops smoothing state — call when the target note changes. */
   resetTracking(): void {
     this.tracker.reset();
