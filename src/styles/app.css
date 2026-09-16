@@ -1161,14 +1161,17 @@ button {
 }
 
 /*
- * Both screens, each keeping its own height.
+ * Every screen, each keeping its own height.
  *
  * The strobe's dial is sized from min(w, h) in the canvas, so it stays as big
  * as the height allows and the extra width only shows more of an arc that was
  * already running off both sides. The field's cent scale is the one thing that
  * spreads: still ±250 at the edges, with half again as much room between them.
+ * The scope simply gets a longer trace for the same window of time, which is
+ * the one screen here that is straightforwardly better for the room.
  */
 .app[data-tuner-style='large'] .field[data-visual='strobe'],
+.app[data-tuner-style='large'] .field[data-visual='scope'],
 .app[data-tuner-style='large'] .field[data-visual='field'] {
   width: 100%;
 }
@@ -1374,12 +1377,14 @@ button {
  * bottom two have the tuning button and the auto toggle in them.
  *
  * The accidentals stay, and sit beside the chevrons exactly as they do in
- * Large -- on the field, where they are at mid-edge. The strobe keeps its own
- * placement, which is measured from the screen's top and is therefore up
- * behind the wordmark; it is hidden here for the same reason as the print.
+ * Large -- on the field, where they are at mid-edge. The strobe and the scope
+ * keep their own placement, which is measured from the screen's top and is
+ * therefore up behind the wordmark; both are hidden here for the same reason
+ * as the print.
  */
 .app[data-tuner-style='full'] .field__note,
-.app[data-tuner-style='full'] .field[data-visual='strobe'] .field__edge {
+.app[data-tuner-style='full'] .field[data-visual='strobe'] .field__edge,
+.app[data-tuner-style='full'] .field[data-visual='scope'] .field__edge {
   display: none;
 }
 
@@ -1508,10 +1513,11 @@ button {
 }
 
 /*
- * The needle screen is a tall 3:4 rectangle; the strobe stays square.
+ * The needle screen is a tall 3:4 rectangle; the strobe and the scope stay
+ * square.
  *
  * The proportion is taken out of the width rather than added to the height, so
- * both screens are still the full height of the deck and the deck's own box is
+ * every screen is still the full height of the deck and the deck's own box is
  * unchanged. That matters more than it looks: the height of this row is the
  * one number the whole column's budget is balanced against (see .field-deck),
  * and growing it would have pushed the readout, the string row and the bottom
@@ -1519,7 +1525,14 @@ button {
  * so nothing moves or resizes either — only the cents scale, which now spans a
  * narrower field, which is the point of a taller shape.
  */
-.field[data-visual='strobe'] {
+/*
+ * The scope takes the square too, and takes it for the width rather than the
+ * height: a waveform is read across, and the square is the widest box the deck
+ * offers. Its own band is a fraction of whatever height it ends up with, so
+ * there is nothing here for it to be tall for.
+ */
+.field[data-visual='strobe'],
+.field[data-visual='scope'] {
   width: var(--screen-w);
   height: var(--screen-w);
 }
@@ -1558,11 +1571,13 @@ button {
 }
 
 /*
- * The strobe's dial runs off both sides at mid-height, so the marks move up
- * into the corners, which its arc leaves empty. Only the strobe: on the field
- * the mid-edge is exactly where they belong, against the ends of the scale.
+ * The strobe's dial runs off both sides at mid-height, and the scope's trace
+ * runs straight through the same place, so on both of them the marks move up
+ * into the corners that neither uses. Not the field: there the mid-edge is
+ * exactly where they belong, against the ends of the scale.
  */
-.field[data-visual='strobe'] .field__edge {
+.field[data-visual='strobe'] .field__edge,
+.field[data-visual='scope'] .field__edge {
   top: 9px;
   transform: none;
 }
