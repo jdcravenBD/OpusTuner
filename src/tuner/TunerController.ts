@@ -30,16 +30,6 @@ export interface TunerFrame {
   clarity: number;
   /** Smoothed input level, 0..1. Not currently surfaced in the UI. */
   level: number;
-  /**
-   * The last window's power spectrum, for whichever screen wants to draw it.
-   *
-   * A live view of the detector's buffer, not a copy -- see AudioEngine. It
-   * is valid for the frame it arrives on and overwritten on the next, which
-   * is the whole of its contract: read it during the draw and keep nothing.
-   */
-  spectrum: Float32Array | null;
-  /** Hz per bin of `spectrum`. */
-  spectrumBinHz: number;
 }
 
 export type TunerEvent =
@@ -90,8 +80,6 @@ export class TunerController {
     hasSignal: false,
     frequency: 0,
     cents: 0,
-    spectrum: null,
-    spectrumBinHz: 0,
     targetIndex: -1,
     targetMidi: 0,
     targetFreq: 0,
@@ -243,8 +231,6 @@ export class TunerController {
     }
 
     f.level = this.engine.level;
-    f.spectrum = this.engine.spectrum;
-    f.spectrumBinHz = this.engine.spectrumBinHz;
 
     // The pick transient is still inside the analysis window. Freeze the whole
     // frame — note, cents and target alike — so the attack cannot throw the

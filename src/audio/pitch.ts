@@ -25,32 +25,6 @@ export class PitchDetector {
   readonly windowSize: number;
   readonly sampleRate: number;
 
-  /**
-   * The power spectrum of the last analysed window, as a tap.
-   *
-   * Nothing in the detector reads it. It is here because the detector is the
-   * only place in the app where a spectrum exists at all, and it exists for
-   * exactly one statement: the autocorrelation squares the transform in place
-   * and then inverts the same buffer over the top of it, so four lines later
-   * there is no spectrum any more. Copying it out costs one memcpy of the
-   * window's length per frame -- sixteen kilobytes, about a microsecond -- and
-   * the alternative is a second FFT of the same samples for the sake of
-   * drawing them.
-   *
-   * Half of `fftSize`, which is `windowSize`: the transform is real, so the
-   * upper half mirrors the lower and carries nothing. Bin k is at
-   * `k * spectrumBinHz`.
-   *
-   * Unnormalised, and deliberately: these are raw |X|^2 values whose scale
-   * depends on the window length and the input level, so anything drawing
-   * them has to normalise against something of its own choosing. Handing over
-   * a number that looks like dB but is not would be worse than handing over
-   * the arithmetic.
-   */
-  readonly spectrum: Float32Array;
-  /** Hz per bin of `spectrum`. */
-  readonly spectrumBinHz: number;
-
   private readonly fft: FFT;
   private readonly re: Float32Array;
   private readonly im: Float32Array;
@@ -75,8 +49,6 @@ export class PitchDetector {
     this.fft = new FFT(fftSize);
     this.re = new Float32Array(fftSize);
     this.im = new Float32Array(fftSize);
-    this.spectrum = new Float32Array(fftSize / 2);
-    this.spectrumBinHz = sampleRate / fftSize;
     this.nsdf = new Float32Array(windowSize);
     this.work = new Float32Array(windowSize);
     this.peaks = new Int32Array(256);
@@ -118,13 +90,7 @@ export class PitchDetector {
     }
 
     const rms = Math.sqrt(sumSquares / n);
-    if (rms < rmsGate) {
-      // Below the gate nothing is transformed, so there is no spectrum to
-      // hand over. Cleared rather than left: a stale one is a picture of a
-      // note that stopped, and it would hang there until the next pluck.
-      this.spectrum.fill(0);
-      return { frequency: 0, clarity: 0, rms };
-    }
+    if (rms < rmsGate) return { frequency: 0, clarity: 0, rms };
 
     // --- autocorrelation r[tau] via FFT ---------------------------------
     const fftSize = this.re.length;
@@ -139,8 +105,6 @@ export class PitchDetector {
       this.re[i] = rr * rr + ii * ii; // power spectrum
       this.im[i] = 0;
     }
-    // Taken here because the next line writes the autocorrelation over it.
-    this.spectrum.set(this.re.subarray(0, this.spectrum.length));
     this.fft.inverse(this.re, this.im);
 
     const invN = 1 / fftSize;

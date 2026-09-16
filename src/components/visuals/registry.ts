@@ -6,7 +6,7 @@
  * would close a cycle (store -> visual -> hooks -> store).
  */
 
-export type VisualId = 'field' | 'strobe' | 'spectrum';
+export type VisualId = 'field' | 'strobe';
 
 export interface VisualMeta {
   id: VisualId;
@@ -29,12 +29,6 @@ export const VISUALS: VisualMeta[] = [
     name: 'Strobe',
     range: '1× 2× 4×',
     desc: 'Harmonic bands that stop and line up when you arrive. The finest of the three.',
-  },
-  {
-    id: 'spectrum',
-    name: 'Spectrum',
-    range: '55 · 4k Hz',
-    desc: 'What is actually sounding: your harmonics, against the ones the note should have.',
   },
 ];
 

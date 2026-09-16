@@ -15,7 +15,6 @@
 import { useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import { PitchField } from './PitchField';
 import { StrobeDisc } from './StrobeDisc';
-import { SpectrumView } from './Spectrum';
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons';
 import { VISUALS, stepVisual, visualIndex, type VisualId } from './registry';
 import type { VisualProps } from './shared';
@@ -26,7 +25,6 @@ export type { VisualId } from './registry';
 const COMPONENTS: Record<VisualId, ComponentType<VisualProps>> = {
   field: PitchField,
   strobe: StrobeDisc,
-  spectrum: SpectrumView,
 };
 
 /** Space between one screen and the next while they are both on the move. */
@@ -74,11 +72,13 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
   /**
    * Which screen is mounted beside the current one, and it is not a constant.
    *
-   * It used to be `stepVisual(visual, 1)` outright, which was right for
-   * exactly as long as there were two screens: with two, the one before and
+   * It used to be `stepVisual(visual, 1)` outright, which is right for
+   * exactly as long as there are two screens: with two, the one before and
    * the one after are the same screen and the direction of the drag does not
-   * matter. With three they are different, and a drag to the right that
-   * mounted the *next* screen would slide the wrong one in from the left.
+   * matter. There are two today. A third makes them different, and a drag to
+   * the right that mounted the *next* screen would slide the wrong one in
+   * from the left -- so this follows the gesture instead, which costs
+   * nothing now and is one less thing to remember later.
    *
    * State rather than a read of `side`, because this decides what React
    * renders and `side` is a ref the pointer handler writes between renders.
