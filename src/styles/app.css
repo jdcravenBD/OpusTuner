@@ -604,8 +604,25 @@ button {
 
 /* Hidden the same way the wordmark is: out of sight, still holding its place,
    so the row keeps its height and nothing below it shifts. */
+/*
+ * Faded rather than `visibility: hidden`, and the difference is a bug.
+ *
+ * Toggling visibility on this one tore its outline: shown again, the bar came
+ * back with its side edges and without its top and bottom. It is a hairline
+ * border on a rounded, clipped, flex box inside a layer the whole app shares
+ * -- `.app` is promoted permanently -- and putting an element in that layer
+ * back on screen re-rasterises it. A sub-pixel horizontal edge is exactly
+ * what does not survive that.
+ *
+ * Opacity never asks for the rasterisation in the first place: it is a
+ * compositor property, and the layer it fades was drawn once and is not drawn
+ * again. The trade is that an invisible element is still there to be pressed
+ * and still there to be read out, so it is told to be neither -- here, and
+ * with aria-hidden where it is rendered.
+ */
 .status--off {
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 
