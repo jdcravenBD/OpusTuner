@@ -499,8 +499,13 @@ button {
    * Not zero. At nothing at all the app looks broken rather than resting, and
    * the string row is the one thing you might still want to find with a thumb
    * without waking the screen first.
+   *
+   * It was 0.12, which on the handset still read as *present* -- the chassis
+   * looked switched off rather than out of the way, and the tuner did not have
+   * the screen to itself the way the setting promises. This is about as far as
+   * it goes while a thumb can still find the string row in the dark.
    */
-  opacity: 0.12;
+  opacity: 0.05;
   transition:
     opacity 900ms var(--ease),
     color 200ms var(--ease);
@@ -519,7 +524,7 @@ button {
 }
 
 .app[data-dim='true'][data-idle='true'] .visual-nav {
-  opacity: 0.12;
+  opacity: 0.05;
   transition:
     opacity 900ms var(--ease),
     color var(--dur) var(--ease),
