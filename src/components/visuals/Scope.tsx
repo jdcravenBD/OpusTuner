@@ -5,14 +5,14 @@ import { tuner } from '../../tuner/TunerController';
 import {
   clamp,
   colorFor,
+  FAR_CENTS,
   useVisualCanvas,
   visualFont,
   type VisualProps,
 } from './shared';
 
 /**
- * How much of the string the window holds, before it is rounded to a whole
- * number of cycles.
+ * How much of the string the window holds when the note is nowhere near.
  *
  * A *time*, not a cycle count, and that is the one decision this screen turns
  * on. A window of N cycles slides at the beat rate divided by N, and the beat
@@ -36,6 +36,74 @@ const WINDOW_SECONDS = 0.04;
  */
 const MIN_CYCLES = 2;
 const MAX_CYCLES = 32;
+
+/**
+ * ...and how much of it the window holds once the note arrives.
+ *
+ * The window closes as you get closer, from the forty milliseconds above down
+ * to a single cycle filling the screen. Two things come of it, and only one is
+ * the look.
+ *
+ * The look is that the wave *blooms*: far out it is a short, dense, flat
+ * ripple, and it grows and opens out as you come in until one tall clean cycle
+ * is the whole screen. The screen stops answering only in motion, which it did
+ * before and which is invisible in any single instant — a rate has no value
+ * *now*. Length and height do.
+ *
+ * The other thing is that it makes the last few cents easier to see, not
+ * harder. The picture slides at the beat rate over the cycles on show, so
+ * shrinking the window as the beat dies keeps the motion alive: two cents out
+ * on a low E crosses the screen in seven seconds instead of thirty-one. The
+ * screen is at its most sensitive exactly where you need it.
+ *
+ * What it costs is that the *rate* no longer reads as the error — the slide
+ * stays at roughly half a screen a second across most of the range, because
+ * both the beat and the window are shrinking together. Moving against still is
+ * unharmed, and that is the reading anyone actually takes.
+ *
+ * Not rounded to whole cycles any more, which it can afford: the trigger locks
+ * the window's *start* to the target's phase, and the length has nothing to do
+ * with it. A whole number of cycles only ever bought the two edges matching
+ * phase, and nothing is drawn across the seam. Fractional is what lets the
+ * wave grow smoothly rather than doubling in width at each step.
+ */
+const NEAR_CYCLES = 1;
+/**
+ * How much of the way there the approach actually travels.
+ *
+ * **Set this to 0 to undo the closing window**, and the screen is back to a
+ * flat forty milliseconds at every distance with the height ramp left intact.
+ * The pair are independent on purpose; this is the half that changes what the
+ * horizontal axis means as you tune, and it is the half worth being able to
+ * take back in one number.
+ */
+const CYCLE_SQUEEZE = 1;
+/**
+ * Height at the two ends, as a fraction of the band.
+ *
+ * Not zero at the far end. Flat is the instruction and a flat line is a dead
+ * screen: the drift is the only thing it has to say out there, and a waveform
+ * of no height cannot say it. A low ripple reads as "nowhere near" just as
+ * well and is still alive. Set it to 1 and the height ramp is gone.
+ */
+const MIN_HEIGHT = 0.14;
+/**
+ * How the height fills out over the approach. Above 1 it hangs back and then
+ * swells late, which is what makes full height mean *inside the window* rather
+ * than merely close to it.
+ */
+const HEIGHT_CURVE = 2;
+/** ...and the same for the window closing, gentler, so it opens out steadily. */
+const CYCLE_CURVE = 1.15;
+/**
+ * How fast the screen follows a peg.
+ *
+ * Both of the above hang off the reading, and the reading jitters by a cent or
+ * two on a perfectly steady note. Unsmoothed, that is a wave breathing in and
+ * out of its own accord. A fifth of a second is slow enough to swallow the
+ * jitter and fast enough that a hand on a peg is answered at once.
+ */
+const CLOSE_EASE = 0.08;
 
 /**
  * Points along the trace.
@@ -141,11 +209,21 @@ export function Scope({
     head: 0,
     count: 0,
     accum: 0,
-    /** What the window was when they were taken; a change makes them nonsense. */
-    cycles: 0,
+    /**
+     * Which note they were taken against.
+     *
+     * Not the live cycle count, which now moves a little on every frame as the
+     * window closes — clearing on that would mean no phosphor at all while
+     * anything was happening. A change of *string* is what makes them
+     * nonsense; a window a few percent shorter than the one before it is
+     * simply what the history looked like.
+     */
+    against: 0,
   });
   const peak = useRef(0);
   const signalFade = useRef(0);
+  /** Eased 0..1 from far out to inside the window. See CLOSE_EASE. */
+  const closeness = useRef(0);
 
   const toleranceRef = useRef(tolerance);
   toleranceRef.current = tolerance;
@@ -188,7 +266,31 @@ export function Scope({
       signalFade.current += ((hearing ? 1 : 0) - signalFade.current) * 0.1;
       const fade = signalFade.current;
 
-      const cycles = f0 > 0 ? clamp(Math.round(f0 * WINDOW_SECONDS), MIN_CYCLES, MAX_CYCLES) : 0;
+      /*
+       * How close the string is, as one number: 1 anywhere inside the in-tune
+       * window, 0 by the time another note is nearer. Both the height and the
+       * length of the window hang off it.
+       *
+       * The range is the player's own tolerance out to FAR_CENTS rather than a
+       * constant, so a tighter window makes the whole approach tighter with it
+       * — the bloom finishes exactly where the reading stops being neutral and
+       * starts being amber.
+       */
+      const tol = toleranceRef.current;
+      const off = clamp(
+        (Math.abs(frame.cents) - tol) / Math.max(1, FAR_CENTS - tol),
+        0,
+        1,
+      );
+      closeness.current += ((hearing ? 1 - off : 0) - closeness.current) * CLOSE_EASE;
+      const close = closeness.current;
+
+      const far = f0 > 0 ? clamp(f0 * WINDOW_SECONDS, MIN_CYCLES, MAX_CYCLES) : 0;
+      const cycles =
+        far > 0
+          ? far - (far - NEAR_CYCLES) * CYCLE_SQUEEZE * Math.pow(close, CYCLE_CURVE)
+          : 0;
+      const height = MIN_HEIGHT + (1 - MIN_HEIGHT) * Math.pow(close, HEIGHT_CURVE);
 
       /* --- cut a window out of the string ------------------------------- */
       const buf = live.current;
@@ -234,8 +336,8 @@ export function Scope({
 
       /* --- age the phosphor --------------------------------------------- */
       const g = ghosts.current;
-      if (g.cycles !== cycles) {
-        g.cycles = cycles;
+      if (g.against !== far) {
+        g.against = far;
         g.count = 0;
       }
       g.accum += dt;
@@ -249,9 +351,14 @@ export function Scope({
 
       /* --- draw ---------------------------------------------------------- */
       const midY = top + boxH * BAND_Y;
+      /*
+       * The band the wave grows into, and the trace only reaches it at full
+       * height. The two rules drawn at its edges stay put whatever the wave is
+       * doing, so they read as the mark it is trying to touch.
+       */
       const half = boxH * BAND_HALF;
-      const inTune = hearing && Math.abs(frame.cents) <= toleranceRef.current;
-      const hot = colorFor(p, hearing ? frame.cents : 9999, toleranceRef.current);
+      const inTune = hearing && Math.abs(frame.cents) <= tol;
+      const hot = colorFor(p, hearing ? frame.cents : 9999, tol);
       const alpha = 0.32 + fade * 0.68;
 
       ctx.save();
@@ -300,12 +407,14 @@ export function Scope({
       ctx.stroke();
 
       /*
-       * Right to left — see the note at the top. The two ends of the buffer
-       * are a whole number of target cycles apart, so on a string that is in
-       * tune they carry the same phase and the trace meets itself across the
-       * screen's edges.
+       * Right to left — see the note at the top. Index zero is the window's
+       * start, which is the end the trigger locks, so it is the right-hand
+       * edge that is nailed to the target's phase and the left-hand one that
+       * carries whatever is left over when the window is not a whole number of
+       * cycles. Nothing is drawn across that seam, which is why the window is
+       * free to be fractional at all.
        */
-      const amp = half * fade;
+      const amp = half * fade * height;
       const stroke = (v: Float32Array, width: number, a: number) => {
         ctx.globalAlpha = a;
         ctx.lineWidth = width;
