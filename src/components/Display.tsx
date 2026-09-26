@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useTunerFrame } from '../hooks';
-import { useExperiments } from '../state/experiments';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 
 interface Props {
@@ -44,11 +43,6 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
 
-  /** Dev experiments, in a ref: this whole component runs outside React. */
-  const experiments = useExperiments();
-  const expRef = useRef(experiments);
-  expRef.current = experiments;
-
   // Last written values — avoids touching the DOM when nothing changed.
   const prev = useRef({ midi: -1, signal: '', intune: '', naming: '' as string });
 
@@ -61,7 +55,6 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
     if (centre !== p.midi || namingRef.current !== p.naming) {
       /*
        * A new target arrives rather than being rewritten where it stands.
-       * Dev experiment "Note arrives".
        *
        * Only on a change of *note* -- switching between sharps and flats
        * renames what is already there and has not arrived from anywhere.
@@ -73,7 +66,7 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
        * session, on a change that is already rewriting five elements.
        */
       const el = wrapRef.current;
-      if (expRef.current.noteArrive && centre !== p.midi && el) {
+      if (centre !== p.midi && el) {
         el.removeAttribute('data-arrive');
         void el.offsetWidth;
         el.setAttribute('data-arrive', 'true');

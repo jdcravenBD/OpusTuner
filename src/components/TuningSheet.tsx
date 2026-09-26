@@ -21,6 +21,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   naming: NoteNaming;
+  /** Passed through to Sheet — see the pull-up gesture in App. */
+  onPanel?: (el: HTMLDivElement | null) => void;
 }
 
 type Filter = 'all' | InstrumentId;
@@ -51,7 +53,7 @@ const SECTION_INSTRUMENTS = [
   ...INSTRUMENTS.filter((i) => i.id !== 'misc' && i.id !== 'custom'),
 ];
 
-export function TuningSheet({ open, onClose, naming }: Props) {
+export function TuningSheet({ open, onClose, naming, onPanel }: Props) {
   const session = useSession();
   const { owned } = useSettings();
   const all = useAllTunings();
@@ -196,7 +198,7 @@ export function TuningSheet({ open, onClose, naming }: Props) {
 
   return (
     <>
-      <Sheet open={open && !editing} title="Tunings" onClose={close} tall>
+      <Sheet open={open && !editing} title="Tunings" onClose={close} tall onPanel={onPanel}>
         <div className="search">
           <span className="search__icon">
             <SearchIcon />

@@ -1,6 +1,5 @@
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 import { CheckIcon } from './Icons';
-import { useExperiments } from '../state/experiments';
 
 interface Props {
   /** MIDI targets, lowest string first (capo already applied). */
@@ -20,8 +19,6 @@ export function StringRow({
   leftHanded,
   onSelect,
 }: Props) {
-  const { holdFill } = useExperiments();
-
   if (targets.length === 0) return <div className="strings" />;
 
   const count = targets.length;
@@ -76,8 +73,7 @@ export function StringRow({
               )}
               {/*
                 The tuned countdown, as a band round the inside of the key.
-                Dev experiment
-                "Hold countdown"; `--hold` comes down from .app.
+                `--hold` comes down from .app; TunerFrame carries it.
 
                 A rounded rect rather than a circle, because the key is a
                 squircle and a circle would cut its corners. `pathLength` is
@@ -89,16 +85,16 @@ export function StringRow({
                 one measurement in two places, and moving either alone breaks
                 it. A stroke is centred on its path, so a band of width w
                 sitting flush inside the edge wants its rect inset by w/2 and
-                its corner radius reduced by the same -- 18 wide, inset 9,
-                and 30 (the key's own 30% radius) less 9 is 21.
+                its corner radius reduced by the same -- 13.5 wide, inset
+                6.75, and 30 (the key's own 30% radius) less 6.75 is 23.25.
 
                 Only on the key being tuned, and only while it is not already
                 done -- `--hold` is one number on the app, so every key would
-                otherwise draw the same ring at once.
+                otherwise draw the same band at once.
               */}
-              {holdFill && i === selectedIndex && !tuned[i] && (
+              {i === selectedIndex && !tuned[i] && (
                 <svg className="string__hold" viewBox="0 0 100 100" aria-hidden>
-                  <rect x="9" y="9" width="82" height="82" rx="21" ry="21" pathLength="100" />
+                  <rect x="6.75" y="6.75" width="86.5" height="86.5" rx="23.25" ry="23.25" pathLength="100" />
                 </svg>
               )}
             </button>

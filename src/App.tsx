@@ -6,12 +6,11 @@ import { isNative } from './platform';
 import { reconcileEntitlement } from './state/purchases';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
-import { useExperiments } from './state/experiments';
 import {
   useAppearance,
   useCurrentTuning,
   useIdleChrome,
-  useSwipeUp,
+  usePullUp,
   useSyncControllerSettings,
   useTunerEvent,
   useTunerFrame,
@@ -29,7 +28,29 @@ import { DebugHud, debugRequested } from './components/DebugHud';
 import { ChevronUpIcon, GearIcon, ResetIcon } from './components/Icons';
 import type { EngineError } from './audio/AudioEngine';
 
-export const APP_VERSION = __APP_VERSION__;
+export /**
+ * Pulling the tunings up: how far, how fast, and how long it takes to settle.
+ *
+ * A third of the panel is the honest threshold -- far enough that it cannot
+ * happen by accident, near enough that it is obvious you are winning. The
+ * pixel floor keeps a short panel from asking for a heroic drag, and the
+ * flick lets an impatient throw through on about a third of the distance.
+ *
+ * **The flick needs a distance floor as well as a speed, and a fraction
+ * rather than a handful of pixels.** This had forty, which let an ordinary
+ * unhurried drag of seventy pixels open the panel: twenty-five pixels
+ * between two moves is half a pixel per millisecond, and half a pixel per
+ * millisecond is not a flick, it is a hand moving. The sheets' own
+ * drag-to-dismiss pairs its velocity with a fraction for exactly this
+ * reason -- see CLOSE_FLICK_FRACTION in hooks/drag.
+ */
+const PULL_TAKE_FRACTION = 0.33;
+const PULL_TAKE_PX = 90;
+const PULL_FLICK = 0.6;
+const PULL_FLICK_FRACTION = 0.12;
+const PULL_SETTLE_MS = 260;
+
+const APP_VERSION = __APP_VERSION__;
 
 /**
  * How long the app must have been visible before the microphone watchdog will
@@ -128,29 +149,70 @@ export default function App() {
   useWakeLock(settings.keepAwake && micState === 'running');
   useIdleChrome(settings.dimIdle, appRef, settings.dimLevel);
 
-  /*
-   * The dev-only experiment flags, in a ref because the two places that read
-   * them are a frame callback and an event callback, neither of which should
-   * re-subscribe when a switch moves. All false in a build -- see
-   * state/experiments.
-   */
-  const experiments = useExperiments();
-  const expRef = useRef(experiments);
-  expRef.current = experiments;
   /** Last `--hold` written, so most frames write nothing. */
   const holdRef = useRef('0');
-  const sweepTimer = useRef(0);
 
   /*
-   * Swipe up for the tunings. Dev experiment "Swipe up for tunings".
+   * Pull the tunings up from anywhere on the main screen.
    *
-   * Guarded on the sheets being shut as well as on the hook's own check for
-   * where the gesture began: a flick that starts on the main screen while a
-   * panel is open would otherwise open a second one behind it.
+   * The panel follows the finger and drops back if the pull stops short, so
+   * it is a drawer rather than a shortcut -- you can start it, see what it
+   * is, and change your mind.
+   *
+   * Driven straight at the element. A progress number going through React
+   * would re-render the whole app on every pointer move to set one
+   * transform, which is the same reason the palette sliders paint to the DOM
+   * and only commit on release.
+   *
+   * The hook drops any press that lands on a panel or happens while one is
+   * up, so there is nothing to guard here -- and guarding here is what broke
+   * it the first time round. See usePullUp.
    */
-  useSwipeUp(appRef, experiments.swipeTunings && !tuningOpen && !settingsOpen, () =>
-    setTuningOpen(true),
-  );
+  const tuningPanel = useRef<HTMLDivElement | null>(null);
+  const settle = useRef(0);
+
+  usePullUp(appRef, {
+    start: () => setTuningOpen(true),
+    move: (rise) => {
+      const panel = tuningPanel.current;
+      if (!panel) return; // the first move or two, before it has mounted
+      /*
+       * The entry animation has to go, or it fights the transform for the
+       * same property. It starts from fully down, which is where the finger
+       * is picking the panel up from, so a frame of it before this lands is
+       * not a jump.
+       */
+      panel.style.animation = 'none';
+      panel.style.transition = 'none';
+      panel.style.transform = `translateY(${Math.max(0, panel.offsetHeight - rise)}px)`;
+    },
+    end: (rise, speed) => {
+      const panel = tuningPanel.current;
+      if (!panel) return;
+      const height = panel.offsetHeight || 1;
+      // Far enough, or thrown hard enough having already got a fair way.
+      const take =
+        rise >= Math.max(PULL_TAKE_PX, height * PULL_TAKE_FRACTION) ||
+        (speed >= PULL_FLICK && rise >= height * PULL_FLICK_FRACTION);
+      panel.style.transition = `transform ${PULL_SETTLE_MS}ms cubic-bezier(.22, .61, .36, 1)`;
+      panel.style.transform = take ? 'translateY(0px)' : `translateY(${height}px)`;
+      clearTimeout(settle.current);
+      settle.current = window.setTimeout(
+        () => {
+          // Hand the panel back to the stylesheet either way, or the next
+          // open finds it still pinned wherever this left it.
+          const el = tuningPanel.current;
+          if (el) {
+            el.style.animation = '';
+            el.style.transition = '';
+            el.style.transform = '';
+          }
+          if (!take) setTuningOpen(false);
+        },
+        take ? PULL_SETTLE_MS + 20 : PULL_SETTLE_MS,
+      );
+    },
+  });
   useSyncControllerSettings();
 
   /* ---------------------------------------------------------- targets --- */
@@ -188,7 +250,7 @@ export default function App() {
      * can draw on, so the write is skipped on most frames rather than the
      * style being reparsed for a change nobody can see.
      */
-    const want = expRef.current.holdFill ? frame.hold.toFixed(2) : '0';
+    const want = frame.hold.toFixed(2);
     if (holdRef.current !== want) {
       holdRef.current = want;
       el.style.setProperty('--hold', want);
@@ -202,20 +264,10 @@ export default function App() {
         toneEngine.chime();
       }
     } else if (event.type === 'all-tuned') {
-      // Acknowledged in the hand — the string row already shows the state, and
-      // a panel over the tuner is in the way of the next thing you play. The
-      // sweep is not a panel: it takes no layout and cannot be in the way.
+      // Acknowledged in the hand only — the string row already shows the state,
+      // and a panel over the tuner is in the way of the next thing you play. A
+      // sweep of light across the row was tried here and taken out again.
       if (settingsStore.get().haptics) haptic('medium');
-      if (expRef.current.allTunedSweep) {
-        const el = appRef.current;
-        if (el) {
-          el.dataset.alltuned = 'true';
-          clearTimeout(sweepTimer.current);
-          sweepTimer.current = window.setTimeout(() => {
-            delete el.dataset.alltuned;
-          }, 720);
-        }
-      }
     } else if (event.type === 'status') {
       setMicState(tuner.micState);
     }
@@ -648,6 +700,9 @@ export default function App() {
         open={tuningOpen}
         onClose={() => setTuningOpen(false)}
         naming={settings.naming}
+        onPanel={(el) => {
+          tuningPanel.current = el;
+        }}
       />
       <SettingsSheet
         open={settingsOpen}

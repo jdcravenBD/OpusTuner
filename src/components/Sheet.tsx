@@ -17,13 +17,22 @@ interface Props {
    * changes length between tabs doesn't resize the panel under the user.
    */
   tall?: boolean;
+  /**
+   * Handed the panel element as it mounts and unmounts.
+   *
+   * For a caller that has to drive the panel itself. The pull-up gesture on
+   * the main screen opens this sheet *during* a drag and positions it under
+   * the finger, which it cannot do through a prop: a number going through
+   * React would re-render the app on every pointer move to set one transform.
+   */
+  onPanel?: (el: HTMLDivElement | null) => void;
 }
 
 /** How long the panel takes to leave. Matches the sheet-out keyframes. */
 export const SHEET_EXIT_MS = 210;
 
 /** Bottom sheet on phones, centred dialog on wide screens. */
-export function Sheet({ open, title, onClose, children, left, right, tall }: Props) {
+export function Sheet({ open, title, onClose, children, left, right, tall, onPanel }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -171,7 +180,10 @@ export function Sheet({ open, title, onClose, children, left, right, tall }: Pro
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        ref={panelRef}
+        ref={(el) => {
+          panelRef.current = el;
+          onPanel?.(el);
+        }}
       >
         {/* Grip and header double as the sheet's grab handle — see useSheetGestures. */}
         <div className="sheet__grip sheet__handle" />

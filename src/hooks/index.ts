@@ -268,84 +268,131 @@ export function useIdleChrome(
 
 /* --------------------------------------------------------------- gesture -- */
 
-/** How far up a swipe has to travel to count, in CSS pixels. */
-const SWIPE_UP_PX = 64;
-/**
- * ...and how straight. A swipe wider than it is tall is somebody reaching
- * for the pager, which owns horizontal drags on the tuner screen.
- */
-const SWIPE_STRAIGHT = 0.7;
-/** Past this it is not a swipe, it is a finger that rested and then moved. */
-const SWIPE_MS = 700;
+/** Movement before an upward drag is a gesture rather than a stray press. */
+const PULL_SLOP = 8;
+/** Weight of the newest sample in the velocity average — see drag.ts. */
+const PULL_SMOOTHING = 0.4;
 
 /**
- * A swipe up anywhere on the main screen.
+ * Pulling the tunings up from the main screen.
  *
- * Listens on the app rather than on any one element, because the point is
- * that the whole screen is the target. Which means it also hears the sheets,
- * so gestures that begin inside one are dropped: a sheet has its own
- * drag-to-dismiss, and an upward flick on a scrolling settings panel must not
- * also fire this.
+ * Reports the gesture rather than deciding anything, because the caller is
+ * the only one that can: whether the pull has gone far enough depends on how
+ * tall the panel turned out to be, and the panel does not exist until `start`
+ * has been acted on.
  *
- * Measured on pointerup rather than followed on the way, so nothing is
- * captured and the pager keeps every horizontal drag it had. The two cannot
- * both claim a gesture: this one wants to be taller than it is wide, and the
- * pager goes live at six pixels sideways.
+ * Listens on the app rather than on any one element -- the point is that the
+ * whole screen is the handle -- which means it also hears the sheets, so a
+ * gesture beginning inside one is dropped. A sheet has its own drag-to-
+ * dismiss and an upward flick on a scrolling panel must not also do this.
+ *
+ * **There is deliberately no `enabled` flag, and there was one.** The obvious
+ * guard is "only while no sheet is open", which reads fine and is a trap: the
+ * whole point of `start` is to open a sheet, so the flag went false in the
+ * middle of the gesture, the effect tore its own listeners down, and `move`
+ * and `end` never arrived. The panel appeared and then sat there, because
+ * nothing was left to put it back. The check belongs on the press instead,
+ * where it is asked once and cannot change under the gesture it is judging.
+ *
+ * Nothing is captured, so the pager keeps every horizontal drag it had. The
+ * two settle which is which the same way and at the same moment: whichever
+ * axis leaves the slop first takes the gesture, and each abandons the ones
+ * that are not its own.
  */
-export function useSwipeUp(
+export function usePullUp(
   ref: RefObject<HTMLElement | null>,
-  enabled: boolean,
-  onSwipe: () => void,
+  handlers: {
+    /** The drag is upward and past the slop. The panel should be mounted. */
+    start: () => void;
+    /** @param rise total travel upward from the press, never negative. */
+    move: (rise: number) => void;
+    /** @param speed upward pixels per millisecond, smoothed. */
+    end: (rise: number, speed: number) => void;
+  },
 ): void {
-  const fire = useRef(onSwipe);
-  fire.current = onSwipe;
+  const on = useRef(handlers);
+  on.current = handlers;
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !enabled) return;
+    if (!el) return;
 
     let id = -1;
     let x = 0;
     let y = 0;
-    let at = 0;
+    let lastY = 0;
+    let lastT = 0;
+    let speed = 0;
+    let live = false;
+
+    const reset = () => {
+      id = -1;
+      live = false;
+    };
 
     const down = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       // Anything with a panel over it is that panel's gesture, not this one.
       if (target?.closest('.sheet, .scrim, .purchase, .powergate')) {
-        id = -1;
+        reset();
+        return;
+      }
+      // ...and nothing at all while a panel is up. Asked here rather than
+      // held as a flag, for the reason at the top.
+      if (document.querySelector('.sheet')) {
+        reset();
         return;
       }
       id = e.pointerId;
       x = e.clientX;
-      y = e.clientY;
-      at = e.timeStamp;
+      y = lastY = e.clientY;
+      lastT = e.timeStamp;
+      speed = 0;
+      live = false;
+    };
+
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      const rise = y - e.clientY;
+      const across = Math.abs(e.clientX - x);
+
+      if (!live) {
+        if (rise < PULL_SLOP && across < PULL_SLOP) return;
+        // Sideways first, or downward: not ours, and not ours later either.
+        if (across >= rise) {
+          reset();
+          return;
+        }
+        live = true;
+        on.current.start();
+      }
+
+      const dt = e.timeStamp - lastT;
+      if (dt > 0) speed += ((lastY - e.clientY) / dt - speed) * PULL_SMOOTHING;
+      lastY = e.clientY;
+      lastT = e.timeStamp;
+      on.current.move(Math.max(0, rise));
     };
 
     const up = (e: PointerEvent) => {
       if (e.pointerId !== id) return;
-      id = -1;
-      const rise = y - e.clientY;
-      const across = Math.abs(e.clientX - x);
-      if (e.timeStamp - at > SWIPE_MS) return;
-      if (rise < SWIPE_UP_PX) return;
-      if (across > rise * SWIPE_STRAIGHT) return;
-      fire.current();
-    };
-
-    const cancel = () => {
-      id = -1;
+      const was = live;
+      const rise = Math.max(0, y - e.clientY);
+      reset();
+      if (was) on.current.end(rise, speed);
     };
 
     el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
-    el.addEventListener('pointercancel', cancel);
+    el.addEventListener('pointercancel', up);
     return () => {
       el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
-      el.removeEventListener('pointercancel', cancel);
+      el.removeEventListener('pointercancel', up);
     };
-  }, [ref, enabled]);
+  }, [ref]);
 }
 
 /* ------------------------------------------------------------- wake lock -- */

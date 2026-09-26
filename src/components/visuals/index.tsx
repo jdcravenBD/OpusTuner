@@ -66,7 +66,16 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
   /** Set on release so the layout effect can run the settle animation. */
   const [settleTo, setSettleTo] = useState<1 | -1 | 0 | null>(null);
 
-  const drag = useRef({ id: -1, startX: 0, lastX: 0, lastT: 0, velocity: 0, dx: 0, live: false });
+  const drag = useRef({
+    id: -1,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastT: 0,
+    velocity: 0,
+    dx: 0,
+    live: false,
+  });
   const busy = useRef(false);
 
   /**
@@ -235,6 +244,7 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
     const d = drag.current;
     d.id = e.pointerId;
     d.startX = d.lastX = e.clientX;
+    d.startY = e.clientY;
     d.lastT = e.timeStamp;
     d.velocity = 0;
     d.dx = 0;
@@ -247,7 +257,28 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
     const dx = e.clientX - d.startX;
 
     if (!d.live) {
-      if (Math.abs(dx) < SLOP) return;
+      /*
+       * Decide which way this gesture is going, once, and abide by it.
+       *
+       * The test used to be sideways travel alone, so a swipe *up* that
+       * happened to wander seven pixels across took the deck with it and
+       * snapped it back on release -- a twitch on the tuner screen every
+       * time somebody reached for the tunings. Now whichever axis crosses
+       * the threshold first claims the gesture, and a vertical one is
+       * abandoned outright rather than left to become horizontal later.
+       *
+       * The swipe-up hook needs no matching rule. It measures on release and
+       * captures nothing, so the two cannot both act on one gesture: this
+       * one wants to be wider than it is tall and that one wants the
+       * opposite.
+       */
+      const across = Math.abs(dx);
+      const along = Math.abs(e.clientY - d.startY);
+      if (across < SLOP && along < SLOP) return;
+      if (along >= across) {
+        d.id = -1;
+        return;
+      }
       d.live = true;
       face(dx > 0 ? -1 : 1);
       setActive(true);

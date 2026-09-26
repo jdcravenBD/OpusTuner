@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import { pitchClassName } from '../../music/notes';
 import type { NoteNaming } from '../../music/notes';
 import type { TunerFrame } from '../../tuner/TunerController';
-import { useExperiments } from '../../state/experiments';
 import {
   clamp,
   colorFor,
@@ -95,10 +94,6 @@ export function PitchField({
     count: 0,
   });
 
-  /** Dev experiments, in a ref because the draw loop is outside React. */
-  const experiments = useExperiments();
-  const expRef = useRef(experiments);
-  expRef.current = experiments;
   /** The verdict colour part-way between where it was and where it is going. */
   const easedHot = useRef<[number, number, number] | null>(null);
 
@@ -200,27 +195,27 @@ export function PitchField({
       }
 
       /*
-       * The verdict colour, and whether it is allowed to travel.
+       * The verdict colour, travelling rather than switching.
        *
-       * Computed here rather than inside draw() because easing it needs
-       * somewhere to keep the last value, and draw() is a plain function that
-       * has nowhere. The trail still colours each of its own samples from
-       * `colorFor` -- that is a record of what the reading was at the time and
-       * has no business being smoothed after the fact.
+       * `colorFor` is a step function -- green inside the window, neutral
+       * outside it, amber past fifty cents -- so a reading parked on a
+       * boundary flicks between two colours on alternate frames. Easing it
+       * over about a tenth of a second costs nothing and removes that.
+       *
+       * Computed here rather than inside draw() because easing needs
+       * somewhere to keep the last value and draw() is a plain function with
+       * nowhere to keep it. The trail still colours each of its own samples
+       * from `colorFor` directly: those are a record of what the reading was
+       * at the time, and have no business being smoothed after the fact.
        */
       const raw = colorFor(palette, frame.hasSignal ? frame.cents : 9999, toleranceRef.current);
-      let hot = raw;
-      if (expRef.current.easeVerdict) {
-        const want = rgbOf(raw);
-        const at = easedHot.current ?? want;
-        at[0] += (want[0] - at[0]) * VERDICT_EASE;
-        at[1] += (want[1] - at[1]) * VERDICT_EASE;
-        at[2] += (want[2] - at[2]) * VERDICT_EASE;
-        easedHot.current = at;
-        hot = `rgb(${Math.round(at[0])}, ${Math.round(at[1])}, ${Math.round(at[2])})`;
-      } else {
-        easedHot.current = null;
-      }
+      const want = rgbOf(raw);
+      const at = easedHot.current ?? want;
+      at[0] += (want[0] - at[0]) * VERDICT_EASE;
+      at[1] += (want[1] - at[1]) * VERDICT_EASE;
+      at[2] += (want[2] - at[2]) * VERDICT_EASE;
+      easedHot.current = at;
+      const hot = `rgb(${Math.round(at[0])}, ${Math.round(at[1])}, ${Math.round(at[2])})`;
 
       draw(ctx, size, palette, frame, {
         cents: displayCents.current,
@@ -256,7 +251,7 @@ interface DrawState {
   cents: number;
   fade: number;
   tolerance: number;
-  /** The verdict colour, already eased if the experiment says so. */
+  /** The verdict colour, already eased. */
   hot: string;
   scroll: number;
   naming: NoteNaming;
