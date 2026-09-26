@@ -75,7 +75,8 @@ export function StringRow({
                 </span>
               )}
               {/*
-                The tuned countdown, as a ring around the key. Dev experiment
+                The tuned countdown, as a band round the inside of the key.
+                Dev experiment
                 "Hold countdown"; `--hold` comes down from .app.
 
                 A rounded rect rather than a circle, because the key is a
@@ -84,13 +85,20 @@ export function StringRow({
                 maths is the percentage itself, with no perimeter to work out
                 from a radius that changes with the viewport.
 
+                The numbers here and the stroke width in the stylesheet are
+                one measurement in two places, and moving either alone breaks
+                it. A stroke is centred on its path, so a band of width w
+                sitting flush inside the edge wants its rect inset by w/2 and
+                its corner radius reduced by the same -- 18 wide, inset 9,
+                and 30 (the key's own 30% radius) less 9 is 21.
+
                 Only on the key being tuned, and only while it is not already
                 done -- `--hold` is one number on the app, so every key would
                 otherwise draw the same ring at once.
               */}
               {holdFill && i === selectedIndex && !tuned[i] && (
                 <svg className="string__hold" viewBox="0 0 100 100" aria-hidden>
-                  <rect x="2" y="2" width="96" height="96" rx="32" ry="32" pathLength="100" />
+                  <rect x="9" y="9" width="82" height="82" rx="21" ry="21" pathLength="100" />
                 </svg>
               )}
             </button>

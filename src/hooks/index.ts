@@ -266,6 +266,88 @@ export function useIdleChrome(
   }, [enabled, ref]);
 }
 
+/* --------------------------------------------------------------- gesture -- */
+
+/** How far up a swipe has to travel to count, in CSS pixels. */
+const SWIPE_UP_PX = 64;
+/**
+ * ...and how straight. A swipe wider than it is tall is somebody reaching
+ * for the pager, which owns horizontal drags on the tuner screen.
+ */
+const SWIPE_STRAIGHT = 0.7;
+/** Past this it is not a swipe, it is a finger that rested and then moved. */
+const SWIPE_MS = 700;
+
+/**
+ * A swipe up anywhere on the main screen.
+ *
+ * Listens on the app rather than on any one element, because the point is
+ * that the whole screen is the target. Which means it also hears the sheets,
+ * so gestures that begin inside one are dropped: a sheet has its own
+ * drag-to-dismiss, and an upward flick on a scrolling settings panel must not
+ * also fire this.
+ *
+ * Measured on pointerup rather than followed on the way, so nothing is
+ * captured and the pager keeps every horizontal drag it had. The two cannot
+ * both claim a gesture: this one wants to be taller than it is wide, and the
+ * pager goes live at six pixels sideways.
+ */
+export function useSwipeUp(
+  ref: RefObject<HTMLElement | null>,
+  enabled: boolean,
+  onSwipe: () => void,
+): void {
+  const fire = useRef(onSwipe);
+  fire.current = onSwipe;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled) return;
+
+    let id = -1;
+    let x = 0;
+    let y = 0;
+    let at = 0;
+
+    const down = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Anything with a panel over it is that panel's gesture, not this one.
+      if (target?.closest('.sheet, .scrim, .purchase, .powergate')) {
+        id = -1;
+        return;
+      }
+      id = e.pointerId;
+      x = e.clientX;
+      y = e.clientY;
+      at = e.timeStamp;
+    };
+
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      id = -1;
+      const rise = y - e.clientY;
+      const across = Math.abs(e.clientX - x);
+      if (e.timeStamp - at > SWIPE_MS) return;
+      if (rise < SWIPE_UP_PX) return;
+      if (across > rise * SWIPE_STRAIGHT) return;
+      fire.current();
+    };
+
+    const cancel = () => {
+      id = -1;
+    };
+
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', cancel);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', cancel);
+    };
+  }, [ref, enabled]);
+}
+
 /* ------------------------------------------------------------- wake lock -- */
 
 /**

@@ -1679,20 +1679,28 @@ button {
  * `--hold` is written onto .app every frame by App.tsx and inherits down to
  * here; `frame.hold` carries it.
  *
- * Outside the key rather than inside it, so the label underneath stays at
- * full contrast the whole way round -- a fill behind the note dims it
- * exactly while you are watching it.
+ * A band round the *inside* of the key, wide enough to read as a meter
+ * filling rather than a hairline creeping. It leaves the note name a clear
+ * core to sit in, which a fill rising through the key did not.
  *
  * `pathLength="100"` on the rect is what makes this simple: it renormalises
  * the outline to a hundred units, so the dash numbers *are* the percentage
  * and there is no perimeter to derive from a corner radius that moves with
  * the viewport. Dash 100 with a gap of 100 and an offset of 100 draws
- * nothing; the offset walking to 0 draws the ring in, clockwise from the top
+ * nothing; the offset walking to 0 draws the band in, clockwise from the top
  * edge.
+ *
+ * `butt` caps, so both ends are square. Round ones put a bulge on the
+ * leading edge that reads as a separate object travelling round the key
+ * rather than as a level being reached.
+ *
+ * **The width is set in two places and they have to agree.** A stroke is
+ * centred on its path, so the rect in StringRow is inset by half of this and
+ * has that much taken off its corner radius. Change one, change both.
  */
 .string__hold {
   position: absolute;
-  inset: -4px;
+  inset: 0;
   overflow: visible;
   pointer-events: none;
 }
@@ -1700,10 +1708,51 @@ button {
 .string__hold rect {
   fill: none;
   stroke: var(--green);
-  stroke-width: 4;
-  stroke-linecap: round;
+  stroke-width: 18;
+  stroke-linecap: butt;
   stroke-dasharray: 100;
   stroke-dashoffset: calc(100 - var(--hold, 0) * 100);
+  opacity: 0.6;
+}
+
+/*
+ * ...and the key itself comes round to meet it.
+ *
+ * Everything the key turns green about once it is tuned -- its edge, its
+ * tint, its ring and its glow -- faded in at the rate the band fills, so
+ * arriving is a key that has been becoming green for a second rather than
+ * one that changes its mind in a frame. Lifted wholesale off
+ * `.string[data-tuned='true'][data-active='true']`; the two must stay in
+ * step or the tick will land on a key that visibly jumps.
+ *
+ * An overlay at `opacity: var(--hold)` rather than a mix, because mixing two
+ * colours in CSS needs `color-mix`, and that is Safari 16.2 while this app
+ * still claims 14.5. An alpha fade needs nothing.
+ */
+.string[data-active='true']:not([data-tuned='true'])::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid var(--green);
+  background: var(--green-soft);
+  box-shadow:
+    0 0 0 2px var(--green-line),
+    0 0 20px -1px var(--green-glow);
+  opacity: var(--hold, 0);
+  pointer-events: none;
+}
+
+/*
+ * The one part an overlay cannot do, since the label is a child and painting
+ * over it would hide it. Behind @supports so the engines that cannot mix
+ * simply keep the old behaviour -- the letter turning green with the tick --
+ * rather than losing the colour altogether.
+ */
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .string[data-active='true']:not([data-tuned='true']) {
+    color: color-mix(in srgb, var(--green) calc(var(--hold, 0) * 100%), var(--text));
+  }
 }
 
 /*

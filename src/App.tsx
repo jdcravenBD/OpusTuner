@@ -11,6 +11,7 @@ import {
   useAppearance,
   useCurrentTuning,
   useIdleChrome,
+  useSwipeUp,
   useSyncControllerSettings,
   useTunerEvent,
   useTunerFrame,
@@ -139,6 +140,17 @@ export default function App() {
   /** Last `--hold` written, so most frames write nothing. */
   const holdRef = useRef('0');
   const sweepTimer = useRef(0);
+
+  /*
+   * Swipe up for the tunings. Dev experiment "Swipe up for tunings".
+   *
+   * Guarded on the sheets being shut as well as on the hook's own check for
+   * where the gesture began: a flick that starts on the main screen while a
+   * panel is open would otherwise open a second one behind it.
+   */
+  useSwipeUp(appRef, experiments.swipeTunings && !tuningOpen && !settingsOpen, () =>
+    setTuningOpen(true),
+  );
   useSyncControllerSettings();
 
   /* ---------------------------------------------------------- targets --- */

@@ -56,6 +56,14 @@ export interface Experiments {
    * between a readout and an instrument.
    */
   noteArrive: boolean;
+  /**
+   * Swipe up anywhere on the main screen to open the tunings.
+   *
+   * The panel is one small button in the corner of the bottom bar, and
+   * changing tuning is a thing people do constantly. A gesture over the
+   * whole screen is a much bigger target than a button, and costs no space.
+   */
+  swipeTunings: boolean;
 }
 
 const OFF: Readonly<Experiments> = Object.freeze({
@@ -63,6 +71,7 @@ const OFF: Readonly<Experiments> = Object.freeze({
   allTunedSweep: false,
   easeVerdict: false,
   noteArrive: false,
+  swipeTunings: false,
 });
 
 export const experimentStore = createStore<Experiments>('easyastuning.experiments.v1', {
@@ -105,5 +114,10 @@ export const EXPERIMENTS: { key: keyof Experiments; name: string; desc: string }
     key: 'noteArrive',
     name: 'Note arrives',
     desc: 'A new target rises into place rather than being rewritten where it stands.',
+  },
+  {
+    key: 'swipeTunings',
+    name: 'Swipe up for tunings',
+    desc: 'A swipe up anywhere on the main screen opens the tunings panel.',
   },
 ];
