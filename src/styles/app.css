@@ -1681,8 +1681,8 @@ button {
  *
  * **The width is set in two places and they have to agree.** A stroke is
  * centred on its path, so the rect in StringRow is inset by half of this and
- * has that much taken off its corner radius: 13.5 wide, inset 6.75, and the
- * key's own 30% radius less 6.75 is 23.25. Change one, change both.
+ * has that much taken off its corner radius: 10 wide, inset 5, and the key's
+ * own 30% radius less 5 is 25. Change one, change both.
  */
 .string__hold {
   position: absolute;
@@ -1694,7 +1694,7 @@ button {
 .string__hold rect {
   fill: none;
   stroke: var(--green);
-  stroke-width: 13.5;
+  stroke-width: 10;
   stroke-linecap: butt;
   stroke-dasharray: 100;
   stroke-dashoffset: calc(100 - var(--hold, 0) * 100);
@@ -2057,11 +2057,45 @@ button {
    * for; one colour is.
    */
   background: var(--bg-0);
-  border-top-left-radius: var(--r-xl);
-  border-top-right-radius: var(--r-xl);
+  /*
+   * The corner Modern has, in every theme.
+   *
+   * It was 28 here and 40 there, and the big one is simply better for the
+   * same reason it was chosen there: the top of the panel is a grip and a
+   * centred title, so a deep curve eats empty space rather than anything
+   * that has to be read, and it is the one place the page behind stays
+   * visible.
+   */
+  border-top-left-radius: 40px;
+  border-top-right-radius: 40px;
   border-top: 1px solid var(--border-hi);
   box-shadow: var(--elev-3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: slide-up 380ms var(--ease-out);
+  /*
+   * `backwards`, and it is a fix rather than a flourish.
+   *
+   * Without it the element uses its ordinary styles until the animation
+   * actually begins, so the first painted frame is the panel sitting fully
+   * open, and only then does it drop and slide up. A flash of the finished
+   * state before the entry runs.
+   */
+  animation: slide-up 380ms var(--ease-out) backwards;
+}
+
+/*
+ * ...and no entry animation at all when a finger brought it up.
+ *
+ * The pull positions the panel itself, frame by frame, so an animation
+ * competing for the same property would fight it. App pins this attribute on
+ * as the panel mounts mid-pull and never takes it off again -- taking it off
+ * while the panel is open restarts `slide-up`, which is the duck-and-rise
+ * this replaced.
+ *
+ * `:not([data-closing])` is what makes never-taking-it-off safe: the moment
+ * the panel starts leaving, this rule stops applying and `sheet-out` runs
+ * exactly as it does for any other close.
+ */
+.sheet[data-pulled='true']:not([data-closing='true']) {
+  animation: none;
 }
 
 /*
@@ -2119,12 +2153,21 @@ button {
   }
 }
 
+/*
+ * The handle. Longer and thicker than it was -- 34x3 read as a hairline
+ * rather than as something you could take hold of, which is the one thing it
+ * is for.
+ *
+ * The margin above it is also smaller, and that is the other half of closing
+ * the gap to the title: top edge to title was nine of grip margin, three of
+ * grip, two more of margin and twelve of header padding.
+ */
 .sheet__grip {
-  width: 34px;
-  height: 3px;
+  width: 52px;
+  height: 5px;
   border-radius: 999px;
   background: var(--border-strong);
-  margin: 9px auto 2px;
+  margin: 6px auto 2px;
   flex: 0 0 auto;
 }
 
@@ -2158,8 +2201,17 @@ button {
    * The bar is empty until the heading in the list goes under it, so this
    * padding is what stands between the grip and a title that arrives out of
    * nowhere. Too little and it lands on top of the grip.
+   *
+   * Trimmed top and bottom, along with the grip's own margin, to bring the
+   * panel's top edge closer to its title -- there was a lot of nothing up
+   * there. The bar was 49 tall and is 40, which takes the big heading from
+   * 69 below the edge to 59.
+   *
+   * Not trimmed further, and this is the floor rather than a taste: the two
+   * slots either side of the title hold the editor's back arrow and its Save
+   * button, and the bar's height is their touch target.
    */
-  padding: 12px 10px 12px;
+  padding: 7px 10px 8px;
   flex: 0 0 auto;
 }
 
@@ -4993,18 +5045,11 @@ button {
 /* --- the sheets ---------------------------------------------------------- */
 
 /*
- * The panel, with a corner nothing else in the app has.
- *
- * Far rounder than the 13 the rest of the themes use, and it can afford to
- * be: the top of this sheet is a header with a grip and a centred title, so
- * the corners are eating empty space rather than anything that has to be
- * read. It is also the one place the page behind stays visible, and the
- * bigger the curve the more of it there is to see.
+ * The panel. The corner it used to have on its own is every theme's now --
+ * see .sheet -- so what is left here is the edge and the shadow.
  */
 :root[data-theme='modern'] .sheet {
   border-top: 0;
-  border-top-left-radius: 40px;
-  border-top-right-radius: 40px;
   box-shadow: var(--elev-3);
 }
 

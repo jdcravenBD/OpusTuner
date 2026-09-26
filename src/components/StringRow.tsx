@@ -85,8 +85,8 @@ export function StringRow({
                 one measurement in two places, and moving either alone breaks
                 it. A stroke is centred on its path, so a band of width w
                 sitting flush inside the edge wants its rect inset by w/2 and
-                its corner radius reduced by the same -- 13.5 wide, inset
-                6.75, and 30 (the key's own 30% radius) less 6.75 is 23.25.
+                its corner radius reduced by the same -- 10 wide, inset
+                5, and 30 (the key's own 30% radius) less 5 is 25.
 
                 Only on the key being tuned, and only while it is not already
                 done -- `--hold` is one number on the app, so every key would
@@ -94,7 +94,7 @@ export function StringRow({
               */}
               {i === selectedIndex && !tuned[i] && (
                 <svg className="string__hold" viewBox="0 0 100 100" aria-hidden>
-                  <rect x="6.75" y="6.75" width="86.5" height="86.5" rx="23.25" ry="23.25" pathLength="100" />
+                  <rect x="5" y="5" width="90" height="90" rx="25" ry="25" pathLength="100" />
                 </svg>
               )}
             </button>

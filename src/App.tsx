@@ -170,21 +170,24 @@ export default function App() {
    */
   const tuningPanel = useRef<HTMLDivElement | null>(null);
   const settle = useRef(0);
+  /** True from the moment a pull is recognised until the panel has settled. */
+  const pulling = useRef(false);
+
+  /** Holds the panel wherever the finger has it, with nothing else moving it. */
+  const hold = (panel: HTMLElement, y: string) => {
+    panel.style.transition = 'none';
+    panel.style.transform = y;
+  };
 
   usePullUp(appRef, {
-    start: () => setTuningOpen(true),
+    start: () => {
+      pulling.current = true;
+      setTuningOpen(true);
+    },
     move: (rise) => {
       const panel = tuningPanel.current;
-      if (!panel) return; // the first move or two, before it has mounted
-      /*
-       * The entry animation has to go, or it fights the transform for the
-       * same property. It starts from fully down, which is where the finger
-       * is picking the panel up from, so a frame of it before this lands is
-       * not a jump.
-       */
-      panel.style.animation = 'none';
-      panel.style.transition = 'none';
-      panel.style.transform = `translateY(${Math.max(0, panel.offsetHeight - rise)}px)`;
+      if (!panel) return; // the first move, before it has mounted
+      hold(panel, `translateY(${Math.max(0, panel.offsetHeight - rise)}px)`);
     },
     end: (rise, speed) => {
       const panel = tuningPanel.current;
@@ -199,14 +202,23 @@ export default function App() {
       clearTimeout(settle.current);
       settle.current = window.setTimeout(
         () => {
-          // Hand the panel back to the stylesheet either way, or the next
-          // open finds it still pinned wherever this left it.
+          pulling.current = false;
           const el = tuningPanel.current;
-          if (el) {
-            el.style.animation = '';
+          /*
+           * Take the movement off but leave `data-pulled` where it is.
+           *
+           * Removing it here is what made the panel duck and come back up:
+           * the attribute is the only thing holding `slide-up` off, and
+           * putting the entry animation back on an already-open panel runs
+           * it again from the bottom. It costs nothing to leave -- the rule
+           * stops applying the moment the panel starts closing.
+           */
+          if (take && el) {
             el.style.transition = '';
             el.style.transform = '';
           }
+          // Cancelled: leave it pinned off the bottom, where it already is,
+          // and let it unmount from there.
           if (!take) setTuningOpen(false);
         },
         take ? PULL_SETTLE_MS + 20 : PULL_SETTLE_MS,
@@ -702,6 +714,18 @@ export default function App() {
         naming={settings.naming}
         onPanel={(el) => {
           tuningPanel.current = el;
+          /*
+           * Mounted in the middle of a pull: put it where the finger has it
+           * *now*, in the ref callback, which runs before the browser
+           * paints. Left until the next pointermove, one frame gets drawn
+           * with the panel wherever CSS would have had it -- which is how
+           * this came to flash fully open for an instant before dropping
+           * back under the finger.
+           */
+          if (el && pulling.current) {
+            el.dataset.pulled = 'true';
+            hold(el, 'translateY(100%)');
+          }
         }}
       />
       <SettingsSheet
