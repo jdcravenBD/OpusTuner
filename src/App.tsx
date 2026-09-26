@@ -124,7 +124,7 @@ export default function App() {
     settings.colorStrength,
   );
   useWakeLock(settings.keepAwake && micState === 'running');
-  useIdleChrome(settings.dimIdle, appRef);
+  useIdleChrome(settings.dimIdle, appRef, settings.dimLevel);
   useSyncControllerSettings();
 
   /* ---------------------------------------------------------- targets --- */

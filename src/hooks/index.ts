@@ -108,6 +108,19 @@ export function paintColorStrength(colored: boolean, strength: number): void {
 }
 
 /**
+ * How far the chassis fades when nobody is there, as an opacity on <html>.
+ *
+ * A custom property for the same reason the hue is one: the slider paints
+ * straight to the DOM on every move and commits to the store once on release,
+ * so the whole app is not re-rendered by a thumb. Unlike `--s` this one is
+ * always written -- there is no switch it has to avoid stamping on, and the
+ * stylesheet's own fallback only covers the frames before the first paint.
+ */
+export function paintDimLevel(level: number): void {
+  document.documentElement.style.setProperty('--idle-dim', String(level / 100));
+}
+
+/**
  * Applies the three appearance settings, the hue and its strength, to <html>.
  *
  * The hues are written as inline custom properties, which beats the
@@ -204,7 +217,22 @@ const AWAKE_ON = ['pointerdown', 'pointermove', 'keydown', 'wheel'] as const;
  * to wake the app is a press on a control that stops the event getting
  * anywhere near here -- a string button, a switch, a sheet.
  */
-export function useIdleChrome(enabled: boolean, ref: RefObject<HTMLElement | null>): void {
+export function useIdleChrome(
+  enabled: boolean,
+  ref: RefObject<HTMLElement | null>,
+  level: number,
+): void {
+  /*
+   * Painted whether or not the fade is switched on, and painted from here
+   * rather than from useAppearance because it belongs to this feature and to
+   * nothing else. The slider paints the same property directly while a thumb
+   * is on it; this is the one that lands the committed value, on launch and
+   * after a reset.
+   */
+  useEffect(() => {
+    paintDimLevel(level);
+  }, [level]);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;

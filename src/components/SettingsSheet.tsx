@@ -8,12 +8,14 @@ import { StyleInfo } from './StyleInfo';
 import { CheckIcon, ChevronRightIcon, LockIcon } from './Icons';
 import { restoreFullSet, type Outcome } from '../state/purchases';
 import { PRICE, TIER_NAME, isAppearanceLocked } from '../state/unlock';
-import { paintColorStrength, paintHue } from '../hooks';
+import { paintColorStrength, paintDimLevel, paintHue } from '../hooks';
 import {
   DEFAULT_COLOR_STRENGTH,
   DEFAULT_HUE,
   MAX_COLOR_STRENGTH,
+  MAX_DIM_LEVEL,
   MIN_COLOR_STRENGTH,
+  MIN_DIM_LEVEL,
   settingsStore,
   TOLERANCES,
   TRAIL_WIDTHS,
@@ -417,6 +419,19 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         >
           <Switch on={s.dimIdle} onChange={(v) => set('dimIdle', v)} label="Dim when idle" />
         </Row>
+        {/*
+          Whether it fades is one question and how far is another, so this is
+          its own row under it rather than a slider crowded into the same
+          line -- the same shape as Color strength under Display color, and
+          disabled by the switch above it for the same reason.
+        */}
+        <Row name="Faded to" stack>
+          <DimField
+            value={s.dimLevel}
+            onChange={(v) => set('dimLevel', v)}
+            disabled={!s.dimIdle}
+          />
+        </Row>
         <Row name="Left-handed" desc="Mirrors the string row.">
           <Switch on={s.leftHanded} onChange={(v) => set('leftHanded', v)} label="Left-handed" />
         </Row>
@@ -780,6 +795,49 @@ function StrengthField({
         aria-valuetext={`${shown} percent`}
       />
       <span className="slider-field__value">{shown}%</span>
+    </div>
+  );
+}
+
+/**
+ * How far the chassis fades when it fades.
+ *
+ * Runs from gone to a quarter opacity, and the top of that is deliberately
+ * low: past a quarter the chassis has not got out of the way, it is merely
+ * slightly grey, and the whole useful range lives down at the bottom. A step
+ * of one, because at these opacities a single percent is a visible difference
+ * and there are only twenty-five of them to walk through.
+ *
+ * Zero says "Invisible" rather than "0%", which is what it actually does and
+ * what it was asked for by name.
+ */
+function DimField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+}) {
+  const { ref, shown, onInput } = useLiveSlider(value, onChange, paintDimLevel);
+  const label = shown === 0 ? 'Invisible' : `${shown}%`;
+  return (
+    <div className="slider-field slider-field--grow" data-disabled={disabled}>
+      <input
+        ref={ref}
+        className="slider"
+        type="range"
+        min={MIN_DIM_LEVEL}
+        max={MAX_DIM_LEVEL}
+        step={1}
+        value={shown}
+        disabled={disabled}
+        onChange={onInput}
+        aria-label="Faded to"
+        aria-valuetext={shown === 0 ? 'invisible' : `${shown} percent`}
+      />
+      <span className="slider-field__value slider-field__value--wide">{label}</span>
     </div>
   );
 }

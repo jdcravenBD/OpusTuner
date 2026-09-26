@@ -496,16 +496,22 @@ button {
 .app[data-dim='true'][data-idle='true'] .strings,
 .app[data-dim='true'][data-idle='true'] .bottombar {
   /*
-   * Not zero. At nothing at all the app looks broken rather than resting, and
-   * the string row is the one thing you might still want to find with a thumb
-   * without waking the screen first.
+   * How much is left, and it is a setting now -- the slider under the switch,
+   * from gone to a quarter.
    *
-   * It was 0.12, which on the handset still read as *present* -- the chassis
-   * looked switched off rather than out of the way, and the tuner did not have
-   * the screen to itself the way the setting promises. This is about as far as
-   * it goes while a thumb can still find the string row in the dark.
+   * It was 0.12 to begin with and then a flat 0.05, which is where the default
+   * still is: at 0.12 the chassis read as *present* on the handset, switched
+   * off rather than out of the way, and the tuner did not have the screen to
+   * itself the way the setting promises. The fallback is that same 0.05 and
+   * covers only the frames before the first paint; `paintDimLevel` writes the
+   * real value onto <html> at launch.
+   *
+   * Zero is allowed. It looks like a broken app to me and reads as a resting
+   * one to someone else, and the one thing it costs -- finding the string row
+   * with a thumb without waking the screen -- is the sort of trade that
+   * belongs to whoever is holding the phone.
    */
-  opacity: 0.05;
+  opacity: var(--idle-dim, 0.05);
   transition:
     opacity 900ms var(--ease),
     color 200ms var(--ease);
@@ -524,7 +530,7 @@ button {
 }
 
 .app[data-dim='true'][data-idle='true'] .visual-nav {
-  opacity: 0.05;
+  opacity: var(--idle-dim, 0.05);
   transition:
     opacity 900ms var(--ease),
     color var(--dur) var(--ease),
@@ -2917,6 +2923,19 @@ button {
 
 .slider-field__value {
   min-width: 46px;
+}
+
+/*
+ * Room for a word instead of two digits and a percent sign.
+ *
+ * Two classes deep because `.slider-field__value` sets its width twice in
+ * this file and the later of the two would otherwise win whichever side of
+ * them this sat on. Fixed rather than allowed to grow: the readout is the
+ * right-hand end of a flex row, so a width that changed at zero would jog the
+ * slider sideways under the thumb at exactly the moment you reached for it.
+ */
+.slider-field .slider-field__value--wide {
+  min-width: 68px;
 }
 
 .slider {

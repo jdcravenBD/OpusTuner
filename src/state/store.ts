@@ -112,6 +112,20 @@ export const DEFAULT_COLOR_STRENGTH = 100;
 export const MIN_COLOR_STRENGTH = 25;
 export const MAX_COLOR_STRENGTH = 300;
 
+/**
+ * How much of the chassis is left once it has faded — see `dimLevel`.
+ *
+ * The ceiling is low on purpose. Past a quarter opacity the chassis has not
+ * got out of the way, it is merely slightly grey, and the setting stops doing
+ * the thing it is for; the useful range all lives down at the bottom. Zero is
+ * a real option here in a way it is not for Color strength, because "gone" is
+ * a sensible answer to "how far should this fade" and "no colour at all" is
+ * already the switch above it.
+ */
+export const DEFAULT_DIM_LEVEL = 5;
+export const MIN_DIM_LEVEL = 0;
+export const MAX_DIM_LEVEL = 25;
+
 export interface Settings {
   /** Concert-pitch reference, 415–466 Hz. */
   a4: number;
@@ -176,6 +190,13 @@ export interface Settings {
    * moment they are not.
    */
   dimIdle: boolean;
+  /**
+   * How much of it is left when it has, as a percentage — see MAX_DIM_LEVEL.
+   *
+   * Kept whatever the switch above says, the same way `colorStrength` is, so
+   * turning the fade off and on again returns the level that was chosen.
+   */
+  dimLevel: number;
   /** Mirror the string row for left-handed players. */
   leftHanded: boolean;
   /** Capo position in frets — raises every target by this many semitones. */
@@ -275,6 +296,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showVerdict: true,
   showCents: true,
   dimIdle: false,
+  dimLevel: DEFAULT_DIM_LEVEL,
   showTunerMarks: true,
   showTunerArrows: true,
   visual: DEFAULT_VISUAL,
@@ -481,6 +503,9 @@ export const settingsStore = createStore<Settings>(
     colorStrength: Number.isFinite(s.colorStrength)
       ? Math.min(MAX_COLOR_STRENGTH, Math.max(MIN_COLOR_STRENGTH, Math.round(s.colorStrength)))
       : DEFAULT_COLOR_STRENGTH,
+    dimLevel: Number.isFinite(s.dimLevel)
+      ? Math.min(MAX_DIM_LEVEL, Math.max(MIN_DIM_LEVEL, Math.round(s.dimLevel)))
+      : DEFAULT_DIM_LEVEL,
   }),
   /*
    * What a reset leaves alone.
