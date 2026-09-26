@@ -27,6 +27,18 @@ export interface TunerFrame {
   targetMidi: number;
   targetFreq: number;
   inTune: boolean;
+  /**
+   * How far through the hold this string is, 0 to 1.
+   *
+   * A string does not count as tuned the instant it crosses into the window;
+   * it has to stay there for TUNED_HOLD_FRAMES, about half a second. That
+   * wait is real and was invisible -- nothing, nothing, nothing, then a tick
+   * appears -- so this is it, for anything that wants to draw the countdown.
+   *
+   * Zero once the string is already tuned, and zero in chromatic mode, where
+   * there is no string to be counting toward.
+   */
+  hold: number;
   clarity: number;
   /** Smoothed input level, 0..1. Not currently surfaced in the UI. */
   level: number;
@@ -84,6 +96,7 @@ export class TunerController {
     targetMidi: 0,
     targetFreq: 0,
     inTune: false,
+    hold: 0,
     clarity: 0,
     level: 0,
   };
@@ -246,6 +259,7 @@ export class TunerController {
     // until the next pluck rather than reporting a string nobody played.
     if (this.noteOver && !this.chromatic && this.auto) {
       f.hasSignal = false;
+      f.hold = 0;
       f.frequency = 0;
       f.inTune = false;
       this.inTuneFrames = 0;
@@ -277,6 +291,7 @@ export class TunerController {
      */
     if (reading.frequency <= 0) {
       f.hasSignal = false;
+      f.hold = 0;
       f.frequency = 0;
       f.inTune = false;
       this.inTuneFrames = 0;
@@ -305,6 +320,7 @@ export class TunerController {
       if (index === AUTO_OVER) {
         this.noteOver = true;
         f.hasSignal = false;
+        f.hold = 0;
         f.frequency = 0;
         f.inTune = false;
         this.inTuneFrames = 0;
@@ -444,7 +460,10 @@ export class TunerController {
   }
 
   private trackTunedState(index: number, cents: number): void {
-    if (index < 0) return;
+    if (index < 0) {
+      this.frame.hold = 0;
+      return;
+    }
     const abs = Math.abs(cents);
 
     if (abs <= this.tolerance) {
@@ -456,8 +475,12 @@ export class TunerController {
         if (this.tuned.every(Boolean)) this.emit({ type: 'all-tuned' });
         else if (this.autoAdvance && !this.auto) this.advanceToNextUntuned(index);
       }
+      this.frame.hold = this.tuned[index]
+        ? 0
+        : Math.min(1, this.inTuneFrames / TUNED_HOLD_FRAMES);
     } else {
       this.inTuneFrames = 0;
+      this.frame.hold = 0;
       if (abs > 25 && this.tuned[index]) {
         this.outOfTuneFrames++;
         if (this.outOfTuneFrames === UNTUNED_HOLD_FRAMES) {
@@ -484,6 +507,7 @@ export class TunerController {
   private resetFrame(): void {
     const f = this.frame;
     f.hasSignal = false;
+    f.hold = 0;
     f.frequency = 0;
     f.cents = 0;
     f.inTune = false;
