@@ -31,9 +31,9 @@ export interface TunerFrame {
    * How far through the hold this string is, 0 to 1.
    *
    * A string does not count as tuned the instant it crosses into the window;
-   * it has to stay there for TUNED_HOLD_FRAMES, about half a second. That
-   * wait is real and was invisible -- nothing, nothing, nothing, then a tick
-   * appears -- so this is it, for anything that wants to draw the countdown.
+   * it has to stay there for TUNED_HOLD_SECONDS. That wait is real and was
+   * invisible -- nothing, nothing, nothing, then a tick appears -- so this
+   * is it, for anything that wants to draw the countdown.
    *
    * Zero once the string is already tuned, and zero in chromatic mode, where
    * there is no string to be counting toward.
@@ -54,8 +54,16 @@ export type TunerEvent =
 type FrameListener = (frame: TunerFrame) => void;
 type EventListener = (event: TunerEvent) => void;
 
-/** Frames a note must stay inside the tolerance window before it counts. */
-const TUNED_HOLD_FRAMES = 32;
+/**
+ * How long a note must stay inside the tolerance window before it counts.
+ *
+ * Measured against the *capture clock* rather than counted in frames, and
+ * that is not pedantry: the app runs its loop on requestAnimationFrame, which
+ * is 60 a second on most handsets and 120 on a ProMotion one, so a frame
+ * count meant this took half as long on the newer phone. Samples do not care
+ * what the display is doing.
+ */
+const TUNED_HOLD_SECONDS = 1.5;
 /** Frames outside ±25¢ before a previously-tuned string is marked dirty again. */
 const UNTUNED_HOLD_FRAMES = 40;
 /**
@@ -130,7 +138,12 @@ export class TunerController {
   private rafId = 0;
   private running = false;
 
-  private inTuneFrames = 0;
+  /**
+   * Where the capture clock was when the current hold began, or 0 for "not
+   * holding". An anchor rather than a running total, so the dozen places that
+   * abandon a hold can go on saying `= 0` and mean it.
+   */
+  private heldFrom = 0;
   private outOfTuneFrames = 0;
   private lastEmittedIndex = -2;
 
@@ -203,7 +216,7 @@ export class TunerController {
       if (!preserveTuned) this.tuned = new Array(targets.length).fill(false);
       else this.tuned = targets.map((_, i) => this.tuned[i] ?? false);
       this.selectedIndex = Math.min(this.selectedIndex, Math.max(0, targets.length - 1));
-      this.inTuneFrames = 0;
+      this.heldFrom = 0;
       this.outOfTuneFrames = 0;
       this.releaseLock();
       this.engine.resetTracking();
@@ -215,7 +228,7 @@ export class TunerController {
     if (index < 0 || index >= this.targets.length) return;
     if (this.selectedIndex === index) return;
     this.selectedIndex = index;
-    this.inTuneFrames = 0;
+    this.heldFrom = 0;
     this.outOfTuneFrames = 0;
     this.releaseLock();
     this.engine.resetTracking();
@@ -226,7 +239,7 @@ export class TunerController {
   resetTuned(): void {
     if (!this.tuned.some(Boolean)) return;
     this.tuned = this.tuned.map(() => false);
-    this.inTuneFrames = 0;
+    this.heldFrom = 0;
     this.emit({ type: 'target' });
   }
 
@@ -262,7 +275,7 @@ export class TunerController {
       f.hold = 0;
       f.frequency = 0;
       f.inTune = false;
-      this.inTuneFrames = 0;
+      this.heldFrom = 0;
       this.outOfTuneFrames = 0;
       if (reading.frequency <= 0) {
         this.releaseLock();
@@ -294,7 +307,7 @@ export class TunerController {
       f.hold = 0;
       f.frequency = 0;
       f.inTune = false;
-      this.inTuneFrames = 0;
+      this.heldFrom = 0;
       this.outOfTuneFrames = 0;
       this.releaseLock();
       // Target and cents are intentionally left at their last values so the
@@ -323,7 +336,7 @@ export class TunerController {
         f.hold = 0;
         f.frequency = 0;
         f.inTune = false;
-        this.inTuneFrames = 0;
+        this.heldFrom = 0;
         this.outOfTuneFrames = 0;
         this.notifyFrame();
         return;
@@ -345,7 +358,7 @@ export class TunerController {
 
     if (index !== -1 && index !== this.selectedIndex && this.auto) {
       this.selectedIndex = index;
-      this.inTuneFrames = 0;
+      this.heldFrom = 0;
       this.outOfTuneFrames = 0;
     }
 
@@ -468,18 +481,25 @@ export class TunerController {
 
     if (abs <= this.tolerance) {
       this.outOfTuneFrames = 0;
-      this.inTuneFrames++;
-      if (this.inTuneFrames === TUNED_HOLD_FRAMES && !this.tuned[index]) {
+      const rate = this.engine.sampleRate || 48000;
+      const now = this.engine.clock;
+      // Anchor first, measure second. The other way round, the opening frame
+      // of a hold measures its age against zero and the string counts as
+      // tuned the instant it arrives.
+      if (this.heldFrom === 0) this.heldFrom = now;
+      // Clamped because a mic restart takes the clock back to the beginning,
+      // and a negative age would read as a hold that finished long ago.
+      const held = Math.max(0, now - this.heldFrom);
+      const progress = Math.min(1, held / rate / TUNED_HOLD_SECONDS);
+      if (progress >= 1 && !this.tuned[index]) {
         this.tuned[index] = true;
         this.emit({ type: 'tuned', index });
         if (this.tuned.every(Boolean)) this.emit({ type: 'all-tuned' });
         else if (this.autoAdvance && !this.auto) this.advanceToNextUntuned(index);
       }
-      this.frame.hold = this.tuned[index]
-        ? 0
-        : Math.min(1, this.inTuneFrames / TUNED_HOLD_FRAMES);
+      this.frame.hold = this.tuned[index] ? 0 : progress;
     } else {
-      this.inTuneFrames = 0;
+      this.heldFrom = 0;
       this.frame.hold = 0;
       if (abs > 25 && this.tuned[index]) {
         this.outOfTuneFrames++;
@@ -513,7 +533,7 @@ export class TunerController {
     f.inTune = false;
     f.clarity = 0;
     f.level = 0;
-    this.inTuneFrames = 0;
+    this.heldFrom = 0;
     this.outOfTuneFrames = 0;
     this.notifyFrame();
   }
