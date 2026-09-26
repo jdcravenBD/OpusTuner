@@ -2328,10 +2328,26 @@ button {
  * enough to be inside it, so "nothing to blur" stopped being true. Fading it
  * in on the first pixel of scroll is what keeps the heading crisp until it
  * actually starts to leave.
+ *
+ * ## Why it starts above its own container
+ *
+ * The scroll area begins at a fractional offset -- 53.75 css pixels in the
+ * panel, because the grip, the bar and a line of type do not add up to a
+ * whole number -- and on a 2x screen that is half a device pixel. A
+ * backdrop-filter cannot filter half a row: it clips to its own box, so the
+ * sliver left over at the top came through completely sharp, a hairline of
+ * unblurred content right under the title.
+ *
+ * Chasing the fraction is a losing game, since it moves with the type and
+ * with every change to the bar above. Overlapping is not: four pixels up and
+ * four more of height puts the seam under the header, where the panel is one
+ * flat colour and both the blur and the tint are no-ops. The 76 pixels of
+ * visible ramp are unchanged, and the mask's top stop now sits in the hidden
+ * part, so the ramp the eye sees starts at 0.99 rather than 1.
  */
 .sheet__fade--top {
-  top: 0;
-  height: 76px;
+  top: -4px;
+  height: 80px;
   opacity: 0;
   transition: opacity 200ms var(--ease);
   background: linear-gradient(
