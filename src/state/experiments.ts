@@ -7,12 +7,23 @@
  * switches at the bottom of Settings, under the capture tools, and whichever
  * ones survive get folded in properly and lose their flag.
  *
- * ## Why they are off in a production build, twice over
+ * ## Where they exist, and where they do not
  *
- * `useExperiments` returns the frozen all-false object unless
- * `import.meta.env.DEV`, which folds to a constant in a build and takes every
- * branch downstream of it with it. The panel that sets them is behind the
- * same guard at its call site, the way ScreensSection is, so it never enters
+ * `npm run dev` and `npm run phone`, and nowhere else.
+ *
+ * The phone build matters more than the dev server here, and leaving it out
+ * was the whole point of the switches missed: these are judgements about
+ * feel, and feel is judged with a guitar in your hands, which means the
+ * handset. `npm run phone` is a *production* build on purpose -- so the phone
+ * sees what the store will -- which puts `import.meta.env.DEV` at false, so
+ * a DEV-only guard excludes the one build they are for. `__PHONE_BUILD__` is
+ * already in the codebase for exactly this shape of problem: it is how the
+ * LAN build unlocks the paid tier, since `?dev` cannot reach it either.
+ *
+ * `npm run build` -- what Codemagic runs and what `cap sync` copies -- has
+ * both constants false, so `useExperiments` folds to the frozen all-false
+ * object and takes every branch below it. The panel is behind the same pair
+ * at its call site, the way ScreensSection is behind DEV, so it never enters
  * the bundle at all.
  *
  * The store underneath is still real and still persists, because a switch you
@@ -85,15 +96,15 @@ export function useExperiments(): Experiments {
     experimentStore.get,
     experimentStore.get,
   );
-  return import.meta.env.DEV ? live : OFF;
+  return import.meta.env.DEV || __PHONE_BUILD__ ? live : OFF;
 }
 
 /** The same answer for code that is not a component. */
 export function experiments(): Experiments {
-  return import.meta.env.DEV ? experimentStore.get() : OFF;
+  return import.meta.env.DEV || __PHONE_BUILD__ ? experimentStore.get() : OFF;
 }
 
-/** Label and one line each, for the panel. Dev-only, and tree-shaken with it. */
+/** Label and one line each, for the panel. Dropped with it from a store build. */
 export const EXPERIMENTS: { key: keyof Experiments; name: string; desc: string }[] = [
   {
     key: 'holdFill',

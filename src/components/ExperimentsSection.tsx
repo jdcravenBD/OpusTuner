@@ -2,9 +2,13 @@
  * Switches for the five ideas being tried out, under the capture tools.
  *
  * Its own file for the same reason ScreensSection is: the call site reads
- * `{import.meta.env.DEV && <ExperimentsSection />}`, so in a production build
- * the element is never constructed, the import goes unreferenced, and this
- * file and its copy leave the bundle. Written inline it would have shipped.
+ * `{(import.meta.env.DEV || __PHONE_BUILD__) && <ExperimentsSection />}`, and
+ * in a store build both of those are the constant false, so the element is
+ * never constructed, the import goes unreferenced, and this file and its copy
+ * leave the bundle. Written inline it would have shipped.
+ *
+ * The phone build is deliberately on that list. It is a production build, so
+ * DEV alone kept these out of the only build you can hold while playing.
  *
  * The markup is written out rather than borrowing SettingsSheet's `Row` and
  * `Switch`, which are local to that file. Exporting them would close an import

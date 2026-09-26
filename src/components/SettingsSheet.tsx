@@ -539,7 +539,7 @@ export function SettingsSheet({ open, onClose, onRestartMic, micRunning, appVers
         * module fall out of the bundle — see the note on ScreensSection.
         */}
       {import.meta.env.DEV && <ScreensSection />}
-      {import.meta.env.DEV && <ExperimentsSection />}
+      {(import.meta.env.DEV || __PHONE_BUILD__) && <ExperimentsSection />}
       <PurchaseScreen open={wanted !== null} wanted={wanted} onClose={() => setWanted(null)} />
     </Sheet>
   );
