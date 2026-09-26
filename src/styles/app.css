@@ -142,7 +142,7 @@
   --border: rgba(255, 255, 255, 0.07);
   --border-hi: rgba(255, 255, 255, 0.13);
   --border-strong: rgba(255, 255, 255, 0.2);
-  --grip: rgba(255, 255, 255, 0.25);
+  --grip: rgba(255, 255, 255, 0.0625);
 
   --text: hsl(var(--h) calc(37% * var(--s)) 95%);
   --text-2: hsl(var(--h) calc(13% * var(--s)) 61%);
@@ -2162,18 +2162,22 @@ button {
  * rather than as something you could take hold of, which is the one thing it
  * is for.
  *
- * Sitting a little lower than it was, and at a quarter strength. `--grip` is
- * its own token rather than `--border-strong` because a quarter is the
- * instruction and that token is already part-transparent -- dimming it again
- * would have landed somewhere between five and nine percent, which is not a
- * handle, it is a rumour.
+ * Its own token rather than `--border-strong`, because the two want
+ * different numbers per palette and this one is set by eye rather than
+ * derived from anything.
  *
- * The header below it gives back what the margin takes, so the title stays
- * where the last pass put it.
+ * **The dark modes are a quarter of what the light ones are** -- 0.0625
+ * against 0.25 -- and that is not an oversight to be tidied into one value.
+ * White on near-black carries much further than near-black on white, so the
+ * same alpha reads as a bar in the dark and a whisper in the light. Both
+ * were 0.25 and the dark one was far too loud.
+ *
+ * The header below gives back what this margin takes, so the title stays
+ * where it was put.
  */
 .sheet__grip {
   width: 52px;
-  height: 5px;
+  height: 3.75px;
   border-radius: 999px;
   background: var(--grip);
   margin: 10px auto 2px;
@@ -5473,7 +5477,7 @@ button {
   --border: rgba(235, 235, 245, 0.16);
   --border-hi: rgba(235, 235, 245, 0.16);
   --border-strong: rgba(235, 235, 245, 0.24);
-  --grip: rgba(235, 235, 245, 0.25);
+  --grip: rgba(235, 235, 245, 0.0625);
 
   --text: #ffffff;
   --text-2: rgba(235, 235, 245, 0.6);
