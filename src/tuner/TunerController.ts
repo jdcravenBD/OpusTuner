@@ -63,7 +63,7 @@ type EventListener = (event: TunerEvent) => void;
  * count meant this took half as long on the newer phone. Samples do not care
  * what the display is doing.
  */
-const TUNED_HOLD_SECONDS = 1.5;
+const TUNED_HOLD_SECONDS = 1;
 /** Frames outside ±25¢ before a previously-tuned string is marked dirty again. */
 const UNTUNED_HOLD_FRAMES = 40;
 /**
