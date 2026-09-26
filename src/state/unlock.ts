@@ -16,11 +16,19 @@ import type { Tuning } from '../music/tunings';
 /**
  * What the paid tier is called, everywhere it is named.
  *
- * A set of strings is the thing a player buys without thinking about it, and
- * "the full set" is already how they would describe having all of them. Kept
- * as one constant because names get slept on and changed.
+ * One constant because names get slept on and changed -- which is exactly
+ * what happened: this was "Full Set" until Joe renamed it. Anywhere it is
+ * printed reads it from here, so write it as a *name* and not as a noun
+ * phrase: "Unlock the Full Set" was fine and "Unlock the Tuning Plus+" is
+ * not, so the article came out of the promo when the name went in.
+ *
+ * **The product identifier did not move with it**, and must not. See
+ * PRODUCT_ID in state/purchases: changing that makes a different product
+ * that nobody owns, so `com.easyastuning.app.fullset` keeps the old word
+ * where nobody has to look at it. The App Store Connect display name is a
+ * third thing again and has to be changed there, by hand, and reviewed.
  */
-export const TIER_NAME = 'Full Set';
+export const TIER_NAME = 'Tuning Plus+';
 
 /**
  * What it costs, once.
@@ -31,7 +39,7 @@ export const TIER_NAME = 'Full Set';
  */
 export const PRICE = '$1.99';
 
-/** Custom tunings you can keep without the full set. */
+/** Custom tunings you can keep without Tuning Plus+. */
 export const FREE_CUSTOM_TUNINGS = 1;
 
 /**
@@ -103,7 +111,7 @@ export interface TierDetail {
 
 export const TIER_DETAILS: TierDetail[] = [
   {
-    label: 'What the Full Set opens',
+    label: `What ${TIER_NAME} opens`,
     rows: [
       ['The chromatic tuner', 'Any note at all'],
       ['Thirty-five more tunings', 'Sixty-eight are built in'],
@@ -154,7 +162,7 @@ export const TIER_DETAILS: TierDetail[] = [
   },
 ];
 
-/** True when this tuning needs the full set. */
+/** True when this tuning needs Tuning Plus+. */
 export function isTuningLocked(tuning: Tuning, owned: boolean): boolean {
   if (owned || tuning.free) return false;
   // A custom tuning is gated by how many you have, not by which one it is —
@@ -163,7 +171,7 @@ export function isTuningLocked(tuning: Tuning, owned: boolean): boolean {
 }
 
 /**
- * True when saving another custom tuning needs the full set.
+ * True when saving another custom tuning needs Tuning Plus+.
  *
  * Counted rather than flagged, so the one you already have keeps working
  * whichever it is, and stays editable.
@@ -172,7 +180,7 @@ export function customTuningLimitReached(owned: boolean, existing: number): bool
   return !owned && existing >= FREE_CUSTOM_TUNINGS;
 }
 
-/** True when this appearance choice needs the full set. */
+/** True when this appearance choice needs Tuning Plus+. */
 export function isAppearanceLocked(
   setting: keyof typeof FREE_APPEARANCE,
   value: string | boolean,

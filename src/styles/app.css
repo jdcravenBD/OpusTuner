@@ -142,6 +142,7 @@
   --border: rgba(255, 255, 255, 0.07);
   --border-hi: rgba(255, 255, 255, 0.13);
   --border-strong: rgba(255, 255, 255, 0.2);
+  --grip: rgba(255, 255, 255, 0.25);
 
   --text: hsl(var(--h) calc(37% * var(--s)) 95%);
   --text-2: hsl(var(--h) calc(13% * var(--s)) 61%);
@@ -150,6 +151,7 @@
 
   /* Signal colors are semantic, not decorative — they never follow the hue. */
   --green: #34e08a;
+  --green-2: #6fbd94;
   /*
    * A sheet of green laid over something, for marking a row as chosen.
    *
@@ -206,6 +208,7 @@
   --border: rgba(16, 26, 42, 0.1);
   --border-hi: rgba(16, 26, 42, 0.16);
   --border-strong: rgba(16, 26, 42, 0.26);
+  --grip: rgba(16, 26, 42, 0.25);
 
   --text: hsl(var(--h) calc(38% * var(--s)) 8%);
   --text-2: hsl(var(--h) calc(13% * var(--s)) 38%);
@@ -213,6 +216,7 @@
   --text-4: hsl(var(--h) calc(14% * var(--s)) 70%);
 
   --green: #0fa059;
+  --green-2: #42876a;
   --green-wash: rgba(15, 160, 89, 0.15);
   --green-soft: rgba(15, 160, 89, 0.11);
   --green-line: rgba(15, 160, 89, 0.34);
@@ -2158,16 +2162,21 @@ button {
  * rather than as something you could take hold of, which is the one thing it
  * is for.
  *
- * The margin above it is also smaller, and that is the other half of closing
- * the gap to the title: top edge to title was nine of grip margin, three of
- * grip, two more of margin and twelve of header padding.
+ * Sitting a little lower than it was, and at a quarter strength. `--grip` is
+ * its own token rather than `--border-strong` because a quarter is the
+ * instruction and that token is already part-transparent -- dimming it again
+ * would have landed somewhere between five and nine percent, which is not a
+ * handle, it is a rumour.
+ *
+ * The header below it gives back what the margin takes, so the title stays
+ * where the last pass put it.
  */
 .sheet__grip {
   width: 52px;
   height: 5px;
   border-radius: 999px;
-  background: var(--border-strong);
-  margin: 6px auto 2px;
+  background: var(--grip);
+  margin: 10px auto 2px;
   flex: 0 0 auto;
 }
 
@@ -2211,7 +2220,7 @@ button {
    * slots either side of the title hold the editor's back arrow and its Save
    * button, and the bar's height is their touch target.
    */
-  padding: 7px 10px 8px;
+  padding: 4px 10px 8px;
   flex: 0 0 auto;
 }
 
@@ -2668,6 +2677,34 @@ button {
 }
 
 .row[data-selected='true'] .row__name {
+  color: var(--green);
+}
+
+/*
+ * ...and so does everything else on it.
+ *
+ * The wash was built on the idea that a row keeps the colours it has
+ * anywhere else -- see --green-wash -- and on the selected row that turned
+ * out to be wrong. The string notes and the pin are `--text-4`, a near-dead
+ * grey, and a near-dead grey over a green tint reads as dirt rather than as
+ * restraint.
+ *
+ * `--green-2` is a muted green for exactly this: green enough to belong to
+ * the row, quiet enough that the name is still the thing you read first. A
+ * second token rather than `--green` at low opacity, because opacity over a
+ * tinted surface blends toward the tint and comes out muddy.
+ *
+ * A pinned pin keeps its emphasis and takes the bright green instead, which
+ * is the same relationship it had to the grey before.
+ */
+.row[data-selected='true'] .row__meta,
+.row[data-selected='true'] .row__pin,
+.row[data-selected='true'] .row__pin--static,
+.row[data-selected='true'] .row__lock {
+  color: var(--green-2);
+}
+
+.row[data-selected='true'] .row__pin[data-on='true'] {
   color: var(--green);
 }
 
@@ -4590,6 +4627,7 @@ button {
   --border: rgba(60, 60, 67, 0.29);
   --border-hi: rgba(60, 60, 67, 0.29);
   --border-strong: rgba(60, 60, 67, 0.36);
+  --grip: rgba(60, 60, 67, 0.25);
 
   --text: #000000;
   --text-2: rgba(60, 60, 67, 0.6);
@@ -4597,6 +4635,7 @@ button {
   --text-4: rgba(60, 60, 67, 0.45);
 
   --green: #34c759;
+  --green-2: #4e8f66;
   --green-wash: rgba(52, 199, 89, 0.14);
   --green-soft: rgba(52, 199, 89, 0.1);
   --green-line: rgba(52, 199, 89, 0.45);
@@ -5061,9 +5100,7 @@ button {
   text-transform: none;
 }
 
-:root[data-theme='modern'] .sheet__grip {
-  background: rgba(60, 60, 67, 0.3);
-}
+
 
 /* --- the chassis --------------------------------------------------------- */
 
@@ -5436,6 +5473,7 @@ button {
   --border: rgba(235, 235, 245, 0.16);
   --border-hi: rgba(235, 235, 245, 0.16);
   --border-strong: rgba(235, 235, 245, 0.24);
+  --grip: rgba(235, 235, 245, 0.25);
 
   --text: #ffffff;
   --text-2: rgba(235, 235, 245, 0.6);

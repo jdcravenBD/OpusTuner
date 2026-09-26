@@ -14,7 +14,7 @@
  * work: the same pitch detection, the same smoothing, the same needle.
  *
  * It also decides the entitlement, because both answers need photographing
- * and neither is reachable from the other. `?shots` unlocks the full set, for
+ * and neither is reachable from the other. `?shots` unlocks Tuning Plus+, for
  * the tuner, the settings and the tuning lists. `?shots=locked` does the
  * opposite, which is the only way to reach the purchase screen at all: it
  * opens when a locked feature is pressed, so with everything unlocked there
@@ -145,8 +145,8 @@ export function installScreenshotRig(): void {
       '  __shots.hz(146.83)   a specific note',
       '',
       locked
-        ? 'The full set is LOCKED, for photographing the paywall. Open Settings'
-        : 'The full set is UNLOCKED, for photographing everything else.',
+        ? 'Tuning Plus+ is LOCKED, for photographing the paywall. Open Settings'
+        : 'Tuning Plus+ is UNLOCKED, for photographing everything else.',
       locked
         ? 'and tap Dark under Theme to bring up the purchase screen.'
         : 'Use ?shots=locked for the purchase screen.',

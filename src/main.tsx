@@ -44,7 +44,7 @@ if (import.meta.env.DEV) {
     settingsStore.set({ owned });
     // eslint-disable-next-line no-console
     console.log(
-      `[dev] full set ${owned ? 'unlocked' : 'locked'}. This is stored and sticks; ` +
+      `[dev] Tuning Plus+ ${owned ? 'unlocked' : 'locked'}. This is stored and sticks; ` +
         `use ?dev=${owned ? 'off' : ''} to put it back.`,
     );
   }

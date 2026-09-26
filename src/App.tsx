@@ -456,7 +456,7 @@ export default function App() {
    * What this Apple ID already owns, asked once on the way in.
    *
    * This is what makes a reinstall, a new handset or a restored backup come
-   * back with the full set already open, without anyone having to know there
+   * back with Tuning Plus+ already open, without anyone having to know there
    * is a Restore button. It only ever turns the flag on — see
    * reconcileEntitlement.
    */

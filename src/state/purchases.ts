@@ -1,5 +1,5 @@
 /**
- * Buying the full set, and finding out you already have.
+ * Buying Tuning Plus+, and finding out you already have.
  *
  * Everything the app knows about money goes through the `Store` interface
  * below. There is exactly one implementation that matters — the platform's —
@@ -42,6 +42,16 @@ import { settingsStore } from './store';
  * The App Store product. Must match the identifier created in App Store
  * Connect exactly, and cannot be changed afterwards without becoming a
  * different product that nobody owns.
+ *
+ * Which is why it still says `fullset` after the tier was renamed to Tuning
+ * Plus+. Everyone who has bought it holds a transaction against *this*
+ * string; change it and StoreKit hands back nothing for every one of them,
+ * and Restore has nothing to find. The name people read is TIER_NAME. This
+ * is plumbing and stays where it is.
+ *
+ * The plugin class and the `buyFullSet` / `restoreFullSet` functions keep
+ * the old word for a smaller version of the same reason: `FullSetStore` is
+ * the name the Swift half registers itself under, and the two have to agree.
  */
 export const PRODUCT_ID = 'com.easyastuning.app.fullset';
 
@@ -161,7 +171,7 @@ const nativeStore: Store = {
  *
  * The web build is a real thing people use, and it has no way to take money.
  * Saying so plainly is better than hiding the button: the reader can see what
- * the full set is and go and get the app.
+ * Tuning Plus+ is and go and get the app.
  */
 const webStore: Store = {
   async entitled() {
