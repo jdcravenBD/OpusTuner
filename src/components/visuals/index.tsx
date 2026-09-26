@@ -1,12 +1,10 @@
 /**
  * The tuner screens, and the pager that moves between them.
  *
- * Three readings of the same number, and a ladder: each is finer than the one
- * before it and each asks you to stand closer. The field shows you a semitone
- * either way and the shape of the last few seconds. The scope stops reading
- * the number at all and holds the string's own waveform against the note you
- * want, which stands still only when you arrive. The strobe does the same
- * thing four times over on the harmonics, and is the one you finish on.
+ * Two readings of the same number, each best at a different distance. The
+ * field shows you a semitone either way and the shape of the last few
+ * seconds; the strobe throws the number away and leaves you with motion
+ * against stillness, which is the finer of the two and the one you finish on.
  *
  * The whole screen — its frame, its recess, its small print — is what moves
  * when you change between them. Dragging carries it under the finger rather
@@ -16,7 +14,6 @@
 
 import { useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import { PitchField } from './PitchField';
-import { Scope } from './Scope';
 import { StrobeDisc } from './StrobeDisc';
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons';
 import { VISUALS, stepVisual, visualIndex, type VisualId } from './registry';
@@ -27,7 +24,6 @@ export type { VisualId } from './registry';
 
 const COMPONENTS: Record<VisualId, ComponentType<VisualProps>> = {
   field: PitchField,
-  scope: Scope,
   strobe: StrobeDisc,
 };
 
@@ -78,10 +74,12 @@ export function TunerVisual({ visual, onChange, sampleRateLabel, arrows, ...rest
    *
    * It used to be `stepVisual(visual, 1)` outright, which is right for
    * exactly as long as there are two screens: with two, the one before and
-   * the one after are the same screen and the direction of the drag does not
-   * matter. There are three, so they are different, and a drag to the right
-   * that mounted the *next* screen would slide the wrong one in from the
-   * left. This follows the gesture instead.
+   * the one after are the same screen, so the direction of the drag does not
+   * matter. There are two again today. A third makes them different and a
+   * drag to the right would slide the *next* screen in from the left, so
+   * this follows the gesture instead -- kept through two screens being added
+   * and removed again, because it costs nothing and is one less thing to
+   * rediscover.
    *
    * State rather than a read of `side`, because this decides what React
    * renders and `side` is a ref the pointer handler writes between renders.

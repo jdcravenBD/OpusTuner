@@ -6,7 +6,7 @@
  * would close a cycle (store -> visual -> hooks -> store).
  */
 
-export type VisualId = 'field' | 'scope' | 'strobe';
+export type VisualId = 'field' | 'strobe';
 
 export interface VisualMeta {
   id: VisualId;
@@ -25,22 +25,10 @@ export const VISUALS: VisualMeta[] = [
     desc: 'A semitone either way, with the last few seconds trailing behind.',
   },
   {
-    id: 'scope',
-    name: 'Scope',
-    /*
-     * The window is rounded to whole cycles of whatever note you are on, so
-     * this is what it lands near rather than what it always is: 36 ms on a low
-     * E, 39 on the high one, and longer than either down at the bottom of a
-     * bass where two cycles is the floor. See WINDOW_SECONDS in Scope.tsx.
-     */
-    range: '40 ms',
-    desc: 'The string itself, cut to the note you want. Still when you arrive, sliding while you have not.',
-  },
-  {
     id: 'strobe',
     name: 'Strobe',
     range: '1× 2× 4×',
-    desc: 'Harmonic bands that stop and line up when you arrive. The finest of the three.',
+    desc: 'Harmonic bands that stop and line up when you arrive. The finer of the two.',
   },
 ];
 
