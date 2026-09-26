@@ -1,5 +1,6 @@
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 import { CheckIcon } from './Icons';
+import { useExperiments } from '../state/experiments';
 
 interface Props {
   /** MIDI targets, lowest string first (capo already applied). */
@@ -19,6 +20,8 @@ export function StringRow({
   leftHanded,
   onSelect,
 }: Props) {
+  const { holdFill } = useExperiments();
+
   if (targets.length === 0) return <div className="strings" />;
 
   const count = targets.length;
@@ -70,6 +73,25 @@ export function StringRow({
                 <span className="string__check">
                   <CheckIcon />
                 </span>
+              )}
+              {/*
+                The tuned countdown, as a ring around the key. Dev experiment
+                "Hold countdown"; `--hold` comes down from .app.
+
+                A rounded rect rather than a circle, because the key is a
+                squircle and a circle would cut its corners. `pathLength` is
+                the whole trick: normalising the outline to 100 means the dash
+                maths is the percentage itself, with no perimeter to work out
+                from a radius that changes with the viewport.
+
+                Only on the key being tuned, and only while it is not already
+                done -- `--hold` is one number on the app, so every key would
+                otherwise draw the same ring at once.
+              */}
+              {holdFill && i === selectedIndex && !tuned[i] && (
+                <svg className="string__hold" viewBox="0 0 100 100" aria-hidden>
+                  <rect x="2" y="2" width="96" height="96" rx="32" ry="32" pathLength="100" />
+                </svg>
               )}
             </button>
           );

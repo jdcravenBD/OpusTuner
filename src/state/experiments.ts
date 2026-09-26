@@ -41,16 +41,6 @@ export interface Experiments {
    */
   allTunedSweep: boolean;
   /**
-   * A shape for the verdict, not only a colour.
-   *
-   * The nib is drawn hollow until the note is inside the window and solid
-   * once it is. Green against amber is the single most confusable pair there
-   * is, and the verdict currently rides on colour in four places at once --
-   * the strobe already refuses colour entirely, so the precedent is the app's
-   * own.
-   */
-  nibShape: boolean;
-  /**
    * The verdict colour eased rather than switched.
    *
    * Sitting exactly on the tolerance makes the nib flick between two colours
@@ -71,7 +61,6 @@ export interface Experiments {
 const OFF: Readonly<Experiments> = Object.freeze({
   holdFill: false,
   allTunedSweep: false,
-  nibShape: false,
   easeVerdict: false,
   noteArrive: false,
 });
@@ -106,11 +95,6 @@ export const EXPERIMENTS: { key: keyof Experiments; name: string; desc: string }
     key: 'allTunedSweep',
     name: 'All tuned sweep',
     desc: 'A light crosses the string row when the last string lands.',
-  },
-  {
-    key: 'nibShape',
-    name: 'Nib shape verdict',
-    desc: 'Hollow until in tune, solid once it is, so the answer is not only a colour.',
   },
   {
     key: 'easeVerdict',

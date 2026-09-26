@@ -814,13 +814,27 @@ button {
  * unstable rather than as one note having landed.
  */
 .carousel[data-arrive='true'] .carousel__note--focus {
-  animation: note-arrive 240ms var(--ease-out);
+  animation: note-arrive 480ms var(--ease-out);
 }
 
+/*
+ * Twice the length it started at and four times the travel, because at a
+ * quarter second and a tenth of an em it was doing something nobody could
+ * see. The note is enormous -- up to 124px -- so a movement has to be a real
+ * fraction of it to register at all, and it is the one thing on screen you
+ * are already looking at, which makes a slower move read as deliberate
+ * rather than sluggish.
+ *
+ * Scaled as well as moved. Rising alone reads as the whole readout sliding;
+ * rising *and* growing reads as one note coming forward, which is what it is.
+ */
 @keyframes note-arrive {
   from {
     opacity: 0;
-    transform: translateY(0.09em);
+    transform: translateY(0.34em) scale(0.86);
+  }
+  60% {
+    opacity: 1;
   }
   to {
     opacity: 1;
@@ -1657,36 +1671,39 @@ button {
 }
 
 /*
- * The half-second hold, drawn. Dev experiment "Hold countdown".
+ * The tuned countdown, as a ring round the outside. Dev experiment
+ * "Hold countdown".
  *
- * A string does not count until it has stayed inside the window for
- * TUNED_HOLD_FRAMES, and that wait used to be nothing followed by a tick.
+ * A string does not count until it has held the window for
+ * TUNED_HOLD_SECONDS, and that wait used to be nothing followed by a tick.
  * `--hold` is written onto .app every frame by App.tsx and inherits down to
  * here; `frame.hold` carries it.
  *
- * A full-size element with a hard-stopped gradient rather than a short one
- * anchored to the bottom, and that is the whole trick: it inherits the
- * button's exact rounded shape, so the fill is clipped to it for free. A
- * partial-height box would need its own radius, and `border-radius: 30%` on a
- * box a third of the height resolves to a different ellipse than the one it
- * is sitting inside. The button cannot simply clip its children either -- the
- * tick hangs three pixels outside it on two sides.
+ * Outside the key rather than inside it, so the label underneath stays at
+ * full contrast the whole way round -- a fill behind the note dims it
+ * exactly while you are watching it.
  *
- * Costs nothing when the flag is off, because `--hold` is then always 0 and
- * both gradient stops sit at the bottom edge.
+ * `pathLength="100"` on the rect is what makes this simple: it renormalises
+ * the outline to a hundred units, so the dash numbers *are* the percentage
+ * and there is no perimeter to derive from a corner radius that moves with
+ * the viewport. Dash 100 with a gap of 100 and an offset of 100 draws
+ * nothing; the offset walking to 0 draws the ring in, clockwise from the top
+ * edge.
  */
-.string[data-active='true']:not([data-tuned='true'])::before {
-  content: '';
+.string__hold {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  inset: -4px;
+  overflow: visible;
   pointer-events: none;
-  opacity: 0.22;
-  background: linear-gradient(
-    to top,
-    var(--green) calc(var(--hold, 0) * 100%),
-    transparent calc(var(--hold, 0) * 100%)
-  );
+}
+
+.string__hold rect {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--hold, 0) * 100);
 }
 
 /*

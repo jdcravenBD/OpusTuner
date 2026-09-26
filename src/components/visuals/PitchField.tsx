@@ -227,7 +227,6 @@ export function PitchField({
         fade: signalFade.current,
         tolerance: toleranceRef.current,
         hot,
-        nibShape: expRef.current.nibShape,
         scroll: scrollOffset.current,
         naming: namingRef.current,
         fallbackMidi: fallbackRef.current,
@@ -259,8 +258,6 @@ interface DrawState {
   tolerance: number;
   /** The verdict colour, already eased if the experiment says so. */
   hot: string;
-  /** Draw the nib hollow until the note is in tune. */
-  nibShape: boolean;
   scroll: number;
   naming: NoteNaming;
   fallbackMidi: number;
@@ -420,27 +417,9 @@ function draw(
   ctx.globalAlpha = alpha;
   ctx.shadowColor = hot;
   ctx.shadowBlur = inTune ? 22 : 12;
+  ctx.fillStyle = hot;
   nibPath(ctx, x, markerY, scale);
-  /*
-   * Hollow until it arrives, solid once it has. Dev experiment "Nib shape".
-   *
-   * Green against amber is the most confusable pair there is, and the verdict
-   * currently rides on colour in four places at once. A filled shape against
-   * an outlined one is the same answer given a second way, and the strobe --
-   * which refuses colour entirely, on the grounds that motion is the more
-   * precise signal -- is the app's own precedent for not leaning on it.
-   *
-   * The white core goes with the fill. Its whole job is keeping a solid nib
-   * legible on top of its own glow, and an outline has no inside to lose.
-   */
-  if (s.nibShape && !inTune) {
-    ctx.strokeStyle = hot;
-    ctx.lineWidth = Math.max(1.5, 2.4 * scale);
-    ctx.stroke();
-  } else {
-    ctx.fillStyle = hot;
-    ctx.fill();
-  }
+  ctx.fill();
   ctx.shadowBlur = 0;
 
   /* --- cent readout, riding above the nib -------------------------------- */
@@ -461,13 +440,10 @@ function draw(
   }
 
   // Bright inner highlight keeps the nib legible on top of its own glow.
-  // Nothing to keep legible when the nib is an outline -- see above.
-  if (!s.nibShape || inTune) {
-    ctx.globalAlpha = alpha * 0.8;
-    ctx.fillStyle = '#ffffff';
-    nibPath(ctx, x, markerY, scale * 0.44);
-    ctx.fill();
-  }
+  ctx.globalAlpha = alpha * 0.8;
+  ctx.fillStyle = '#ffffff';
+  nibPath(ctx, x, markerY, scale * 0.44);
+  ctx.fill();
 
   ctx.restore();
 }
