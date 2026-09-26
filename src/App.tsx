@@ -6,6 +6,7 @@ import { isNative } from './platform';
 import { reconcileEntitlement } from './state/purchases';
 import { INSTRUMENTS } from './music/tunings';
 import { sessionStore, settingsStore, useSettings } from './state/store';
+import { useExperiments } from './state/experiments';
 import {
   useAppearance,
   useCurrentTuning,
@@ -125,6 +126,19 @@ export default function App() {
   );
   useWakeLock(settings.keepAwake && micState === 'running');
   useIdleChrome(settings.dimIdle, appRef, settings.dimLevel);
+
+  /*
+   * The dev-only experiment flags, in a ref because the two places that read
+   * them are a frame callback and an event callback, neither of which should
+   * re-subscribe when a switch moves. All false in a build -- see
+   * state/experiments.
+   */
+  const experiments = useExperiments();
+  const expRef = useRef(experiments);
+  expRef.current = experiments;
+  /** Last `--hold` written, so most frames write nothing. */
+  const holdRef = useRef('0');
+  const sweepTimer = useRef(0);
   useSyncControllerSettings();
 
   /* ---------------------------------------------------------- targets --- */
@@ -150,7 +164,23 @@ export default function App() {
   useTunerFrame((frame) => {
     const value = String(frame.hasSignal && Math.abs(frame.cents) <= settings.tolerance);
     const el = appRef.current;
-    if (el && el.dataset.intune !== value) el.dataset.intune = value;
+    if (!el) return;
+    if (el.dataset.intune !== value) el.dataset.intune = value;
+
+    /*
+     * The tuned countdown, written straight to the DOM like the line above
+     * it. Driving this through props would re-render the app sixty times a
+     * second to move one gradient stop.
+     *
+     * Rounded to a hundredth, which is half a pixel on the tallest key this
+     * can draw on, so the write is skipped on most frames rather than the
+     * style being reparsed for a change nobody can see.
+     */
+    const want = expRef.current.holdFill ? frame.hold.toFixed(2) : '0';
+    if (holdRef.current !== want) {
+      holdRef.current = want;
+      el.style.setProperty('--hold', want);
+    }
   });
 
   useTunerEvent((event) => {
@@ -160,9 +190,20 @@ export default function App() {
         toneEngine.chime();
       }
     } else if (event.type === 'all-tuned') {
-      // Acknowledged in the hand only — the string row already shows the state,
-      // and a panel over the tuner is in the way of the next thing you play.
+      // Acknowledged in the hand — the string row already shows the state, and
+      // a panel over the tuner is in the way of the next thing you play. The
+      // sweep is not a panel: it takes no layout and cannot be in the way.
       if (settingsStore.get().haptics) haptic('medium');
+      if (expRef.current.allTunedSweep) {
+        const el = appRef.current;
+        if (el) {
+          el.dataset.alltuned = 'true';
+          clearTimeout(sweepTimer.current);
+          sweepTimer.current = window.setTimeout(() => {
+            delete el.dataset.alltuned;
+          }, 720);
+        }
+      }
     } else if (event.type === 'status') {
       setMicState(tuner.micState);
     }

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { pitchClassName } from '../../music/notes';
 import type { NoteNaming } from '../../music/notes';
 import type { TunerFrame } from '../../tuner/TunerController';
+import { useExperiments } from '../../state/experiments';
 import {
   clamp,
   colorFor,
@@ -13,6 +14,24 @@ import {
 } from './shared';
 
 const RANGE_CENTS = 250; // field edge = 250 cents off
+
+/**
+ * Pulls three numbers out of whatever the palette resolved to.
+ *
+ * `readPalette` hands back what getComputedStyle gave, which is `rgb(...)` or
+ * `rgba(...)` on every engine worth naming. Grabbing the numbers rather than
+ * matching a shape means an `oklch()` or a bare `#rgb` from somewhere
+ * unexpected degrades to the wrong colour for a tenth of a second instead of
+ * throwing in the frame loop.
+ */
+function rgbOf(css: string): [number, number, number] {
+  const n = css.match(/-?\d+(?:\.\d+)?/g);
+  if (!n || n.length < 3) return [233, 238, 244];
+  return [Number(n[0]), Number(n[1]), Number(n[2])];
+}
+
+/** How much of the way to the new verdict colour each frame travels. */
+const VERDICT_EASE = 0.18;
 const MAJOR_TICK_CENTS = 100; // semitone boundaries
 const MINOR_TICK_CENTS = 50;
 
@@ -75,6 +94,13 @@ export function PitchField({
     head: 0,
     count: 0,
   });
+
+  /** Dev experiments, in a ref because the draw loop is outside React. */
+  const experiments = useExperiments();
+  const expRef = useRef(experiments);
+  expRef.current = experiments;
+  /** The verdict colour part-way between where it was and where it is going. */
+  const easedHot = useRef<[number, number, number] | null>(null);
 
   const toleranceRef = useRef(tolerance);
   toleranceRef.current = tolerance;
@@ -173,10 +199,35 @@ export function PitchField({
         if (t.count < TRAIL_CAPACITY) t.count++;
       }
 
+      /*
+       * The verdict colour, and whether it is allowed to travel.
+       *
+       * Computed here rather than inside draw() because easing it needs
+       * somewhere to keep the last value, and draw() is a plain function that
+       * has nowhere. The trail still colours each of its own samples from
+       * `colorFor` -- that is a record of what the reading was at the time and
+       * has no business being smoothed after the fact.
+       */
+      const raw = colorFor(palette, frame.hasSignal ? frame.cents : 9999, toleranceRef.current);
+      let hot = raw;
+      if (expRef.current.easeVerdict) {
+        const want = rgbOf(raw);
+        const at = easedHot.current ?? want;
+        at[0] += (want[0] - at[0]) * VERDICT_EASE;
+        at[1] += (want[1] - at[1]) * VERDICT_EASE;
+        at[2] += (want[2] - at[2]) * VERDICT_EASE;
+        easedHot.current = at;
+        hot = `rgb(${Math.round(at[0])}, ${Math.round(at[1])}, ${Math.round(at[2])})`;
+      } else {
+        easedHot.current = null;
+      }
+
       draw(ctx, size, palette, frame, {
         cents: displayCents.current,
         fade: signalFade.current,
         tolerance: toleranceRef.current,
+        hot,
+        nibShape: expRef.current.nibShape,
         scroll: scrollOffset.current,
         naming: namingRef.current,
         fallbackMidi: fallbackRef.current,
@@ -206,6 +257,10 @@ interface DrawState {
   cents: number;
   fade: number;
   tolerance: number;
+  /** The verdict colour, already eased if the experiment says so. */
+  hot: string;
+  /** Draw the nib hollow until the note is in tune. */
+  nibShape: boolean;
   scroll: number;
   naming: NoteNaming;
   fallbackMidi: number;
@@ -285,7 +340,7 @@ function draw(
   /** The height the readings are sized against, which is not the canvas. */
   const boxH = s.floorY - s.top;
   const inTune = frame.hasSignal && Math.abs(frame.cents) <= s.tolerance;
-  const hot = colorFor(p, frame.hasSignal ? frame.cents : 9999, s.tolerance);
+  const hot = s.hot;
   const alpha = 0.32 + s.fade * 0.68;
 
   /** Fades everything out toward the bottom of the field. */
@@ -365,9 +420,27 @@ function draw(
   ctx.globalAlpha = alpha;
   ctx.shadowColor = hot;
   ctx.shadowBlur = inTune ? 22 : 12;
-  ctx.fillStyle = hot;
   nibPath(ctx, x, markerY, scale);
-  ctx.fill();
+  /*
+   * Hollow until it arrives, solid once it has. Dev experiment "Nib shape".
+   *
+   * Green against amber is the most confusable pair there is, and the verdict
+   * currently rides on colour in four places at once. A filled shape against
+   * an outlined one is the same answer given a second way, and the strobe --
+   * which refuses colour entirely, on the grounds that motion is the more
+   * precise signal -- is the app's own precedent for not leaning on it.
+   *
+   * The white core goes with the fill. Its whole job is keeping a solid nib
+   * legible on top of its own glow, and an outline has no inside to lose.
+   */
+  if (s.nibShape && !inTune) {
+    ctx.strokeStyle = hot;
+    ctx.lineWidth = Math.max(1.5, 2.4 * scale);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = hot;
+    ctx.fill();
+  }
   ctx.shadowBlur = 0;
 
   /* --- cent readout, riding above the nib -------------------------------- */
@@ -388,10 +461,13 @@ function draw(
   }
 
   // Bright inner highlight keeps the nib legible on top of its own glow.
-  ctx.globalAlpha = alpha * 0.8;
-  ctx.fillStyle = '#ffffff';
-  nibPath(ctx, x, markerY, scale * 0.44);
-  ctx.fill();
+  // Nothing to keep legible when the nib is an outline -- see above.
+  if (!s.nibShape || inTune) {
+    ctx.globalAlpha = alpha * 0.8;
+    ctx.fillStyle = '#ffffff';
+    nibPath(ctx, x, markerY, scale * 0.44);
+    ctx.fill();
+  }
 
   ctx.restore();
 }

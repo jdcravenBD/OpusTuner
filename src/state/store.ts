@@ -322,7 +322,7 @@ export interface Store<T extends object> {
   subscribe(listener: () => void): () => void;
 }
 
-function createStore<T extends object>(
+export function createStore<T extends object>(
   key: string,
   initial: T,
   /**

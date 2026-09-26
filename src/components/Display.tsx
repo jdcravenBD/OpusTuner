@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useTunerFrame } from '../hooks';
+import { useExperiments } from '../state/experiments';
 import { noteOctave, pitchClassName, type NoteNaming } from '../music/notes';
 
 interface Props {
@@ -43,6 +44,11 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
   const fallbackRef = useRef(fallbackMidi);
   fallbackRef.current = fallbackMidi;
 
+  /** Dev experiments, in a ref: this whole component runs outside React. */
+  const experiments = useExperiments();
+  const expRef = useRef(experiments);
+  expRef.current = experiments;
+
   // Last written values — avoids touching the DOM when nothing changed.
   const prev = useRef({ midi: -1, signal: '', intune: '', naming: '' as string });
 
@@ -53,6 +59,25 @@ export function NoteDisplay({ naming, tolerance, fallbackMidi }: Props) {
     // The whole carousel is rewritten only when the focused note (or the
     // accidental style) actually changes — typically a few times a session.
     if (centre !== p.midi || namingRef.current !== p.naming) {
+      /*
+       * A new target arrives rather than being rewritten where it stands.
+       * Dev experiment "Note arrives".
+       *
+       * Only on a change of *note* -- switching between sharps and flats
+       * renames what is already there and has not arrived from anywhere.
+       *
+       * The attribute is taken off and put back with a forced reflow between,
+       * which is the only way to restart a CSS animation that is already
+       * running: changing strings quickly would otherwise animate the first
+       * and none of the rest. It costs one synchronous layout, a few times a
+       * session, on a change that is already rewriting five elements.
+       */
+      const el = wrapRef.current;
+      if (expRef.current.noteArrive && centre !== p.midi && el) {
+        el.removeAttribute('data-arrive');
+        void el.offsetWidth;
+        el.setAttribute('data-arrive', 'true');
+      }
       p.midi = centre;
       p.naming = namingRef.current;
       const valid = centre > 0;

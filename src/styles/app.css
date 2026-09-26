@@ -804,6 +804,36 @@ button {
   opacity: 0.44;
 }
 
+/*
+ * A new target arriving. Dev experiment "Note arrives".
+ *
+ * The attribute is set by Display.tsx on a change of note and left on; the
+ * animation runs once and the next change restarts it by hand. Only the
+ * focused note moves -- the neighbours are the scale it sits on, and a scale
+ * that jumps every time you change string reads as the whole readout being
+ * unstable rather than as one note having landed.
+ */
+.carousel[data-arrive='true'] .carousel__note--focus {
+  animation: note-arrive 240ms var(--ease-out);
+}
+
+@keyframes note-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(0.09em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel[data-arrive='true'] .carousel__note--focus {
+    animation: none;
+  }
+}
+
 .carousel__note--focus {
   display: flex;
   align-items: baseline;
@@ -1624,6 +1654,86 @@ button {
 .strings {
   flex: 0 0 auto;
   padding: 2px calc(10px + var(--gutter)) 4px;
+}
+
+/*
+ * The half-second hold, drawn. Dev experiment "Hold countdown".
+ *
+ * A string does not count until it has stayed inside the window for
+ * TUNED_HOLD_FRAMES, and that wait used to be nothing followed by a tick.
+ * `--hold` is written onto .app every frame by App.tsx and inherits down to
+ * here; `frame.hold` carries it.
+ *
+ * A full-size element with a hard-stopped gradient rather than a short one
+ * anchored to the bottom, and that is the whole trick: it inherits the
+ * button's exact rounded shape, so the fill is clipped to it for free. A
+ * partial-height box would need its own radius, and `border-radius: 30%` on a
+ * box a third of the height resolves to a different ellipse than the one it
+ * is sitting inside. The button cannot simply clip its children either -- the
+ * tick hangs three pixels outside it on two sides.
+ *
+ * Costs nothing when the flag is off, because `--hold` is then always 0 and
+ * both gradient stops sit at the bottom edge.
+ */
+.string[data-active='true']:not([data-tuned='true'])::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.22;
+  background: linear-gradient(
+    to top,
+    var(--green) calc(var(--hold, 0) * 100%),
+    transparent calc(var(--hold, 0) * 100%)
+  );
+}
+
+/*
+ * The last string landing. Dev experiment "All tuned sweep".
+ *
+ * One pass of light across the row, ~700 ms, then the attribute comes off.
+ * Deliberately not a panel: the original decision against marking this at all
+ * was about something standing in front of the tuner, and this occupies no
+ * space, takes no layout and cannot be in the way of the next thing played.
+ *
+ * On a wrapper rather than on the keys, so it reads as one light crossing the
+ * instrument rather than six buttons each doing something.
+ */
+.strings__inner {
+  position: relative;
+}
+
+.app[data-alltuned='true'] .strings__inner::after {
+  content: '';
+  position: absolute;
+  inset: -6px -12px;
+  pointer-events: none;
+  border-radius: 12px;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    var(--green) 50%,
+    transparent 62%
+  );
+  opacity: 0.5;
+  animation: string-sweep 700ms var(--ease-out);
+}
+
+@keyframes string-sweep {
+  from {
+    transform: translateX(-115%);
+  }
+  to {
+    transform: translateX(115%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app[data-alltuned='true'] .strings__inner::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /*
